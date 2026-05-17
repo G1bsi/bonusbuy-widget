@@ -63,6 +63,7 @@
         }
         .mode-bonusbuy .slot-row.active .slot-name { font-size: 22px; font-weight: 800; color: #fff; text-shadow: 0 0 12px rgba(255,255,255,0.2); }
         
+        /* Анімація залишається тією ж, але тепер прокручує подвоєний список */
         .mode-finish .slots-list { animation: infiniteWheel 18s linear infinite; }
         @keyframes infiniteWheel { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
     </style>
@@ -139,7 +140,6 @@
             totalBuy += buy;
             totalWin += win;
             
-            // Якщо слот відкритий
             const isOpened = win > 0 || (win === 0 && idx < activeIndex);
             
             if (isOpened) {
@@ -156,26 +156,22 @@
             }
         });
 
-        // 🔥 3 КОЛОНКА: МАТЕМАТИКА КАМБЕК Х (📈)
         const deficit = totalBuy - totalWin; 
         let comebackXText = '0.00x';
 
         if (totalBuy === 0) {
             comebackXText = '0.00x';
         } else if (deficit <= 0) {
-            comebackXText = 'ОКУП'; // Вийшли в плюс
+            comebackXText = 'ОКУП'; 
         } else if (deficit > 0 && remainingBuy === 0) {
-            // Слоти закінчились, а ми в мінусі -> Показуємо фінальний Х до балансу (або до покупок)
             const baseValue = startBalance > 0 ? startBalance : totalBuy;
             comebackXText = (totalWin / baseValue).toFixed(2) + 'x'; 
         } else {
-            comebackXText = (deficit / remainingBuy).toFixed(2) + 'x'; // Потрібний Х для окупа
+            comebackXText = (deficit / remainingBuy).toFixed(2) + 'x'; 
         }
 
-        // 🔥 4 КОЛОНКА: СЕРЕДНІЙ Х ВІДКРИТИХ БОНУСІВ (⚖️)
         const openedAvgX = openedTotalBuy > 0 ? (openedTotalWin / openedTotalBuy) : 0;
 
-        // ОНОВЛЕНА ВЕРХНЯ ПАНЕЛЬ
         document.getElementById('stat-total').innerText = formatNumberCompact(startBalance) + ' ' + balanceCurr;
         document.getElementById('stat-count').innerText = openedCount + '/' + slots.length;
         document.getElementById('stat-comeback').innerText = comebackXText; 
@@ -187,7 +183,6 @@
 
         const container = document.getElementById('slots-container');
         if (!container) return;
-        container.innerHTML = '';
 
         let slotsToRender = [];
         if (displayMode === 'hunt') {
@@ -195,6 +190,9 @@
         } else {
             slotsToRender = slots.map(function(s, idx) { return Object.assign({}, s, {originalIndex: idx}); });
         }
+
+        // Збираємо HTML у змінну
+        let listHTML = '';
 
         slotsToRender.forEach(function(slot) {
             const isActive = slot.originalIndex === activeIndex;
@@ -230,7 +228,7 @@
             const winFormatted = win > 0 ? formatNumberWithCommas(win) : '';
             const winDisplayHTML = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${winFormatted} ${slotCur}</span>` : '';
 
-            container.innerHTML += `
+            listHTML += `
                 <div class="slot-row ${isActive ? 'active' : ''}">
                     <div class="slot-icon-wrapper">
                         ${iconInner}
@@ -244,6 +242,15 @@
                 </div>
             `;
         });
+
+        // 🔥 СЕКРЕТ БЕЗШОВНОЇ АНІМАЦІЇ: 
+        // Якщо режим FINISH і є слоти, ми вставляємо список ДВІЧІ. 
+        if (displayMode === 'finish' && slotsToRender.length > 0) {
+            container.innerHTML = listHTML + listHTML;
+        } else {
+            container.innerHTML = listHTML;
+        }
+
     }, function(error) {
         console.error("Firebase Rule Error:", error);
     });
