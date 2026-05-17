@@ -292,7 +292,7 @@
 
         firebase.auth().signInWithEmailAndPassword(HIDDEN_EMAIL, pass)
             .catch(err => {
-                errEl.innerText = "Неверный пароль!";
+                errEl.innerText = "Ошибка: " + err.message + " (" + err.code + ")";
                 errEl.style.display = 'block';
             });
     }
