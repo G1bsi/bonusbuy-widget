@@ -61,7 +61,6 @@
         #login-screen { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #14141a; display: flex; justify-content: center; align-items: center; z-index: 9999; }
         .login-card { background: #25252c; padding: 25px; border-radius: 12px; border: 2px solid #9b59b6; width: 100%; max-width: 300px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
         
-        /* 👀 КОНТЕЙНЕР ДЛЯ ПОЛЯ ПАРОЛЯ З ОКОМ */
         .password-wrapper { position: relative; width: 100%; display: inline-block; }
         .password-wrapper input { padding-right: 40px; }
         .toggle-password-btn {
@@ -154,7 +153,7 @@
                 <span id="arrow-add" class="arrow-indicator">▼</span>
             </div>
             <div id="box-add" class="box-content">
-                <input type="text" id="new-name" list="slots-base" data-i18n-holder="slotNamePlaceholder" placeholder="Название slots..." oninput="checkSlotDatabase()">
+                <input type="text" id="new-name" list="slots-base" data-i18n-holder="slotNamePlaceholder" placeholder="Название слота..." oninput="checkSlotDatabase()">
                 <datalist id="slots-base"></datalist>
                 <input type="number" id="new-buy" data-i18n-holder="buyAmountPlaceholder" placeholder="Сумма покупки">
                 <div class="currency-toggle-container">
@@ -222,10 +221,10 @@
         ru: {
             finances: "📊 Финансы", startBalance: "Стартовый баланс:", currency: "Валюта:", enterDepo: "Введите депо...", indicator: "Показатель", value: "Значение", totalWin: "Общий Выигрыш:", stableBalance: "Депозит:",
             obsMode: "📺 Режим отображения в OBS", btnHunt: "🏹 HUNT", btnBonusBuy: "🎯 BONUSBUY", btnFinish: "🏆 FINISH",
-            addSlotHeader: "1. Добавить слот в queue", slotNamePlaceholder: "Название слота...", buyAmountPlaceholder: "Сумма покупки", clipboardHint: "💡 <b>Копируй картинку из гугла</b><br>и просто нажми <b>Ctrl + V</b> здесь!", addToQueueBtn: "Добавить в список",
+            addSlotHeader: "1. Добавить слот в очередь", slotNamePlaceholder: "Название слота...", buyAmountPlaceholder: "Сумма покупки", clipboardHint: "💡 <b>Копируй картинку из гугла</b><br>и просто нажми <b>Ctrl + V</b> здесь!", addToQueueBtn: "Добавить в список",
             currentSlotHeaderPrefix: "2. Текущий слот: ", enterWinPlaceholder: "Введите выигрыш", saveWinBtn: "Сохранить выигрыш", prevBtn: "⬅ Предыдущий", nextBtn: "Следующий ➡",
             queueHeader: "↕️ Очередь и сортировка", archiveHeader: "🗄️ Архив прошлых стримов", closeStreamBtn: "💥 Закрыть стрим и сохранить в архив",
-            emptyQueue: "Очередь пуста", archiveEmpty: "Archive empty", fillFieldsAlert: "Заполните поля!", deleteArchiveConfirm: "Удалить сессию из архива?", archiveSessionConfirm: "Заархивировать сессию?", deleteSessionBtn: "Удалить 🗑️", bonusCount: "🎰 Бонусов: ", expanded: "▼", collapsed: "▲",
+            emptyQueue: "Очередь пуста", archiveEmpty: "Архив пуст", fillFieldsAlert: "Заполните поля!", deleteArchiveConfirm: "Удалить сессию из архива?", archiveSessionConfirm: "Заархивировать сессию?", deleteSessionBtn: "Удалить 🗑️", bonusCount: "🎰 Бонусов: ", expanded: "▼", collapsed: "▲",
             deleteSlotConfirm: "Вы точно хотите удалить этот слот из очереди?"
         },
         uk: {
@@ -248,6 +247,9 @@
         }
     };
 
+    const AUTOCOMPLETE_LIST = ["Gates of Olympus", "Sweet Bonanza", "Sugar Rush", "Zeus vs Hades", "Wanted Dead or a Wild", "RIP City", "Mental", "San Quentin"];
+
+    // 🔒 ВИПРАВЛЕНИЙ ТА ПЕРЕВІРЕНИЙ КОНФІГ FIREBASE (З ЦИФРОЮ 0!)
     const firebaseConfig = {
         apiKey: "AIzaSyD5A81EQXjywE72h3zbqaqwNAUb08I7KNc",
         authDomain: "obswidget-110cf.firebaseapp.com",
@@ -298,7 +300,6 @@
     }
     window.handleLogin = handleLogin;
 
-    // 🔥 ФУНКЦІЯ ПЕРЕМИКАННЯ ОКА (ПОКАЗАТИ / СХОВАТИ ПАРОЛЬ)
     function togglePasswordVisibility() {
         const passInput = document.getElementById('login-password');
         const toggleBtn = document.querySelector('.toggle-password-btn');
