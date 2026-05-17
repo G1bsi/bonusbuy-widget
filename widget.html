@@ -96,7 +96,6 @@
 </div>
 
 <script>
-    // 🔥 ТВІЙ ПРАВИЛЬНИЙ КОНФІГ FIREBASE
     const firebaseConfig = {
       apiKey: "AIzaSyD5A81EQXjywE72h3zbqaqwNAUbO8I7KNc",
       authDomain: "obswidget-110cf.firebaseapp.com",
@@ -111,20 +110,13 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 🏆 ФУНКЦІЯ, ЯКА РОБИТЬ "100к" та "1кк"
     function formatNumberCompact(num) {
         num = Number(num);
         if (isNaN(num) || num === 0) return '0';
-        
         let absNum = Math.abs(num);
         let sign = num < 0 ? '-' : '';
-        
-        if (absNum >= 1000000) {
-            return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк';
-        }
-        if (absNum >= 1000) {
-            return sign + parseFloat((absNum / 1000).toFixed(2)) + 'к';
-        }
+        if (absNum >= 1000000) return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк';
+        if (absNum >= 1000) return sign + parseFloat((absNum / 1000).toFixed(2)) + 'к';
         return sign + absNum.toString();
     }
 
@@ -133,30 +125,52 @@
         const slots = data.slots ? Object.values(data.slots) : [];
         const activeIndex = data.active_index ?? 0;
         const displayMode = data.display_mode || 'hunt';
-        const startBalance = data.start_balance ?? 0;
         const balanceCurr = data.start_balance_currency || '₽';
         const customIcons = data.custom_icons || {};
 
-        const widgetContainer = document.getElementById('widget');
-        if (widgetContainer) {
-            if (displayMode === 'bonusbuy') widgetContainer.style.borderColor = '#9b59b6';
-            else if (displayMode === 'finish') widgetContainer.style.borderColor = '#2ecc71';
-            else widgetContainer.style.borderColor = '#3498db';
+        // 1. Оновлюємо стилі головного контейнера (для бонусів та фінішу)
+        const mainContainer = document.getElementById('main-container');
+        if (mainContainer) {
+            mainContainer.className = 'tracker-container ' + (slots.length > 0 ? 'has-items ' : '') + 'mode-' + displayMode;
         }
 
+        // 2. Рахуємо всю статистику для верхньої панелі
         let totalWin = 0;
-        slots.forEach(s => { totalWin += Number(s.win || 0); });
+        let totalBuy = 0;
+        let openedCount = 0;
+        let maxX = 0;
 
-        // 🔥 ЗАСТОСОВУЄМО ФОРМАТУВАННЯ ДО БАЛАНСУ ТА ЗАГАЛЬНОГО ВИГРАШУ
-        const totalWinEl = document.getElementById('widget-total-win');
-        const depositEl = document.getElementById('widget-deposit');
-        
-        if (totalWinEl) {
-            totalWinEl.innerHTML = `<span style="color:#2ecc71;">${formatNumberCompact(totalWin)}</span> <span style="font-size: 0.9em; color:#aaa;">${balanceCurr}</span>`;
-        }
-        if (depositEl) {
-            depositEl.innerHTML = `${formatNumberCompact(startBalance)} <span style="font-size: 0.9em; color:#aaa;">${balanceCurr}</span>`;
-        }
+        slots.forEach((s, idx) => {
+            const buy = Number(s.buy || 0);
+            const win = Number(s.win || 0);
+            totalBuy += buy;
+            totalWin += win;
+            
+            // Рахуємо відкриті (де вже є виграш, або які вже позаду в черзі)
+            if (win > 0 || (win === 0 && idx < activeIndex)) openedCount++;
+            
+            if (buy > 0 && win > 0) {
+                const x = win / buy;
+                if (x > maxX) maxX = x;
+            }
+        });
+
+        const avgX = totalBuy > 0 ? (totalWin / totalBuy) : 0;
+
+        // 3. Заповнюємо твої 4 плашки статистики (З крутим форматом!)
+        document.getElementById('stat-total').innerText = formatNumberCompact(totalWin) + balanceCurr;
+        document.getElementById('stat-count').innerText = openedCount + '/' + slots.length;
+        document.getElementById('stat-avg').innerText = avgX.toFixed(2) + 'x';
+        document.getElementById('stat-max').innerText = maxX.toFixed(2) + 'x';
+
+        // 4. Логіка відображення списку
+        const viewport = document.getElementById('viewport');
+        if (slots.length > 0) viewport.style.display = 'block';
+        else viewport.style.display = 'none';
+
+        const container = document.getElementById('slots-container');
+        if (!container) return;
+        container.innerHTML = '';
 
         let slotsToRender = [];
         if (displayMode === 'hunt') {
@@ -165,48 +179,52 @@
             slotsToRender = slots.map((s, idx) => ({...s, originalIndex: idx}));
         }
 
-        const container = document.getElementById('widget-slots-container');
-        if (!container) return;
-        container.innerHTML = '';
-
-        if (slotsToRender.length === 0) {
-            container.innerHTML = `<div style="text-align:center; color:#666; font-size:12px; padding:20px;">Очередь пуста</div>`;
-            return;
-        }
-
+        // 5. Рендеримо слоти за твоїм унікальним дизайном
         slotsToRender.forEach(slot => {
             const isActive = slot.originalIndex === activeIndex;
             const slotCur = slot.currency || '₽';
+            const buy = Number(slot.buy || 0);
+            const win = Number(slot.win || 0);
             
-            let xHTML = '';
-            if (slot.win > 0 && slot.buy > 0) {
-                const xVal = (slot.win / slot.buy).toFixed(1);
-                xHTML = `<div class="slot-x-val win-x">${xVal}x</div>`;
-            } else if (slot.win === 0 && !isActive) {
-                xHTML = `<div class="slot-x-val loss-x">0x</div>`;
-            } else {
-                xHTML = `<div class="slot-x-val">—</div>`;
+            let xValText = '—';
+            let multClass = 'mult-pending';
+            
+            if (win > 0 && buy > 0) {
+                const x = win / buy;
+                xValText = x.toFixed(2) + 'x';
+                multClass = x >= 1 ? 'mult-win' : 'mult-loss';
+            } else if (win === 0 && slot.originalIndex < activeIndex) {
+                xValText = '0.00x';
+                multClass = 'mult-loss';
             }
 
-            let iconHTML = `<div class="slot-icon-frame">?</div>`;
+            let isCrown = false;
+            if (displayMode === 'finish' && win > 0 && buy > 0 && (win/buy) === maxX && maxX > 0) {
+                isCrown = true;
+            }
+
+            let iconInner = '?';
             if (customIcons[slot.name]) {
-                iconHTML = `<div class="slot-icon-frame"><img class="slot-icon-img" src="${customIcons[slot.name]}"></div>`;
-            } else if (slot.name && slot.name.length > 0) {
-                iconHTML = `<div class="slot-icon-frame">${slot.name.charAt(0).toUpperCase()}</div>`;
+                iconInner = `<img class="slot-icon-img" src="${customIcons[slot.name]}">`;
+            } else if (slot.name) {
+                iconInner = `<div class="slot-icon-text">${slot.name.substring(0, 2)}</div>`;
             }
 
-            // Форматуємо цифри конкретного слота (покупка та виграш)
-            const buyFormatted = formatNumberCompact(slot.buy);
-            const winFormatted = slot.win > 0 ? ` ➔ <span style="color:#2ecc71; font-weight:bold;">${formatNumberCompact(slot.win)} ${slotCur}</span>` : '';
+            const buyFormatted = formatNumberCompact(buy);
+            const winFormatted = win > 0 ? formatNumberCompact(win) : '';
+            const winDisplayHTML = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${winFormatted}${slotCur}</span>` : '';
 
             container.innerHTML += `
-                <div class="slot-row ${isActive ? 'active-slot' : ''}">
-                    ${iconHTML}
-                    <div class="slot-info">
-                        <span class="slot-name">${slot.name}</span>
-                        <span class="slot-math">${buyFormatted} ${slotCur}${winFormatted}</span>
+                <div class="slot-row ${isActive ? 'active' : ''}">
+                    <div class="slot-icon-wrapper">
+                        ${iconInner}
+                        ${isCrown ? '<div class="crown-overlay">👑</div>' : ''}
                     </div>
-                    ${xHTML}
+                    <div class="slot-info">
+                        <div class="slot-name">${slot.name}</div>
+                        <div class="slot-amounts">${buyFormatted}${slotCur} ${winDisplayHTML}</div>
+                    </div>
+                    <div class="multiplier-badge ${multClass}">${xValText}</div>
                 </div>
             `;
         });
