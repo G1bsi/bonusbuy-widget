@@ -206,7 +206,7 @@
         ru: {
             finances: "📊 Финансы", startBalance: "Стартовый баланс:", currency: "Валюта:", enterDepo: "Введите депо...", indicator: "Показатель", value: "Значение", totalWin: "Общий Выигрыш:", stableBalance: "Депозит:",
             obsMode: "📺 Режим отображения в OBS", btnHunt: "🏹 HUNT", btnBonusBuy: "🎯 BONUSBUY", btnFinish: "🏆 FINISH",
-            addSlotHeader: "1. Добавить слот в очередь", slotNamePlaceholder: "Название слота...", buyAmountPlaceholder: "Сумма покупки", clipboardHint: "💡 <b>Копируй картинку из гугла</b><br>и просто нажми <b>Ctrl + V</b> здесь!", addToQueueBtn: "Добавить в список",
+            addSlotHeader: "1. Добавить слот в queue", slotNamePlaceholder: "Название слота...", buyAmountPlaceholder: "Сумма покупки", clipboardHint: "💡 <b>Копируй картинку из гугла</b><br>и просто нажми <b>Ctrl + V</b> здесь!", addToQueueBtn: "Добавить в список",
             currentSlotHeaderPrefix: "2. Текущий слот: ", enterWinPlaceholder: "Введите выигрыш", saveWinBtn: "Сохранить выигрыш", prevBtn: "⬅ Предыдущий", nextBtn: "Следующий ➡",
             queueHeader: "↕️ Очередь и сортировка", archiveHeader: "🗄️ Архив прошлых стримов", closeStreamBtn: "💥 Закрыть стрим и сохранить в архив",
             emptyQueue: "Очередь пуста", archiveEmpty: "Архив пуст", fillFieldsAlert: "Заполните поля!", deleteArchiveConfirm: "Удалить сессию из архива?", archiveSessionConfirm: "Заархивировать сессию?", deleteSessionBtn: "Удалить 🗑️", bonusCount: "🎰 Бонусов: ", expanded: "▼", collapsed: "▲",
@@ -245,7 +245,8 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    const HIDDEN_EMAIL = "gibsiua@gmail.com"; 
+    // 🔥 ТВОЯ НОВА ПОШТА ВБУДОВАНА СЮДИ АВТОМАТИЧНО
+    const HIDDEN_EMAIL = "kostezezanos@gmail.com"; 
 
     let currentLang = localStorage.getItem('mod_lang') || 'ru';
     let localActiveIndex = 0, slotsArray = [];
