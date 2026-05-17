@@ -8,7 +8,6 @@
     <style>
         body { margin: 0; padding: 15px; font-family: 'Plus Jakarta Sans', sans-serif; color: #fff; background: transparent; overflow: hidden; }
         
-        /* ШИРИНА ЗБІЛЬШЕНА ДО 560px */
         .tracker-container { 
             width: 560px; height: fit-content; background: rgba(10, 10, 14, 0.98); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
             border-radius: 36px; padding: 24px; box-shadow: 0 35px 85px rgba(0,0,0,0.6), inset 0 1px 3px rgba(255,255,255,0.05); 
@@ -25,10 +24,8 @@
         .slots-viewport { display: none; height: auto; max-height: 500px; overflow: hidden; position: relative; border-radius: 24px; }
         .slots-list { display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box; }
         
-        /* Збільшено висоту рядка слота (88px) та відступи */
         .slot-row { display: flex; align-items: center; padding: 18px 22px; background: rgba(18, 18, 24, 0.85); border-radius: 24px; border: 1px solid rgba(255,255,255,0.01); box-sizing: border-box; height: 88px; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         
-        /* Збільшено іконки до 55px */
         .slot-icon-wrapper { position: relative; width: 55px; height: 55px; margin-right: 20px; flex-shrink: 0; }
         .slot-icon-img { width: 100%; height: 100%; border-radius: 14px; background: #222; object-fit: cover; box-shadow: 0 5px 15px rgba(0,0,0,0.4); }
         
@@ -50,12 +47,10 @@
         }
         
         .slot-info { flex-grow: 1; min-width: 0; }
-        /* Збільшено шрифти тексту */
         .slot-name { font-size: 21px; font-weight: 700; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .slot-amounts { font-size: 19px; color: #64748b; font-weight: 500; margin-top: 4px; }
         .arrow-blue { color: #00f2fe; font-weight: bold; margin: 0 6px; filter: drop-shadow(0 0 6px rgba(0,242,254,0.4)); }
         
-        /* Збільшено бейдж іксів */
         .multiplier-badge { font-size: 18px; font-weight: 800; padding: 8px 14px; border-radius: 30px; min-width: 88px; text-align: center; box-sizing: border-box; box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
         .mult-pending { background: rgba(30, 41, 59, 0.75); color: #94a3b8; border: 1px solid rgba(255,255,255,0.03); }
         .mult-loss { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
@@ -78,7 +73,7 @@
     <div class="stats-grid">
         <div class="stat-card"><span class="stat-icon">💰</span><span id="stat-total" class="stat-val">0</span></div>
         <div class="stat-card"><span class="stat-icon">⭐</span><span id="stat-count" class="stat-val">0/0</span></div>
-        <div class="stat-card"><span class="stat-icon">⚖️</span><span id="stat-avg" class="stat-val">0.00x</span></div>
+        <div class="stat-card"><span class="stat-icon">📈</span><span id="stat-avg" class="stat-val">0.00x</span></div>
         <div class="stat-card"><span class="stat-icon">🎯</span><span id="stat-max" class="stat-val">0.00x</span></div>
     </div>
     <div id="viewport" class="slots-viewport">
@@ -133,6 +128,7 @@
         let totalBuy = 0;
         let openedCount = 0;
         let maxX = 0;
+        let remainingBuy = 0; // Для підрахунку невідкритих слотів
 
         slots.forEach(function(s, idx) {
             const buy = Number(s.buy || 0);
@@ -140,7 +136,14 @@
             totalBuy += buy;
             totalWin += win;
             
-            if (win > 0 || (win === 0 && idx < activeIndex)) openedCount++;
+            // Якщо слот відкритий (є виграш або він позаду в черзі)
+            const isOpened = win > 0 || (win === 0 && idx < activeIndex);
+            
+            if (isOpened) {
+                openedCount++;
+            } else {
+                remainingBuy += buy; // Додаємо вартість до тих, що залишились
+            }
             
             if (buy > 0 && win > 0) {
                 const x = win / buy;
@@ -148,11 +151,24 @@
             }
         });
 
-        const avgX = totalBuy > 0 ? (totalWin / totalBuy) : 0;
+        // 🔥 МАТЕМАТИКА КАМБЕК Х
+        const deficit = totalBuy - totalWin; // Скільки грошей треба відбити
+        let comebackXText = '0.00x';
 
+        if (totalBuy === 0) {
+            comebackXText = '0.00x';
+        } else if (deficit <= 0) {
+            comebackXText = 'PROFIT'; // Вийшли в плюс
+        } else if (deficit > 0 && remainingBuy === 0) {
+            comebackXText = 'RIP 🪦'; // Слоти закінчились, а ми в мінусі
+        } else {
+            comebackXText = (deficit / remainingBuy).toFixed(2) + 'x'; // Рахуємо потрібний Х
+        }
+
+        // ОНОВЛЕНА ВЕРХНЯ ПАНЕЛЬ
         document.getElementById('stat-total').innerText = formatNumberCompact(startBalance) + ' ' + balanceCurr;
         document.getElementById('stat-count').innerText = openedCount + '/' + slots.length;
-        document.getElementById('stat-avg').innerText = avgX.toFixed(2) + 'x';
+        document.getElementById('stat-avg').innerText = comebackXText; // Виводимо Камбек Х
         document.getElementById('stat-max').innerText = maxX.toFixed(2) + 'x';
 
         const viewport = document.getElementById('viewport');
