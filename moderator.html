@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Панель Модератора Bonus Buy (Grid Modes & Clean UI)</title>
+    <title>Панель Модератора Bonus Buy (Default RU & Compact Numbers)</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -42,7 +42,6 @@
         .upload-hint { font-size: 22px; color: #666; font-weight: bold; }
         .preview-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
 
-        /* 🔥 СТИЛІЗАЦІЯ РЕЖИМІВ У ВИГЛЯДІ 3 КОЛОНОК-НАКЛЕЙОК З МАЛИМ ТЕКСТОМ */
         .modes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 5px 0; }
         .mode-btn { background: #333; color: #8a8a93; margin: 0; padding: 10px 2px; border: 2px solid transparent; font-size: 10.5px; font-weight: 800; text-align: center; border-radius: 8px; transition: all 0.2s ease; }
         .mode-btn.active { background: #9b59b6; color: #fff; border-color: #fff; box-shadow: 0 4px 12px rgba(155, 89, 182, 0.4); }
@@ -80,22 +79,22 @@
     <div style="max-width: 420px; display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 12px; color: #8a8a93;">
         🌐 Language: 
         <select id="lang-select" onchange="changeLanguage(this.value)" style="width: auto; padding: 6px 12px; margin: 0; background: #25252c; color: #fff; border: 1px solid #444; border-radius: 5px; cursor: pointer; font-weight: bold;">
-            <option value="uk">🇺🇦 Українська</option>
             <option value="ru">🇷🇺 Русский</option>
+            <option value="uk">🇺🇦 Українська</option>
             <option value="en">🇺🇸 English</option>
         </select>
     </div>
 
     <div class="box" style="border: 1px solid #e67e22;">
         <div class="box-header" onclick="toggleBox('box-fin', 'arrow-fin')">
-            <h3 style="color:#e67e22;" data-i18n="finances">📊 Фінанси</h3>
+            <h3 style="color:#e67e22;" data-i18n="finances">📊 Финансы</h3>
             <span id="arrow-fin" class="arrow-indicator">▼</span>
         </div>
         <div id="box-fin" class="box-content">
             <div style="display: flex; gap: 8px; align-items: center;">
                 <div style="flex: 2;">
-                    <label style="font-size: 11px; color:#aaa;" data-i18n="startBalance">Стартовий баланс:</label>
-                    <input type="number" id="balance-input" data-i18n-holder="enterDepo" placeholder="Введіть депо..." onchange="saveFinanceSettings()" autocomplete="off">
+                    <label style="font-size: 11px; color:#aaa;" data-i18n="startBalance">Стартовый баланс:</label>
+                    <input type="number" id="balance-input" data-i18n-holder="enterDepo" placeholder="Введите депо..." onchange="saveFinanceSettings()" autocomplete="off">
                 </div>
                 <div style="flex: 1;">
                     <label style="font-size: 11px; color:#aaa;" data-i18n="currency">Валюта:</label>
@@ -107,10 +106,10 @@
             </div>
             <table class="finance-table">
                 <thead>
-                    <tr><th data-i18n="indicator">Показник</th><th data-i18n="value">Значення</th></tr>
+                    <tr><th data-i18n="indicator">Показатель</th><th data-i18n="value">Значение</th></tr>
                 </thead>
                 <tbody>
-                    <tr><td data-i18n="totalWin">Загальний Виграш:</td><td id="fin-win-val" style="color:#2ecc71;">0</td></tr>
+                    <tr><td data-i18n="totalWin">Общий Выигрыш:</td><td id="fin-win-val" style="color:#2ecc71;">0</td></tr>
                     <tr><td data-i18n="stableBalance">Депозит:</td><td id="fin-bal-val">0</td></tr>
                 </tbody>
             </table>
@@ -119,7 +118,7 @@
 
     <div class="box" style="border: 1px solid #9b59b6;">
         <div class="box-header" onclick="toggleBox('box-modes', 'arrow-modes')">
-            <h3 style="color:#9b59b6;" data-i18n="obsMode">📺 Режим відображення в OBS</h3>
+            <h3 style="color:#9b59b6;" data-i18n="obsMode">📺 Режим отображения в OBS</h3>
             <span id="arrow-modes" class="arrow-indicator">▼</span>
         </div>
         <div id="box-modes" class="box-content">
@@ -133,13 +132,13 @@
 
     <div class="box">
         <div class="box-header" onclick="toggleBox('box-add', 'arrow-add')">
-            <h3 data-i18n="addSlotHeader">1. Додати слот у чергу</h3>
+            <h3 data-i18n="addSlotHeader">1. Добавить слот в очередь</h3>
             <span id="arrow-add" class="arrow-indicator">▼</span>
         </div>
         <div id="box-add" class="box-content">
-            <input type="text" id="new-name" list="slots-base" data-i18n-holder="slotNamePlaceholder" placeholder="Назва слоту..." oninput="checkSlotDatabase()">
+            <input type="text" id="new-name" list="slots-base" data-i18n-holder="slotNamePlaceholder" placeholder="Название слота..." oninput="checkSlotDatabase()">
             <datalist id="slots-base"></datalist>
-            <input type="number" id="new-buy" data-i18n-holder="buyAmountPlaceholder" placeholder="Сума покупки">
+            <input type="number" id="new-buy" data-i18n-holder="buyAmountPlaceholder" placeholder="Сумма покупки">
             <div class="currency-toggle-container">
                 <button type="button" id="curr-usd" class="currency-btn active" onclick="setNewSlotCurrency('$')">$ (USD)</button>
                 <button type="button" id="curr-rub" class="currency-btn" onclick="setNewSlotCurrency('₽')">₽ (RUB)</button>
@@ -152,32 +151,32 @@
                 </div>
                 <input type="file" id="image-file-input" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
                 <span style="font-size: 11px; color: #8a8a93; line-height: 1.35;" data-i18n="clipboardHint">
-                    💡 <b>Копіюй картинку з гугла</b><br>і просто натисни <b>Ctrl + V</b> тут!
+                    💡 <b>Копируй картинку из гугла</b><br>и просто нажми <b>Ctrl + V</b> здесь!
                 </span>
             </div>
             
-            <button onclick="addSlot()" data-i18n="addToQueueBtn">Додати в список</button>
+            <button onclick="addSlot()" data-i18n="addToQueueBtn">Добавить в список</button>
         </div>
     </div>
 
     <div class="box">
         <div class="box-header" onclick="toggleBox('box-current', 'arrow-current')">
-            <h3><span data-i18n="currentSlotHeaderPrefix">2. Поточний слот: </span><span id="current-slot-title">—</span></h3>
+            <h3><span data-i18n="currentSlotHeaderPrefix">2. Текущий слот: </span><span id="current-slot-title">—</span></h3>
             <span id="arrow-current" class="arrow-indicator">▼</span>
         </div>
         <div id="box-current" class="box-content">
-            <input type="number" id="current-win" data-i18n-holder="enterWinPlaceholder" placeholder="Введіть виграш">
-            <button class="green" onclick="saveCurrentWin()" data-i18n="saveWinBtn">Зберегти виграш</button>
+            <input type="number" id="current-win" data-i18n-holder="enterWinPlaceholder" placeholder="Введите выигрыш">
+            <button class="green" onclick="saveCurrentWin()" data-i18n="saveWinBtn">Сохранить выигрыш</button>
             <div class="nav-container" style="margin-top: 10px;">
-                <button class="nav" onclick="changeIndex(-1)" data-i18n="prevBtn">⬅ Попередній</button>
-                <button class="nav" onclick="changeIndex(1)" data-i18n="nextBtn">Наступний ➡</button>
+                <button class="nav" onclick="changeIndex(-1)" data-i18n="prevBtn">⬅ Предыдущий</button>
+                <button class="nav" onclick="changeIndex(1)" data-i18n="nextBtn">Следующий ➡</button>
             </div>
         </div>
     </div>
 
     <div class="box" style="border: 1px solid #3498db;">
         <div class="box-header" onclick="toggleBox('box-sort', 'arrow-sort')">
-            <h3 style="color:#3498db;" data-i18n="queueHeader">↕️ Черга та сортування</h3>
+            <h3 style="color:#3498db;" data-i18n="queueHeader">↕️ Очередь и сортировка</h3>
             <span id="arrow-sort" class="arrow-indicator">▼</span>
         </div>
         <div id="box-sort" class="box-content">
@@ -187,7 +186,7 @@
 
     <div class="box" style="border: 1px solid #2ecc71;">
         <div class="box-header" onclick="toggleBox('box-archive', 'arrow-archive')">
-            <h3 style="color:#2ecc71;" data-i18n="archiveHeader">🗄️ Архів минулих стрімів</h3>
+            <h3 style="color:#2ecc71;" data-i18n="archiveHeader">🗄️ Архив прошлых стримов</h3>
             <span id="arrow-archive" class="arrow-indicator">▼</span>
         </div>
         <div id="box-archive" class="box-content">
@@ -196,12 +195,20 @@
     </div>
 
     <div class="box" style="border: 1px solid #ff4a5a;">
-        <button style="background:#ff4a5a;" onclick="resetAll()" data-i18n="closeStreamBtn">💥 Закрити стрім та зберегти в архів</button>
+        <button style="background:#ff4a5a;" onclick="resetAll()" data-i18n="closeStreamBtn">💥 Закрыть стрим и сохранить в архив</button>
     </div>
 
 <script>
-    // 🌐 ОНОВЛЕНА МОВНА МАТРИЦЯ (ЧИСТІ НАЗВИ РЕЖИМІВ + ДЕПОЗИТ)
     const TRANSLATIONS = {
+        ru: {
+            finances: "📊 Финансы", startBalance: "Стартовый баланс:", currency: "Валюта:", enterDepo: "Введите депо...", indicator: "Показатель", value: "Значение", totalWin: "Общий Выигрыш:", stableBalance: "Депозит:",
+            obsMode: "📺 Режим отображения в OBS", btnHunt: "🏹 HUNT", btnBonusBuy: "🎯 BONUSBUY", btnFinish: "🏆 FINISH",
+            addSlotHeader: "1. Добавить слот в очередь", slotNamePlaceholder: "Название слота...", buyAmountPlaceholder: "Сумма покупки", clipboardHint: "💡 <b>Копируй картинку из гугла</b><br>и просто нажми <b>Ctrl + V</b> здесь!", addToQueueBtn: "Добавить в список",
+            currentSlotHeaderPrefix: "2. Текущий слот: ", enterWinPlaceholder: "Введите выигрыш", saveWinBtn: "Сохранить выигрыш", prevBtn: "⬅ Предыдущий", nextBtn: "Следующий ➡",
+            queueHeader: "↕️ Очередь и возрастание", archiveHeader: "🗄️ Архив прошлых стримов", closeStreamBtn: "💥 Закрыть стрим и сохранить в архив",
+            emptyQueue: "Очередь пуста", archiveEmpty: "Архив пуст", fillFieldsAlert: "Заполните поля!", deleteArchiveConfirm: "Удалить сессию из архива?", archiveSessionConfirm: "Заархивировать сессию?", deleteSessionBtn: "Удалить 🗑️", bonusCount: "🎰 Бонусов: ", expanded: "▼", collapsed: "▲",
+            deleteSlotConfirm: "Вы точно хотите удалить этот слот из очереди?"
+        },
         uk: {
             finances: "📊 Фінанси", startBalance: "Стартовий баланс:", currency: "Валюта:", enterDepo: "Введіть депо...", indicator: "Показник", value: "Значення", totalWin: "Загальний Виграш:", stableBalance: "Депозит:",
             obsMode: "📺 Режим відображення в OBS", btnHunt: "🏹 HUNT", btnBonusBuy: "🎯 BONUSBUY", btnFinish: "🏆 FINISH",
@@ -210,15 +217,6 @@
             queueHeader: "↕️ Черга та сортування", archiveHeader: "🗄️ Архів минулих стрімів", closeStreamBtn: "💥 Закрити стрім та зберегти в архів",
             emptyQueue: "Черга порожня", archiveEmpty: "Архів порожній", fillFieldsAlert: "Заповніть поля!", deleteArchiveConfirm: "Видалити сесію з архіву?", archiveSessionConfirm: "Заархівувати сесію?", deleteSessionBtn: "Видалити 🗑️", bonusCount: "🎰 Бонусок: ", expanded: "▼", collapsed: "▲",
             deleteSlotConfirm: "Ви точно хочете видалити цей слот із черги?"
-        },
-        ru: {
-            finances: "📊 Финансы", startBalance: "Стартовый баланс:", currency: "Валюта:", enterDepo: "Введите депо...", indicator: "Показатель", value: "Значение", totalWin: "Общий Выигрыш:", stableBalance: "Депозит:",
-            obsMode: "📺 Режим отображения в OBS", btnHunt: "🏹 HUNT", btnBonusBuy: "🎯 BONUSBUY", btnFinish: "🏆 FINISH",
-            addSlotHeader: "1. Добавить слот в очередь", slotNamePlaceholder: "Название слота...", buyAmountPlaceholder: "Сумма покупки", clipboardHint: "💡 <b>Копируй картинку из гугла</b><br>и просто нажми <b>Ctrl + V</b> здесь!", addToQueueBtn: "Добавить в список",
-            currentSlotHeaderPrefix: "2. Текущий слот: ", enterWinPlaceholder: "Введите выигрыш", saveWinBtn: "Сохранить выигрыш", prevBtn: "⬅ Предыдущий", nextBtn: "Следующий ➡",
-            queueHeader: "↕️ Очередь и сортировка", archiveHeader: "🗄️ Архив прошлых стримов", closeStreamBtn: "💥 Закрыть стрим и сохранить в архив",
-            emptyQueue: "Очередь пуста", archiveEmpty: "Архив пуст", fillFieldsAlert: "Заполните поля!", deleteArchiveConfirm: "Убрать сессию из архива?", archiveSessionConfirm: "Заархивировать сессию?", deleteSessionBtn: "Удалить 🗑️", bonusCount: "🎰 Бонусов: ", expanded: "▼", collapsed: "▲",
-            deleteSlotConfirm: "Вы точно хотите удалить этот слот из очереди?"
         },
         en: {
             finances: "📊 Finances", startBalance: "Starting balance:", currency: "Currency:", enterDepo: "Enter deposit...", indicator: "Indicator", value: "Value", totalWin: "Total Win:", stableBalance: "Deposit:",
@@ -246,10 +244,24 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    let currentLang = localStorage.getItem('mod_lang') || 'uk';
+    let currentLang = localStorage.getItem('mod_lang') || 'ru';
     let localActiveIndex = 0, slotsArray = [];
     let isDragging = false, selectedNewCurrency = '$', deletionHistory = [];
     let uploadedIconBase64 = '', firebaseCustomIcons = {};
+
+    function formatNumberCompact(num) {
+        num = Number(num);
+        if (isNaN(num) || num === 0) return '0';
+        if (num >= 1000000) {
+            let val = num / 1000000;
+            return parseFloat(val.toFixed(2)) + 'кк';
+        }
+        if (num >= 1000) {
+            let val = num / 1000;
+            return parseFloat(val.toFixed(2)) + 'к';
+        }
+        return num.toString();
+    }
 
     function updateLanguageUI() {
         document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -375,8 +387,8 @@
 
         let totalWin = 0; slotsArray.forEach(s => { totalWin += Number(s.win || 0); });
         
-        document.getElementById('fin-win-val').innerText = totalWin + ' ' + startBalanceCurr;
-        document.getElementById('fin-bal-val').innerText = (startBalance || 0) + ' ' + startBalanceCurr;
+        document.getElementById('fin-win-val').innerText = formatNumberCompact(totalWin) + ' ' + startBalanceCurr;
+        document.getElementById('fin-bal-val').innerText = formatNumberCompact(startBalance || 0) + ' ' + startBalanceCurr;
 
         if (!isDragging) {
             const dragContainer = document.getElementById('drag-container'); dragContainer.innerHTML = '';
@@ -484,7 +496,6 @@
     function toggleArchive(id) { const target = document.getElementById(id); target.style.display = target.style.display === 'block' ? 'none' : 'block'; }
     window.toggleArchive = toggleArchive;
     
-    // ПРИЗНАЧЕННЯ РЕЖИМІВ ЧЕРЕЗ КНОПКИ-НАКЛЕЙКИ
     function setMode(modeName) { db.ref('display_mode').set(modeName); }
     window.setMode = setMode;
     
