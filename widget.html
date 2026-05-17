@@ -96,46 +96,47 @@
 </div>
 
 <script>
-    // 🔒 ВИПРАВЛЕНИЙ ТА ПЕРЕВІРЕНИЙ КОНФІГ FIREBASE (З ЦИФРОЮ 0!)
+    // 🔥 ТВІЙ ПРАВИЛЬНИЙ КОНФІГ FIREBASE
     const firebaseConfig = {
-        apiKey: "AIzaSyD5A81EQXjywE72h3zbqaqwNAUb08I7KNc",
-        authDomain: "obswidget-110cf.firebaseapp.com",
-        projectId: "obswidget-110cf",
-        storageBucket: "obswidget-110cf.firebasestorage.app",
-        messagingSenderId: "336642071325",
-        appId: "1:336642071325:web:b985339f1f3ab75222dff4",
-        measurementId: "G-Y2C8DRSYH1",
-        databaseURL: "https://obswidget-110cf-default-rtdb.europe-west1.firebasedatabase.app/"
+      apiKey: "AIzaSyD5A81EQXjywE72h3zbqaqwNAUbO8I7KNc",
+      authDomain: "obswidget-110cf.firebaseapp.com",
+      databaseURL: "https://obswidget-110cf-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "obswidget-110cf",
+      storageBucket: "obswidget-110cf.firebasestorage.app",
+      messagingSenderId: "336642071325",
+      appId: "1:336642071325:web:b985339f1f3ab75222dff4",
+      measurementId: "G-Y2C8DRSYH1"
     };
+    
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // 🔥 ФУНКЦІЯ СКОРОЧЕННЯ ВЕЛИКИХ ЧИСЕЛ ДЛЯ ЕКРАНУ СТРІМА (400к, 1.5кк)
+    // 🏆 ФУНКЦІЯ, ЯКА РОБИТЬ "100к" та "1кк"
     function formatNumberCompact(num) {
         num = Number(num);
         if (isNaN(num) || num === 0) return '0';
-        if (num >= 1000000) {
-            let val = num / 1000000;
-            return parseFloat(val.toFixed(2)) + 'кк';
+        
+        let absNum = Math.abs(num);
+        let sign = num < 0 ? '-' : '';
+        
+        if (absNum >= 1000000) {
+            return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк';
         }
-        if (num >= 1000) {
-            let val = num / 1000;
-            return parseFloat(val.toFixed(2)) + 'к';
+        if (absNum >= 1000) {
+            return sign + parseFloat((absNum / 1000).toFixed(2)) + 'к';
         }
-        return num.toString();
+        return sign + absNum.toString();
     }
 
-    // Слухаємо базу даних у реальному часі
     db.ref('/').on('value', snapshot => {
         const data = snapshot.val() || {};
         const slots = data.slots ? Object.values(data.slots) : [];
         const activeIndex = data.active_index ?? 0;
         const displayMode = data.display_mode || 'hunt';
         const startBalance = data.start_balance ?? 0;
-        const balanceCurr = data.start_balance_currency || '$';
+        const balanceCurr = data.start_balance_currency || '₽';
         const customIcons = data.custom_icons || {};
 
-        // Оновлюємо колір рамки контейнера, якщо твій дизайн це підтримував
         const widgetContainer = document.getElementById('widget');
         if (widgetContainer) {
             if (displayMode === 'bonusbuy') widgetContainer.style.borderColor = '#9b59b6';
@@ -143,17 +144,20 @@
             else widgetContainer.style.borderColor = '#3498db';
         }
 
-        // Рахуємо загальний виграш сесії
         let totalWin = 0;
         slots.forEach(s => { totalWin += Number(s.win || 0); });
 
-        // 🔥 ВИВЕДЕННЯ ФІНАНСІВ СТРІМА В КОМПАКТНОМУ ФОРМАТІ
+        // 🔥 ЗАСТОСОВУЄМО ФОРМАТУВАННЯ ДО БАЛАНСУ ТА ЗАГАЛЬНОГО ВИГРАШУ
         const totalWinEl = document.getElementById('widget-total-win');
         const depositEl = document.getElementById('widget-deposit');
-        if (totalWinEl) totalWinEl.innerText = formatNumberCompact(totalWin) + ' ' + balanceCurr;
-        if (depositEl) depositEl.innerText = formatNumberCompact(startBalance) + ' ' + balanceCurr;
+        
+        if (totalWinEl) {
+            totalWinEl.innerHTML = `<span style="color:#2ecc71;">${formatNumberCompact(totalWin)}</span> <span style="font-size: 0.9em; color:#aaa;">${balanceCurr}</span>`;
+        }
+        if (depositEl) {
+            depositEl.innerHTML = `${formatNumberCompact(startBalance)} <span style="font-size: 0.9em; color:#aaa;">${balanceCurr}</span>`;
+        }
 
-        // Фільтруємо чергу відповідно до обраного модератором режиму OBS
         let slotsToRender = [];
         if (displayMode === 'hunt') {
             slotsToRender = slots.map((s, idx) => ({...s, originalIndex: idx})).slice(-5);
@@ -170,12 +174,10 @@
             return;
         }
 
-        // Рендеримо рядки за твоїм оригінальним шаблоном
         slotsToRender.forEach(slot => {
             const isActive = slot.originalIndex === activeIndex;
-            const slotCur = slot.currency || '$';
+            const slotCur = slot.currency || '₽';
             
-            // Розрахунок іксів
             let xHTML = '';
             if (slot.win > 0 && slot.buy > 0) {
                 const xVal = (slot.win / slot.buy).toFixed(1);
@@ -186,7 +188,6 @@
                 xHTML = `<div class="slot-x-val">—</div>`;
             }
 
-            // Рендер іконки
             let iconHTML = `<div class="slot-icon-frame">?</div>`;
             if (customIcons[slot.name]) {
                 iconHTML = `<div class="slot-icon-frame"><img class="slot-icon-img" src="${customIcons[slot.name]}"></div>`;
@@ -194,17 +195,16 @@
                 iconHTML = `<div class="slot-icon-frame">${slot.name.charAt(0).toUpperCase()}</div>`;
             }
 
-            // 🔥 СТИСКАННЯ ЧИСЕЛ ДЛЯ КОНКРЕТНОГО РЯДКА (Покупка та Виграш)
+            // Форматуємо цифри конкретного слота (покупка та виграш)
             const buyFormatted = formatNumberCompact(slot.buy);
-            const winFormatted = slot.win > 0 ? ` ➔ <span style="color:#2ecc71; font-weight:bold;">${formatNumberCompact(slot.win)}${slotCur}</span>` : '';
+            const winFormatted = slot.win > 0 ? ` ➔ <span style="color:#2ecc71; font-weight:bold;">${formatNumberCompact(slot.win)} ${slotCur}</span>` : '';
 
-            // Генерируємо HTML рядок з твоїми оригінальними класами дизайну
             container.innerHTML += `
                 <div class="slot-row ${isActive ? 'active-slot' : ''}">
                     ${iconHTML}
                     <div class="slot-info">
                         <span class="slot-name">${slot.name}</span>
-                        <span class="slot-math">${buyFormatted}${slotCur}${winFormatted}</span>
+                        <span class="slot-math">${buyFormatted} ${slotCur}${winFormatted}</span>
                     </div>
                     ${xHTML}
                 </div>
