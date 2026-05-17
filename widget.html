@@ -73,8 +73,8 @@
     <div class="stats-grid">
         <div class="stat-card"><span class="stat-icon">💰</span><span id="stat-total" class="stat-val">0</span></div>
         <div class="stat-card"><span class="stat-icon">⭐</span><span id="stat-count" class="stat-val">0/0</span></div>
-        <div class="stat-card"><span class="stat-icon">📈</span><span id="stat-avg" class="stat-val">0.00x</span></div>
-        <div class="stat-card"><span class="stat-icon">🎯</span><span id="stat-max" class="stat-val">0.00x</span></div>
+        <div class="stat-card"><span class="stat-icon">📈</span><span id="stat-comeback" class="stat-val">0.00x</span></div>
+        <div class="stat-card"><span class="stat-icon">⚖️</span><span id="stat-avg-opened" class="stat-val">0.00x</span></div>
     </div>
     <div id="viewport" class="slots-viewport">
         <div id="slots-container" class="slots-list"></div>
@@ -127,8 +127,11 @@
         let totalWin = 0;
         let totalBuy = 0;
         let openedCount = 0;
+        let remainingBuy = 0; 
+        
+        let openedTotalBuy = 0;
+        let openedTotalWin = 0;
         let maxX = 0;
-        let remainingBuy = 0; // Для підрахунку невідкритих слотів
 
         slots.forEach(function(s, idx) {
             const buy = Number(s.buy || 0);
@@ -136,40 +139,46 @@
             totalBuy += buy;
             totalWin += win;
             
-            // Якщо слот відкритий (є виграш або він позаду в черзі)
+            // Якщо слот відкритий
             const isOpened = win > 0 || (win === 0 && idx < activeIndex);
             
             if (isOpened) {
                 openedCount++;
+                openedTotalBuy += buy;
+                openedTotalWin += win;
             } else {
-                remainingBuy += buy; // Додаємо вартість до тих, що залишились
+                remainingBuy += buy; 
             }
             
+            // Рахуємо макс Х для корони (залишаємо логіку корони)
             if (buy > 0 && win > 0) {
                 const x = win / buy;
                 if (x > maxX) maxX = x;
             }
         });
 
-        // 🔥 МАТЕМАТИКА КАМБЕК Х
-        const deficit = totalBuy - totalWin; // Скільки грошей треба відбити
+        // 🔥 3 КОЛОНКА: МАТЕМАТИКА КАМБЕК Х (📈)
+        const deficit = totalBuy - totalWin; 
         let comebackXText = '0.00x';
 
         if (totalBuy === 0) {
             comebackXText = '0.00x';
         } else if (deficit <= 0) {
-            comebackXText = 'PROFIT'; // Вийшли в плюс
+            comebackXText = 'PROFIT'; 
         } else if (deficit > 0 && remainingBuy === 0) {
-            comebackXText = 'RIP 🪦'; // Слоти закінчились, а ми в мінусі
+            comebackXText = 'RIP 🪦'; 
         } else {
-            comebackXText = (deficit / remainingBuy).toFixed(2) + 'x'; // Рахуємо потрібний Х
+            comebackXText = (deficit / remainingBuy).toFixed(2) + 'x'; 
         }
+
+        // 🔥 4 КОЛОНКА: СЕРЕДНІЙ Х ВІДКРИТИХ БОНУСІВ (⚖️)
+        const openedAvgX = openedTotalBuy > 0 ? (openedTotalWin / openedTotalBuy) : 0;
 
         // ОНОВЛЕНА ВЕРХНЯ ПАНЕЛЬ
         document.getElementById('stat-total').innerText = formatNumberCompact(startBalance) + ' ' + balanceCurr;
         document.getElementById('stat-count').innerText = openedCount + '/' + slots.length;
-        document.getElementById('stat-avg').innerText = comebackXText; // Виводимо Камбек Х
-        document.getElementById('stat-max').innerText = maxX.toFixed(2) + 'x';
+        document.getElementById('stat-comeback').innerText = comebackXText; 
+        document.getElementById('stat-avg-opened').innerText = openedAvgX.toFixed(2) + 'x'; 
 
         const viewport = document.getElementById('viewport');
         if (slots.length > 0) viewport.style.display = 'block';
