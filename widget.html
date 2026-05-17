@@ -26,7 +26,14 @@
         
         .slot-row { display: flex; align-items: center; padding: 10px 12px; background: rgba(18, 18, 24, 0.6); border-radius: 14px; border: 1px solid rgba(255,255,255,0.01); box-sizing: border-box; height: 52px; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         
-        .slot-icon-wrapper { position: relative; width: 32px; height: 32px; margin-right: 12px; flex-shrink: 0; }
+        /* КОНТЕЙНЕР ДЛЯ ІКОНКИ ТА КОРОНИ */
+        .slot-icon-wrapper {
+            position: relative;
+            width: 32px;
+            height: 32px;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
         .slot-icon-img { width: 100%; height: 100%; border-radius: 8px; background: #222; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.4); }
         
         .slot-icon-text { 
@@ -35,11 +42,18 @@
             font-size: 10px; font-weight: 800; text-transform: uppercase; box-sizing: border-box; box-shadow: 0 4px 10px rgba(0,0,0,0.3); letter-spacing: 0.5px;
         }
 
+        /* 🔥 СТИЛІЗАЦІЯ ДІАГОНАЛЬНОЇ КОРОНИ ЧЕМПІОНА */
         .crown-overlay { display: none; }
         .mode-finish .crown-overlay {
-            display: block; position: absolute; top: -10px; left: -10px; font-size: 16px; transform: rotate(-28deg);
+            display: block;
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            font-size: 16px;
+            transform: rotate(-28deg);
             filter: drop-shadow(0 2px 5px rgba(0,0,0,0.9)) drop-shadow(0 0 4px rgba(255, 215, 0, 0.5));
-            z-index: 10; animation: crownPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+            z-index: 10;
+            animation: crownPop 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
         }
         @keyframes crownPop {
             0% { transform: scale(0) rotate(-60deg); opacity: 0; }
@@ -82,137 +96,171 @@
 </div>
 
 <script>
+    const USD_TO_RUB_RATE = 90; 
+
     const firebaseConfig = {
-      apiKey: "AIzaSyD5A81EQXjywE72h3zbqaqwNAUbO8I7KNc",
-      authDomain: "obswidget-110cf.firebaseapp.com",
-      databaseURL: "https://obswidget-110cf-default-rtdb.europe-west1.firebasedatabase.app/",
-      projectId: "obswidget-110cf",
-      storageBucket: "obswidget-110cf.firebasestorage.app",
-      messagingSenderId: "336642071325",
-      appId: "1:336642071325:web:b985339f1f3ab75222dff4",
-      measurementId: "G-Y2C8DRSYH1"
+        apiKey: "AIzaSyD5A81EQXjywE72h3zbqaqwNAUb08I7KNc",
+        authDomain: "obswidget-110cf.firebaseapp.com",
+        projectId: "obswidget-110cf",
+        storageBucket: "obswidget-110cf.firebasestorage.app",
+        messagingSenderId: "336642071325",
+        appId: "1:336642071325:web:b985339f1f3ab75222dff4",
+        measurementId: "G-Y2C8DRSYH1",
+        databaseURL: "https://obswidget-110cf-default-rtdb.europe-west1.firebasedatabase.app/"
     };
-    
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    function formatNumberCompact(num) {
-        num = Number(num);
-        if (isNaN(num) || num === 0) return '0';
-        let absNum = Math.abs(num);
-        let sign = num < 0 ? '-' : '';
-        if (absNum >= 1000000) return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк';
-        if (absNum >= 1000) return sign + parseFloat((absNum / 1000).toFixed(2)) + 'к';
-        return sign + absNum.toString();
+    function convertCurrency(amount, fromCurr, toCurr) {
+        if (fromCurr === toCurr) return amount;
+        if (toCurr === '₽' && fromCurr === '$') return amount * USD_TO_RUB_RATE;
+        if (toCurr === '$' && fromCurr === '₽') return amount / USD_TO_RUB_RATE;
+        return amount;
     }
 
-    db.ref('/').on('value', function(snapshot) {
+    function generateAbbreviation(name) {
+        if (!name) return '🎰';
+        let clean = name.replace(/[^a-zA-Z0-9а-яА-ЯіІїЇєЄґҐ\s]/g, '');
+        let words = clean.split(/\s+/).filter(w => w.length > 0);
+        if (words.length === 0) return '🎰';
+        if (words.length === 1) return words[0].substring(0, 2).toUpperCase();
+        let filtered = words.filter(w => !['the', 'of', 'in', 'a', 'vs', 'to', 'and'].includes(w.toLowerCase()));
+        if (filtered.length === 0) filtered = words;
+        return filtered.map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    }
+
+    db.ref('/').on('value', (snapshot) => {
         const data = snapshot.val() || {};
         const slots = data.slots ? Object.values(data.slots) : [];
-        const activeIndex = data.active_index !== undefined ? data.active_index : 0;
-        const displayMode = data.display_mode || 'hunt';
-        const balanceCurr = data.start_balance_currency || '₽';
-        const customIcons = data.custom_icons || {};
+        const activeIdx = data.active_index ?? 0;
+        const mode = data.display_mode || 'hunt';
+        const startBalance = Number(data.start_balance || 0);
+        const startBalanceCurr = data.start_balance_currency || '$';
+        const cloudCustomIcons = data.custom_icons || {};
 
         const mainContainer = document.getElementById('main-container');
-        if (mainContainer) {
-            mainContainer.className = 'tracker-container ' + (slots.length > 0 ? 'has-items ' : '') + 'mode-' + displayMode;
+        const viewport = document.getElementById('viewport');
+        const container = document.getElementById('slots-container');
+        container.innerHTML = '';
+
+        if (slots.length === 0) {
+            mainContainer.classList.remove('has-items'); viewport.style.display = 'none';
+        } else {
+            mainContainer.classList.add('has-items'); viewport.style.display = 'block'; viewport.className = "slots-viewport mode-" + mode;
         }
 
-        let totalWin = 0;
-        let totalBuy = 0;
-        let openedCount = 0;
-        let maxX = 0;
-
-        slots.forEach(function(s, idx) {
-            const buy = Number(s.buy || 0);
-            const win = Number(s.win || 0);
-            totalBuy += buy;
-            totalWin += win;
-            
-            if (win > 0 || (win === 0 && idx < activeIndex)) openedCount++;
-            
-            if (buy > 0 && win > 0) {
-                const x = win / buy;
-                if (x > maxX) maxX = x;
+        let totalSpentInBalanceCurrency = 0;
+        let completedWinInBalanceCurrency = 0;
+        let remainingSpentInBalanceCurrency = 0;
+        let completedCount = 0, totalX = 0;
+        
+        // 🔥 ВИЗНАЧЕННЯ НАЙБІЛЬШОГО ІКСУ СЕРЕД ВСІХ СЛОТІВ
+        let maxSessionX = 0;
+        slots.forEach(s => {
+            const buyAmt = Number(s.buy || 0);
+            const winAmt = Number(s.win || 0);
+            if (buyAmt > 0 && winAmt > 0) {
+                const currentX = winAmt / buyAmt;
+                if (currentX > maxSessionX) { maxSessionX = currentX; }
             }
         });
 
-        const avgX = totalBuy > 0 ? (totalWin / totalBuy) : 0;
+        slots.forEach((s, idx) => {
+            const buyAmt = Number(s.buy || 0); const winAmt = Number(s.win || 0);
+            const slotCurrency = s.currency || '$';
 
-        document.getElementById('stat-total').innerText = formatNumberCompact(totalWin) + balanceCurr;
-        document.getElementById('stat-count').innerText = openedCount + '/' + slots.length;
-        document.getElementById('stat-avg').innerText = avgX.toFixed(2) + 'x';
-        document.getElementById('stat-max').innerText = maxX.toFixed(2) + 'x';
+            const buyInBalanceCurr = convertCurrency(buyAmt, slotCurrency, startBalanceCurr);
+            const winInBalanceCurr = convertCurrency(winAmt, slotCurrency, startBalanceCurr);
 
-        const viewport = document.getElementById('viewport');
-        if (slots.length > 0) viewport.style.display = 'block';
-        else viewport.style.display = 'none';
+            totalSpentInBalanceCurrency += buyInBalanceCurr;
 
-        const container = document.getElementById('slots-container');
-        if (!container) return;
-        container.innerHTML = '';
+            const isCompleted = idx < activeIdx || (idx === activeIdx && winAmt > 0);
 
-        let slotsToRender = [];
-        if (displayMode === 'hunt') {
-            slotsToRender = slots.map(function(s, idx) { return Object.assign({}, s, {originalIndex: idx}); }).slice(-5);
+            if (isCompleted) {
+                completedWinInBalanceCurrency += winInBalanceCurr;
+                completedCount++;
+                totalX += (buyAmt > 0 ? winAmt / buyAmt : 0);
+            } else {
+                remainingSpentInBalanceCurrency += buyInBalanceCurr;
+            }
+        });
+
+        let neededXText = '0.00x';
+        if (remainingSpentInBalanceCurrency > 0) {
+            let neededX = (startBalance - completedWinInBalanceCurrency) / remainingSpentInBalanceCurrency;
+            neededXText = neededX <= 0 ? '—' : neededX.toFixed(2) + 'x';
         } else {
-            slotsToRender = slots.map(function(s, idx) { return Object.assign({}, s, {originalIndex: idx}); });
+            if (completedWinInBalanceCurrency >= startBalance) {
+                neededXText = '—';
+            } else if (totalSpentInBalanceCurrency > 0) {
+                let finalX = (completedWinInBalanceCurrency / totalSpentInBalanceCurrency);
+                neededXText = finalX.toFixed(2) + 'x';
+            }
         }
+        
+        let avgX = completedCount > 0 ? (totalX / completedCount) : 0;
 
-        slotsToRender.forEach(function(slot) {
-            const isActive = slot.originalIndex === activeIndex;
-            const slotCur = slot.currency || '₽';
-            const buy = Number(slot.buy || 0);
-            const win = Number(slot.win || 0);
+        function createRowHTML(slot, index, isForceActive = false) {
+            const isActive = isForceActive || index === activeIdx;
+            let multText = '—', badgeClass = 'mult-pending'; const slotCurrency = slot.currency || '$';
             
-            let xValText = '—';
-            let multClass = 'mult-pending';
-            
-            if (win > 0 && buy > 0) {
-                const x = win / buy;
-                xValText = x.toFixed(2) + 'x';
-                multClass = x >= 1 ? 'mult-win' : 'mult-loss';
-            } else if (win === 0 && slot.originalIndex < activeIndex) {
-                xValText = '0.00x';
-                multClass = 'mult-loss';
+            const slotBuy = Number(slot.buy || 0);
+            const slotWin = Number(slot.win || 0);
+            const currentSlotX = slotBuy > 0 ? (slotWin / slotBuy) : 0;
+
+            // Перевіряємо, чи є цей конкретний слот лідером за коефіцієнтом
+            const isKingSlot = maxSessionX > 0 && Math.abs(currentSlotX - maxSessionX) < 0.0001;
+
+            if (index < activeIdx || (index === activeIdx && slot.win > 0)) {
+                multText = currentSlotX.toFixed(2) + 'x'; badgeClass = currentSlotX >= 1 ? 'mult-win' : 'mult-loss';
             }
 
-            let isCrown = false;
-            if (displayMode === 'finish' && win > 0 && buy > 0 && (win/buy) === maxX && maxX > 0) {
-                isCrown = true;
+            let amountHTML = slot.buy + ' ' + slotCurrency;
+            if (isActive) amountHTML += ` <span class="arrow-blue">➡</span> ` + (slot.win || 0) + ' ' + slotCurrency;
+            else if (index < activeIdx) amountHTML += ` → ` + slot.win + ' ' + slotCurrency;
+
+            let iconRenderHTML = '';
+            const slotNameTrim = (slot.name || "").trim();
+            const chosenIcon = cloudCustomIcons[slotNameTrim];
+
+            if (chosenIcon && chosenIcon.startsWith('data:image')) {
+                iconRenderHTML = `<img class="slot-icon-img" src="${chosenIcon}">`;
+            } else {
+                const abbrText = generateAbbreviation(slot.name);
+                iconRenderHTML = `<div class="slot-icon-text">${abbrText}</div>`;
             }
 
-            let iconInner = '?';
-            if (customIcons[slot.name]) {
-                iconInner = `<img class="slot-icon-img" src="${customIcons[slot.name]}">`;
-            } else if (slot.name) {
-                iconInner = `<div class="slot-icon-text">${slot.name.substring(0, 2)}</div>`;
-            }
+            // Додаємо HTML корони, якщо це топ-слот
+            const crownHTML = isKingSlot ? `<div class="crown-overlay">👑</div>` : '';
 
-            const buyFormatted = formatNumberCompact(buy);
-            const winFormatted = win > 0 ? formatNumberCompact(win) : '';
-            const winDisplayHTML = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${winFormatted}${slotCur}</span>` : '';
-
-            container.innerHTML += `
+            return `
                 <div class="slot-row ${isActive ? 'active' : ''}">
                     <div class="slot-icon-wrapper">
-                        ${iconInner}
-                        ${isCrown ? '<div class="crown-overlay">👑</div>' : ''}
+                        ${iconRenderHTML}
+                        ${crownHTML}
                     </div>
                     <div class="slot-info">
                         <div class="slot-name">${slot.name}</div>
-                        <div class="slot-amounts">${buyFormatted}${slotCur} ${winDisplayHTML}</div>
+                        <div class="slot-amounts">${amountHTML}</div>
                     </div>
-                    <div class="multiplier-badge ${multClass}">${xValText}</div>
-                </div>
-            `;
-        });
-    }, function(error) {
-        // 🔥 ЯКЩО БАЗА ЗАБЛОКОВАНА - ВІДЖЕТ ПОКАЖЕ ЦЮ ПОМИЛКУ
-        console.error("Firebase Rule Error:", error);
-        document.getElementById('stat-total').innerText = "ERR-DB";
-        document.getElementById('stat-count').innerText = "RULES";
+                    <div class="multiplier-badge ${badgeClass}">${multText}</div>
+                </div>`;
+        }
+        
+        if (slots.length > 0) {
+            if (mode === 'hunt') {
+                const startIdx = Math.max(0, slots.length - 5); slots.slice(startIdx).forEach((slot, i) => { container.innerHTML += createRowHTML(slot, startIdx + i); });
+            } else if (mode === 'bonusbuy') {
+                let startIdx = Math.max(0, Math.min(slots.length - 5, activeIdx - 2)); slots.slice(startIdx, startIdx + 5).forEach((slot, i) => { container.innerHTML += createRowHTML(slot, startIdx + i); });
+            } else if (mode === 'finish') {
+                slots.forEach((slot, i) => { container.innerHTML += createRowHTML(slot, i, false); }); slots.forEach((slot, i) => { container.innerHTML += createRowHTML(slot, i, false); }); container.style.animationDuration = Math.max(6, slots.length * 1.5) + "s";
+            }
+        }
+
+        document.getElementById('stat-total').innerText = (startBalance || 0) + ' ' + startBalanceCurr;
+        document.getElementById('stat-count').innerText = `${slots.length > 0 ? activeIdx + 1 : 0}/${slots.length}`;
+        document.getElementById('stat-avg').innerText = neededXText;
+        document.getElementById('stat-max').innerText = avgX.toFixed(2) + 'x';
     });
 </script>
 </body>
