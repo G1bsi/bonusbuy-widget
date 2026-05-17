@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Панель Модератора Bonus Buy (Fish Audio AI UI)</title>
+    <title>Панель Модератора Bonus Buy (SOLO / BATTLE)</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -89,25 +89,12 @@
     <div id="main-content" style="display: none;">
         <div style="max-width: 420px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <button onclick="handleLogout()" style="width: auto; background: #555; padding: 6px 12px; font-size: 11px; margin: 0;">Выйти 🚪</button>
-            <div style="font-size: 12px; color: #8a8a93; font-weight: bold;">🇷🇺 Язык: Русский (Зашит по умолчанию)</div>
+            <div style="font-size: 12px; color: #8a8a93; font-weight: bold;"></div>
         </div>
 
         <div class="global-mode-switcher">
             <div id="btn-solo" class="global-mode-btn active-solo" onclick="setGlobalMode('solo')">👤 БОНУСБАЙ</div>
             <div id="btn-battle" class="global-mode-btn" onclick="setGlobalMode('battle')">⚔️ БИТВА СЛОТОВ</div>
-        </div>
-
-        <div class="box" style="border: 1px solid #1abc9c;">
-            <div class="box-header" onclick="toggleBox('box-tts', 'arrow-tts')">
-                <h3 style="color:#1abc9c;">🗣️ AI Озвучка текста (Fish Audio)</h3>
-                <span id="arrow-tts" class="arrow-indicator">▼</span>
-            </div>
-            <div id="box-tts" class="box-content" style="display: none;">
-                <input type="text" id="tts-api-key" value="90a019188b754db6b4b417f15dd03ecc" placeholder="Fish Audio API Key (Bearer Token)" onchange="localStorage.setItem('fish_key', this.value)">
-                <input type="text" id="tts-voice-id" value="0a690dbeb3984a9f88cd39353880775f" placeholder="Fish Audio Model ID" onchange="localStorage.setItem('fish_voice', this.value)">
-                <textarea id="tts-text" placeholder="Введите text для озвучки..." style="width:100%; height:70px; background:#333; color:#fff; border:1px solid #444; border-radius:5px; padding:8px; box-sizing:border-box; margin:5px 0; font-family:sans-serif; resize:none;"></textarea>
-                <button id="tts-btn" style="background:#1abc9c; font-weight:bold;" onclick="sendTTS()">🔊 Озвучить на стриме</button>
-            </div>
         </div>
 
         <div id="panel-solo">
@@ -155,7 +142,7 @@
 
             <div class="box">
                 <div class="box-header" onclick="toggleBox('box-add', 'arrow-add')">
-                    <h3>1. Добавить слот в queue</h3>
+                    <h3>1. Добавить слот в очередь</h3>
                     <span id="arrow-add" class="arrow-indicator">▼</span>
                 </div>
                 <div id="box-add" class="box-content">
@@ -296,12 +283,12 @@
                     <div class="battle-flex">
                         <div class="battle-half">
                             <h4>Слот Игрока 1</h4>
-                            <input type="text" id="new-b-p1-title" list="slots-base" placeholder="Название slots">
+                            <input type="text" id="new-b-p1-title" list="slots-base" placeholder="Название слота">
                             <input type="number" id="new-b-p1-buy" placeholder="Цена покупки">
                         </div>
                         <div class="battle-half">
                             <h4>Слот Игрока 2</h4>
-                            <input type="text" id="new-b-p2-title" list="slots-base" placeholder="Название slots">
+                            <input type="text" id="new-b-p2-title" list="slots-base" placeholder="Название слота">
                             <input type="number" id="new-b-p2-buy" placeholder="Цена покупки">
                         </div>
                     </div>
@@ -311,7 +298,7 @@
 
             <div class="box" style="border: 1px solid #2ecc71;">
                 <div class="box-header" onclick="toggleBox('box-battle-curr', 'arrow-battle-curr')">
-                    <h3>🎯 2. Результат Текущего Раунда</h3>
+                    <h3 style="color:#2ecc71;">🎯 2. Результат Текущего Раунда</h3>
                     <span id="arrow-battle-curr" class="arrow-indicator">▼</span>
                 </div>
                 <div id="box-battle-curr" class="box-content">
@@ -368,6 +355,7 @@
     let uploadedIconBase64 = '', firebaseCustomIcons = {};
     let battleRounds = [], battleActiveIndex = 0;
 
+    // Всегда пишем в базу русский язык для стабильности виджета
     db.ref('lang').set('ru');
 
     firebase.auth().onAuthStateChanged(user => {
@@ -389,65 +377,7 @@
     function toggleBox(contentId, arrowId) { const c = document.getElementById(contentId); const a = document.getElementById(arrowId); c.style.display = c.style.display === 'none' ? 'block' : 'none'; a.innerText = c.style.display === 'none' ? '▲' : '▼'; } window.toggleBox = toggleBox;
     function setGlobalMode(mode) { db.ref('global_mode').set(mode); } window.setGlobalMode = setGlobalMode;
 
-    // ЖЕЛЕЗОБЕТОННЫЙ СИНТЕЗ ЧЕРЕЗ CORS-ПРОКСИ (ИСПРАВЛЕНО)
-    function sendTTS() {
-        const apiKey = document.getElementById('tts-api-key').value.trim();
-        const voiceId = document.getElementById('tts-voice-id').value.trim();
-        const text = document.getElementById('tts-text').value.trim();
-        const btn = document.getElementById('tts-btn');
-
-        if (!apiKey || !voiceId || !text) return alert("Заполните API Key, Model ID и текст!");
-
-        btn.disabled = true;
-        btn.innerText = "Генерация голоса (Fish)...";
-
-        // Запрос идет через corsproxy.io, чтобы обойти блокировку браузера на GitHub Pages
-        fetch(`https://corsproxy.io/?https://api.fish.audio/v1/tts`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                text: text,
-                reference_id: voiceId,
-                format: "mp3"
-            })
-        })
-        .then(res => {
-            if (!res.ok) throw new Error("Ошибка Fish Audio API. Проверьте ваш баланс, ключ и ID модели.");
-            return res.arrayBuffer();
-        })
-        .then(buffer => {
-            let binary = '';
-            const bytes = new Uint8Array(buffer);
-            for (let i = 0; i < bytes.byteLength; i++) {
-                binary += String.fromCharCode(bytes[i]);
-            }
-            const base64 = btoa(binary);
-
-            return db.ref('tts_trigger').set({
-                audio: base64,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-        })
-        .then(() => {
-            document.getElementById('tts-text').value = '';
-            btn.disabled = false;
-            btn.innerText = "🔊 Озвучить на стриме";
-        })
-        .catch(err => {
-            alert(err.message);
-            btn.disabled = false;
-            btn.innerText = "🔊 Озвучить на стриме";
-        });
-    }
-    window.sendTTS = sendTTS;
-
     function initDatabaseListeners() {
-        document.getElementById('tts-api-key').value = localStorage.getItem('fish_key') || '90a019188b754db6b4b417f15dd03ecc';
-        document.getElementById('tts-voice-id').value = localStorage.getItem('fish_voice') || '0a690dbeb3984a9f88cd39353880775f';
-
         db.ref('/').on('value', snapshot => {
             const data = snapshot.val() || {};
             
