@@ -150,7 +150,6 @@
                 remainingBuy += buy; 
             }
             
-            // Рахуємо макс Х для корони (залишаємо логіку корони)
             if (buy > 0 && win > 0) {
                 const x = win / buy;
                 if (x > maxX) maxX = x;
@@ -164,11 +163,13 @@
         if (totalBuy === 0) {
             comebackXText = '0.00x';
         } else if (deficit <= 0) {
-            comebackXText = 'PROFIT'; 
+            comebackXText = 'ОКУП'; // Вийшли в плюс
         } else if (deficit > 0 && remainingBuy === 0) {
-            comebackXText = 'RIP 🪦'; 
+            // Слоти закінчились, а ми в мінусі -> Показуємо фінальний Х до балансу (або до покупок)
+            const baseValue = startBalance > 0 ? startBalance : totalBuy;
+            comebackXText = (totalWin / baseValue).toFixed(2) + 'x'; 
         } else {
-            comebackXText = (deficit / remainingBuy).toFixed(2) + 'x'; 
+            comebackXText = (deficit / remainingBuy).toFixed(2) + 'x'; // Потрібний Х для окупа
         }
 
         // 🔥 4 КОЛОНКА: СЕРЕДНІЙ Х ВІДКРИТИХ БОНУСІВ (⚖️)
