@@ -1,13 +1,12 @@
-<!DOCTYPE html>
+	<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Панель Модератора Bonus Buy (UI + Kick Bot)</title>
+    <title>Панель Модератора Bonus Buy (UI)</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
-    <script src="https://js.pusher.com/8.0/pusher.min.js"></script>
     
     <style>
         body { font-family: sans-serif; background: #1c1c21; color: #fff; padding: 20px; }
@@ -70,16 +69,6 @@
         .battle-flex { display: flex; gap: 10px; }
         .battle-half { flex: 1; background: #1e1e24; padding: 10px; border-radius: 6px; border: 1px solid #333; }
         .battle-half h4 { margin: 0 0 8px 0; font-size: 12px; text-align: center; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
-        .bot-status { font-size: 12px; font-weight: bold; color: #e67e22; background: rgba(230, 126, 34, 0.1); border: 1px solid rgba(230, 126, 34, 0.2); padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 12px; transition: 0.3s; }
-
-        .toggle-container { display: flex; justify-content: space-between; align-items: center; background: #1e1e24; padding: 10px 14px; border-radius: 8px; border: 1px dashed #444; margin-bottom: 12px; }
-        .toggle-label { font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 6px; }
-        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .3s; border-radius: 22px; }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
-        input:checked + .slider { background-color: #2ecc71; }
-        input:checked + .slider:before { transform: translateX(22px); }
     </style>
 </head>
 <body>
@@ -102,25 +91,12 @@
             <button onclick="handleLogout()" style="width: auto; background: #555; padding: 6px 12px; font-size: 11px; margin: 0;">Выйти 🚪</button>
         </div>
 
-        <div class="box" style="padding: 0; background: transparent; max-width: 420px;">
-            <div id="kick-bot-status" class="bot-status">⏳ Инициализация сокета Kick...</div>
-        </div>
-
         <div class="global-mode-switcher">
             <div id="btn-solo" class="global-mode-btn active-solo" onclick="setGlobalMode('solo')">👤 БОНУСБАЙ</div>
             <div id="btn-battle" class="global-mode-btn" onclick="setGlobalMode('battle')">⚔️ БИТВА СЛОТОВ</div>
         </div>
 
         <div id="panel-solo">
-            
-            <div class="toggle-container" style="max-width: 392px;">
-                <span class="toggle-label" style="color: #1abc9c;">🔮 Прием прогнозов чата (!x)</span>
-                <label class="switch">
-                    <input type="checkbox" id="toggle-guess" onchange="setGuessInteract(this.checked)">
-                    <span class="slider"></span>
-                </label>
-            </div>
-
             <div class="box" style="border: 1px solid #e67e22;">
                 <div class="box-header" onclick="toggleBox('box-fin', 'arrow-fin')">
                     <h3 style="color:#e67e22;">📊 Финансы</h3>
@@ -145,7 +121,6 @@
                             <tr><td>Общий Выигрыш:</td><td id="fin-win-val" style="color:#2ecc71;">0</td></tr>
                             <tr><td>Закуплено бонусов:</td><td id="fin-spent-val" style="color:#e67e22;">0</td></tr>
                             <tr><td>Депозит:</td><td id="fin-bal-val">0</td></tr>
-                            <tr><td>Активных прогнозов (!x):</td><td id="fin-guesses-val" style="color:#1abc9c;">0</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -234,14 +209,6 @@
 
         <div id="panel-battle" style="display: none;">
             
-            <div class="toggle-container" style="max-width: 392px;">
-                <span class="toggle-label" style="color: #9b59b6;">⚔️ Прием голосов фракций (!p1 / !p2)</span>
-                <label class="switch">
-                    <input type="checkbox" id="toggle-battle-votes" onchange="setBattleInteract(this.checked)">
-                    <span class="slider"></span>
-                </label>
-            </div>
-
             <div class="box" style="border: 1px solid #9b59b6;">
                 <div class="box-header" onclick="toggleBox('box-battle-modes', 'arrow-battle-modes')">
                     <h3 style="color:#9b59b6;">📺 Режим Битвы (OBS)</h3>
@@ -269,7 +236,6 @@
                             <tr><td>Закуплено бонусов (Всего):</td><td id="b-fin-total-spent" style="color:#e67e22;">0</td></tr>
                             <tr><td>Выигрыш Игрока 1 (P1):</td><td id="b-fin-p1-win" style="color:#3498db;">0</td></tr>
                             <tr><td>Выигрыш Игрока 2 (P2):</td><td id="b-fin-p2-win" style="color:#e74c3c;">0</td></tr>
-                            <tr><td>Голоса в чате (P1 / P2):</td><td id="b-fin-votes-split" style="color:#9b59b6;">0 / 0</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -389,81 +355,13 @@
     let isDragging = false, isBattleDragging = false, selectedNewCurrency = '$';
     let uploadedIconBase64 = '', firebaseCustomIcons = {};
     let battleRounds = [], battleActiveIndex = 0;
-    
-    let currentGlobalMode = "solo";
-    let guessInteractActive = false;
-    let battleInteractActive = false;
-    let latestGuessesFromFirebase = {};
+
+    db.ref('lang').set('ru');
 
     firebase.auth().onAuthStateChanged(user => {
-        if (user) { document.getElementById('login-screen').style.display = 'none'; document.getElementById('main-content').style.display = 'block'; initDatabaseListeners(); initKickChatBot(); } 
+        if (user) { document.getElementById('login-screen').style.display = 'none'; document.getElementById('main-content').style.display = 'block'; initDatabaseListeners(); } 
         else { document.getElementById('login-screen').style.display = 'flex'; document.getElementById('main-content').style.display = 'none'; }
     });
-
-    // НАДІЙНЕ ПІДКЛЮЧЕННЯ ДО ЧАТУ KICK
-    function initKickChatBot() {
-        const chatroomId = 235222;
-        const statusEl = document.getElementById('kick-bot-status');
-
-        const pusher = new Pusher('eb1d5f283081a78b93b4', { 
-            cluster: 'us2',
-            forceTLS: true,
-            enabledTransports: ['ws', 'wss']
-        });
-        
-        // Живий моніторинг статусів сокета
-        pusher.connection.bind('state_change', (states) => {
-            const current = states.current;
-            if (current === 'connected') {
-                statusEl.innerText = "🟢 Чат Kick подключен! Бот активен.";
-                statusEl.style.color = "#2ecc71";
-                statusEl.style.background = "rgba(46, 204, 113, 0.1)";
-                statusEl.style.border = "1px solid rgba(46, 204, 113, 0.3)";
-            } else if (current === 'connecting') {
-                statusEl.innerText = "⏳ Подключение к чату Kick (kosteze231)...";
-                statusEl.style.color = "#e67e22";
-                statusEl.style.background = "rgba(230, 126, 34, 0.1)";
-                statusEl.style.border = "1px solid rgba(230, 126, 34, 0.3)";
-            } else {
-                statusEl.innerText = `🔴 Статус сокета: ${current.toUpperCase()}`;
-                statusEl.style.color = "#ff4a5a";
-                statusEl.style.background = "rgba(255, 74, 90, 0.1)";
-                statusEl.style.border = "1px solid rgba(255, 74, 90, 0.3)";
-            }
-        });
-
-        const channel = pusher.subscribe(`chatrooms.${chatroomId}.v2`);
-        
-        // Безпечний парсинг повідомлень без використання збійних функцій
-        function processMessage(data) {
-            if (data && data.sender && data.content) {
-                const user = data.sender.username;
-                const msg = data.content.trim();
-                handleChatCommands(user, msg);
-            }
-        }
-
-        channel.bind('App\\Events\\ChatMessageEvent', processMessage);
-        channel.bind('ChatMessageEvent', processMessage);
-    }
-
-    function handleChatCommands(user, msg) {
-        if (currentGlobalMode === 'solo' && guessInteractActive) {
-            if (msg.startsWith('!x ')) {
-                const xVal = parseInt(msg.replace('!x ', ''));
-                if (!isNaN(xVal) && xVal > 0) {
-                    db.ref('current_guesses/' + user).set(xVal);
-                }
-            }
-        } else if (currentGlobalMode === 'battle' && battleInteractActive) {
-            if (msg === '!p1' || msg === '!p2') {
-                db.ref('battle/votes_data/' + user).set(msg);
-            }
-        }
-    }
-
-    function setGuessInteract(val) { db.ref('guess_interact_active').set(val); } window.setGuessInteract = setGuessInteract;
-    function setBattleInteract(val) { db.ref('battle/votes_interact_active').set(val); } window.setBattleInteract = setBattleInteract;
 
     function handleLogin() {
         const pass = document.getElementById('login-password').value; const errEl = document.getElementById('login-error'); errEl.style.display = 'none';
@@ -483,12 +381,9 @@
         db.ref('/').on('value', snapshot => {
             const data = snapshot.val() || {};
             
-            currentGlobalMode = data.global_mode || 'solo';
-            document.getElementById('btn-solo').className = 'global-mode-btn ' + (currentGlobalMode === 'solo' ? 'active-solo' : ''); document.getElementById('btn-battle').className = 'global-mode-btn ' + (currentGlobalMode === 'battle' ? 'active-battle' : '');
-            document.getElementById('panel-solo').style.display = currentGlobalMode === 'solo' ? 'block' : 'none'; document.getElementById('panel-battle').style.display = currentGlobalMode === 'battle' ? 'block' : 'none';
-
-            guessInteractActive = data.guess_interact_active ?? false;
-            document.getElementById('toggle-guess').checked = guessInteractActive;
+            const globalMode = data.global_mode || 'solo';
+            document.getElementById('btn-solo').className = 'global-mode-btn ' + (globalMode === 'solo' ? 'active-solo' : ''); document.getElementById('btn-battle').className = 'global-mode-btn ' + (globalMode === 'battle' ? 'active-battle' : '');
+            document.getElementById('panel-solo').style.display = globalMode === 'solo' ? 'block' : 'none'; document.getElementById('panel-battle').style.display = globalMode === 'battle' ? 'block' : 'none';
 
             slotsArray = data.slots ? Object.values(data.slots) : [];
             localActiveIndex = data.active_index ?? 0;
@@ -510,15 +405,13 @@
             allNames.forEach(name => { let opt = document.createElement('option'); opt.value = name; datalist.appendChild(opt); });
 
             let totalWin = 0; let totalSpent = 0;
-            slotsArray.forEach(s => { totalWin += Number(s.win || 0); totalSpent += Number(s.buy || 0); });
+            slotsArray.forEach(s => { 
+                totalWin += Number(s.win || 0); 
+                totalSpent += Number(s.buy || 0);
+            });
             document.getElementById('fin-win-val').innerText = formatNumberCompact(totalWin) + ' ' + startBalanceCurr; 
             document.getElementById('fin-spent-val').innerText = formatNumberCompact(totalSpent) + ' ' + startBalanceCurr; 
             document.getElementById('fin-bal-val').innerText = formatNumberCompact(startBalance || 0) + ' ' + startBalanceCurr;
-            
-            latestGuessesFromFirebase = data.current_guesses || {};
-            const guessesCount = Object.keys(latestGuessesFromFirebase).length;
-            document.getElementById('fin-guesses-val').innerText = guessesCount;
-            if (data.current_guesses_count !== guessesCount) { db.ref('current_guesses_count').set(guessesCount); }
 
             if (!isDragging) {
                 const dragContainer = document.getElementById('drag-container'); dragContainer.innerHTML = '';
@@ -547,9 +440,6 @@
             battleActiveIndex = b.active_index || 0;
             const currentBMode = b.display_mode || 'hunt';
 
-            battleInteractActive = b.votes_interact_active ?? false;
-            document.getElementById('toggle-battle-votes').checked = battleInteractActive;
-
             document.querySelectorAll('#box-battle-modes .mode-btn').forEach(btn => btn.classList.remove('active'));
             const activeBBtn = document.getElementById('btn-b-' + currentBMode); if(activeBBtn) activeBBtn.classList.add('active');
             
@@ -566,23 +456,20 @@
                 if(document.activeElement !== document.getElementById('curr-b-p2-win')) document.getElementById('curr-b-p2-win').value = '';
             }
 
-            let bTotalWin = 0, bP1Win = 0, bP2Win = 0; let bTotalBuy = 0;
-            battleRounds.forEach(r => { bP1Win += Number(r.p1?.win || 0); bP2Win += Number(r.p2?.win || 0); bTotalBuy += Number(r.p1?.buy || 0) + Number(r.p2?.buy || 0); });
+            // СЧИТАЕМ ВЫИГРЫШ И ЗАКУПКУ БИТВЫ
+            let bTotalWin = 0, bP1Win = 0, bP2Win = 0;
+            let bTotalBuy = 0;
+            battleRounds.forEach(r => { 
+                bP1Win += Number(r.p1?.win || 0); 
+                bP2Win += Number(r.p2?.win || 0); 
+                bTotalBuy += Number(r.p1?.buy || 0) + Number(r.p2?.buy || 0);
+            });
             bTotalWin = bP1Win + bP2Win; const bCurr = b.currency || '₽';
             document.getElementById('b-fin-total-win').innerText = formatNumberCompact(bTotalWin) + ' ' + bCurr;
             document.getElementById('b-fin-total-spent').innerText = formatNumberCompact(bTotalBuy) + ' ' + bCurr;
             document.getElementById('b-fin-p1-win').innerText = formatNumberCompact(bP1Win) + ' ' + bCurr;
             document.getElementById('b-fin-p2-win').innerText = formatNumberCompact(bP2Win) + ' ' + bCurr;
             
-            const votesData = b.votes_data || {};
-            let p1V = 0, p2V = 0;
-            Object.values(votesData).forEach(v => { if(v === '!p1') p1V++; else p2V++; });
-            document.getElementById('b-fin-votes-split').innerText = `${p1V} / ${p2V}`;
-            
-            if (!b.live_votes || b.live_votes.p1 !== p1V || b.live_votes.p2 !== p2V) {
-                db.ref('battle/live_votes').set({ p1: p1V, p2: p2V });
-            }
-
             if (!isBattleDragging) {
                 const battleList = document.getElementById('drag-container-battle'); battleList.innerHTML = '';
                 battleRounds.forEach((r, i) => {
@@ -647,71 +534,25 @@
     function checkSlotDatabase() { const inputName = document.getElementById('new-name').value.trim(); const previewImg = document.getElementById('slot-preview'); const uploadHint = document.getElementById('upload-hint'); uploadedIconBase64 = ''; if (firebaseCustomIcons[inputName]) { previewImg.src = firebaseCustomIcons[inputName]; previewImg.style.display = 'block'; uploadHint.style.display = 'none'; uploadedIconBase64 = firebaseCustomIcons[inputName]; } else { previewImg.style.display = 'none'; uploadHint.style.display = 'block'; } } window.checkSlotDatabase = checkSlotDatabase;
     function updateInlineSlot(index, field, value) { if (field === 'buy' || field === 'win') value = Number(value); db.ref(`slots/${index}/${field}`).set(value).then(() => { if (field === 'win') db.ref('display_mode').set('bonusbuy'); }); } window.updateInlineSlot = updateInlineSlot;
     function saveFinanceSettings() { const val = document.getElementById('balance-input').value; const bal = val === "" ? "" : Number(val); const curr = document.getElementById('balance-curr-select').value; db.ref('/').update({ start_balance: bal, start_balance_currency: curr }); } window.saveFinanceSettings = saveFinanceSettings;
-    
-    function saveCurrentWin() { 
-        if (slotsArray.length === 0) return; 
-        const winVal = Number(document.getElementById('current-win').value); 
-        
-        db.ref(`slots/${localActiveIndex}/win`).set(winVal).then(() => { 
-            db.ref('display_mode').set('bonusbuy'); 
-            
-            const buyVal = Number(slotsArray[localActiveIndex].buy || 1);
-            const actualX = buyVal > 0 ? (winVal / buyVal) : 0;
-            
-            let winnerName = ""; let closestGuess = null; let minDifference = Infinity;
-            Object.entries(latestGuessesFromFirebase).forEach(([user, guessValue]) => {
-                let diff = Math.abs(guessValue - actualX);
-                if (diff < minDifference) { minDifference = diff; closestGuess = guessValue; winnerName = user; }
-            });
-
-            if (winnerName) {
-                db.ref('last_winner').set({
-                    name: winnerName, guess: closestGuess, actual: Number(actualX.toFixed(2)), timestamp: firebase.database.ServerValue.TIMESTAMP
-                });
-            }
-            
-            db.ref('current_guesses').remove();
-            db.ref('current_guesses_count').set(0);
-
-            if (localActiveIndex < slotsArray.length - 1) { db.ref('active_index').set(localActiveIndex + 1); } 
-        }); 
-    } 
-    window.saveCurrentWin = saveCurrentWin;
-
-    function addSlot() { const name = document.getElementById('new-name').value.trim(); const buy = document.getElementById('new-buy').value; if(!name || !buy) return alert("Заполните поля!"); if (uploadedIconBase64 && !firebaseCustomIcons[name]) { db.ref(`custom_icons/${name}`).set(uploadedIconBase64); } slotsArray.push({ name: name, buy: Number(buy), win: 0, currency: selectedNewCurrency }); db.ref('slots').set(slotsArray); document.getElementById('new-name').value = ''; document.getElementById('new-buy').value = ''; document.getElementById('slot-preview').style.display = 'none'; document.getElementById('upload-hint').style.display = 'block'; uploadedIconBase64 = ''; db.ref('current_guesses').remove(); db.ref('current_guesses_count').set(0); } window.addSlot = addSlot;
+    function saveCurrentWin() { if (slotsArray.length === 0) return; const winVal = Number(document.getElementById('current-win').value); db.ref(`slots/${localActiveIndex}/win`).set(winVal).then(() => { db.ref('display_mode').set('bonusbuy'); if (localActiveIndex < slotsArray.length - 1) { db.ref('active_index').set(localActiveIndex + 1); } }); } window.saveCurrentWin = saveCurrentWin;
+    function addSlot() { const name = document.getElementById('new-name').value.trim(); const buy = document.getElementById('new-buy').value; if(!name || !buy) return alert("Заполните поля!"); if (uploadedIconBase64 && !firebaseCustomIcons[name]) { db.ref(`custom_icons/${name}`).set(uploadedIconBase64); } slotsArray.push({ name: name, buy: Number(buy), win: 0, currency: selectedNewCurrency }); db.ref('slots').set(slotsArray); document.getElementById('new-name').value = ''; document.getElementById('new-buy').value = ''; document.getElementById('slot-preview').style.display = 'none'; document.getElementById('upload-hint').style.display = 'block'; uploadedIconBase64 = ''; } window.addSlot = addSlot;
     function deleteArchiveEvent(event, key) { event.stopPropagation(); if (confirm("Удалить сессию из архива?")) { db.ref('archives/' + key).remove(); } } window.deleteArchiveEvent = deleteArchiveEvent;
     function deleteSlotEvent(event, index) { event.stopPropagation(); if (confirm("Вы точно хотите удалить этот слот из очереди?")) { let nIdx = localActiveIndex; if (index === localActiveIndex) { if (localActiveIndex >= slotsArray.length - 1) nIdx = Math.max(0, slotsArray.length - 2); } else if (index < localActiveIndex) nIdx--; slotsArray.splice(index, 1); db.ref('/').update({ slots: slotsArray, active_index: nIdx }); } } window.deleteSlotEvent = deleteSlotEvent;
     function setNewSlotCurrency(symbol) { selectedNewCurrency = symbol; document.getElementById('curr-usd').classList.remove('active'); document.getElementById('curr-rub').classList.remove('active'); document.getElementById(symbol === '$' ? 'curr-usd' : 'curr-rub').classList.add('active'); } window.setNewSlotCurrency = setNewSlotCurrency;
     function toggleArchive(id) { const target = document.getElementById(id); target.style.display = target.style.display === 'block' ? 'none' : 'block'; } window.toggleArchive = toggleArchive;
     function setMode(modeName) { db.ref('display_mode').set(modeName); } window.setMode = setMode;
-    function changeIndex(dir) { let n = Math.max(0, Math.min(slotsArray.length - 1, localActiveIndex + dir)); db.ref('active_index').set(n); db.ref('current_guesses').remove(); db.ref('current_guesses_count').set(0); } window.changeIndex = changeIndex;
-    function resetAll() { if (slotsArray.length === 0) { db.ref('/').update({ active_index: 0, display_mode: 'hunt', slots: {}, start_balance: "", current_guesses_count: 0 }); return; } if(confirm("Заархивировать сессию?")) { const now = new Date(); const timeStr = now.toLocaleDateString('ru-RU') + ' ' + now.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'}); let tSpent = 0, tWin = 0; slotsArray.forEach(s => { tSpent += Number(s.buy || 0); tWin += Number(s.win || 0); }); db.ref('archives').push({ date: timeStr, slots_count: slotsArray.length, total_spent: tSpent, total_win: tWin, slots: slotsArray }).then(() => { db.ref('/').update({ active_index: 0, display_mode: 'hunt', slots: {}, start_balance: "", current_guesses_count: 0 }); }); } } window.resetAll = resetAll;
+    function changeIndex(dir) { let n = Math.max(0, Math.min(slotsArray.length - 1, localActiveIndex + dir)); db.ref('active_index').set(n); } window.changeIndex = changeIndex;
+    function resetAll() { if (slotsArray.length === 0) { db.ref('/').update({ active_index: 0, display_mode: 'hunt', slots: {}, start_balance: "" }); return; } if(confirm("Заархивировать сессию?")) { const now = new Date(); const timeStr = now.toLocaleDateString('ru-RU') + ' ' + now.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'}); let tSpent = 0, tWin = 0; slotsArray.forEach(s => { tSpent += Number(s.buy || 0); tWin += Number(s.win || 0); }); db.ref('archives').push({ date: timeStr, slots_count: slotsArray.length, total_spent: tSpent, total_win: tWin, slots: slotsArray }).then(() => { db.ref('/').update({ active_index: 0, display_mode: 'hunt', slots: {}, start_balance: "" }); }); } } window.resetAll = resetAll;
 
     // BATTLE МЕТОДЫ
     function updateBattleMeta() { db.ref('battle').update({ p1_name: document.getElementById('b-p1-name').value, p2_name: document.getElementById('b-p2-name').value, start_balance: Number(document.getElementById('battle-balance-input').value), currency: document.getElementById('battle-currency-select').value }); } window.updateBattleMeta = updateBattleMeta;
     function setBattleMode(mode) { db.ref('battle/display_mode').set(mode); } window.setBattleMode = setBattleMode;
     function updateInlineBattle(index, player, field, value) { if (field === 'buy' || field === 'win') value = Number(value); db.ref(`battle/rounds/${index}/${player}/${field}`).set(value).then(() => { if (field === 'win') db.ref('battle/display_mode').set('bonusbuy'); }); } window.updateInlineBattle = updateInlineBattle;
     function addBattleRound() { const n1 = document.getElementById('new-b-p1-title').value || 'Слот'; const b1 = Number(document.getElementById('new-b-p1-buy').value || 0); const n2 = document.getElementById('new-b-p2-title').value || 'Слот'; const b2 = Number(document.getElementById('new-b-p2-buy').value || 0); battleRounds.push({ p1: { name: n1, buy: b1, win: 0 }, p2: { name: n2, buy: b2, win: 0 } }); db.ref('battle/rounds').set(battleRounds); document.getElementById('new-b-p1-title').value = ''; document.getElementById('new-b-p1-buy').value = ''; document.getElementById('new-b-p2-title').value = ''; document.getElementById('new-b-p2-buy').value = ''; } window.addBattleRound = addBattleRound;
-    
-    function saveBattleWin() { 
-        if(!battleRounds[battleActiveIndex]) return; 
-        const w1 = Number(document.getElementById('curr-b-p1-win').value || 0); 
-        const w2 = Number(document.getElementById('curr-b-p2-win').value || 0); 
-        db.ref(`battle/rounds/${battleActiveIndex}/p1/win`).set(w1); 
-        db.ref(`battle/rounds/${battleActiveIndex}/p2/win`).set(w2).then(() => { 
-            db.ref('battle/display_mode').set('bonusbuy'); 
-            
-            db.ref('battle/votes_data').remove();
-            db.ref('battle/live_votes').set({ p1: 0, p2: 0 });
-
-            if(battleActiveIndex < battleRounds.length - 1) db.ref('battle/active_index').set(battleActiveIndex + 1); 
-        }); 
-    } 
-    window.saveBattleWin = saveBattleWin;
-    
-    function changeBattleIndex(dir) { let n = Math.max(0, Math.min(battleRounds.length - 1, battleActiveIndex + dir)); db.ref('battle/active_index').set(n); db.ref('battle/votes_data').remove(); db.ref('battle/live_votes').set({ p1: 0, p2: 0 }); } window.changeBattleIndex = changeBattleIndex;
+    function saveBattleWin() { if(!battleRounds[battleActiveIndex]) return; const w1 = Number(document.getElementById('curr-b-p1-win').value || 0); const w2 = Number(document.getElementById('curr-b-p2-win').value || 0); db.ref(`battle/rounds/${battleActiveIndex}/p1/win`).set(w1); db.ref(`battle/rounds/${battleActiveIndex}/p2/win`).set(w2).then(() => { db.ref('battle/display_mode').set('bonusbuy'); if(battleActiveIndex < battleRounds.length - 1) db.ref('battle/active_index').set(battleActiveIndex + 1); }); } window.saveBattleWin = saveBattleWin;
+    function changeBattleIndex(dir) { let n = Math.max(0, Math.min(battleRounds.length - 1, battleActiveIndex + dir)); db.ref('battle/active_index').set(n); } window.changeBattleIndex = changeBattleIndex;
     function deleteBattleRound(event, index) { event.stopPropagation(); if (confirm("Точно удалить этот раунд из битвы?")) { let nIdx = battleActiveIndex; if (index === battleActiveIndex) { if (battleActiveIndex >= battleRounds.length - 1) nIdx = Math.max(0, battleRounds.length - 2); } else if (index < battleActiveIndex) nIdx--; battleRounds.splice(index, 1); db.ref('battle').update({ rounds: battleRounds, active_index: nIdx }); } } window.deleteBattleRound = deleteBattleRound;
-    function resetBattle() { if(confirm('Точно удалить все раунды битвы?')) { db.ref('battle').update({ rounds: {}, active_index: 0, display_mode: 'hunt', start_balance: "", live_votes: { p1: 0, p2: 0 }, votes_data: {} }); } } window.resetBattle = resetBattle;
+    function resetBattle() { if(confirm('Точно удалить все раунды битвы?')) { db.ref('battle').update({ rounds: {}, active_index: 0, display_mode: 'hunt', start_balance: "" }); } } window.resetBattle = resetBattle;
 </script>
 </body>
 </html>
