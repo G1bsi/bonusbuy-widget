@@ -70,9 +70,8 @@
         .battle-flex { display: flex; gap: 10px; }
         .battle-half { flex: 1; background: #1e1e24; padding: 10px; border-radius: 6px; border: 1px solid #333; }
         .battle-half h4 { margin: 0 0 8px 0; font-size: 12px; text-align: center; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
-        .bot-status { font-size: 12px; font-weight: bold; color: #2ecc71; background: rgba(46, 204, 113, 0.1); border: 1px solid rgba(46, 204, 113, 0.2); padding: 8px; border-radius: 6px; text-align: center; margin-bottom: 12px; }
+        .bot-status { font-size: 12px; font-weight: bold; color: #e67e22; background: rgba(230, 126, 34, 0.1); border: 1px solid rgba(230, 126, 34, 0.2); padding: 10px; border-radius: 8px; text-align: center; margin-bottom: 12px; transition: 0.3s; }
 
-        /* Стиль для интерактивных тумблеров */
         .toggle-container { display: flex; justify-content: space-between; align-items: center; background: #1e1e24; padding: 10px 14px; border-radius: 8px; border: 1px dashed #444; margin-bottom: 12px; }
         .toggle-label { font-size: 13px; font-weight: bold; display: flex; align-items: center; gap: 6px; }
         .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
@@ -391,7 +390,6 @@
     let uploadedIconBase64 = '', firebaseCustomIcons = {};
     let battleRounds = [], battleActiveIndex = 0;
     
-    // Статуси тумблерів
     let currentGlobalMode = "solo";
     let guessInteractActive = false;
     let battleInteractActive = false;
@@ -402,25 +400,54 @@
         else { document.getElementById('login-screen').style.display = 'flex'; document.getElementById('main-content').style.display = 'none'; }
     });
 
-    // ІНІЦІАЛІЗАЦІЯ БОТА ЧАТУ KICK
+    // ОПТИМИЗИРОВАННОЕ ПОДКЛЮЧЕНИЕ К ЧАТУ С ЗАЩИТОЙ ДЛЯ HTTPS И ДИНАМИЧЕСКИМИ СОБЫТИЯМИ
     function initKickChatBot() {
         const chatroomId = 235222;
-        const pusher = new Pusher('eb1d5f283081a78b93b4', { cluster: 'us2' });
-        const channel = pusher.subscribe(`chatrooms.${chatroomId}.v2`);
+        const statusEl = document.getElementById('kick-bot-status');
+
+        // Добавляем обязательные параметры для HTTPS сред (forceTLS и транспорты)
+        const pusher = new Pusher('eb1d5f283081a78b93b4', { 
+            cluster: 'us2',
+            forceTLS: true,
+            enabledTransports: ['ws', 'wss']
+        });
         
         pusher.connection.bind('connected', () => {
-            document.getElementById('kick-bot-status').innerText = "🟢 Чат Kick подключен! Бот активен.";
-            document.getElementById('kick-bot-status').style.color = "#2ecc71";
+            statusEl.innerText = "🟢 Чат Kick подключен! Бот активен.";
+            statusEl.style.color = "#2ecc71";
+            statusEl.style.background = "rgba(46, 204, 113, 0.1)";
+            statusEl.style.border = "1px solid rgba(46, 204, 113, 0.3)";
         });
 
-        channel.bind('App\\Events\\ChatMessageEvent', function(data) {
-            const user = data.sender.username;
-            const msg = data.content.trim();
-            handleChatCommands(user, msg);
+        pusher.connection.bind('error', (err) => {
+            statusEl.innerText = "🔴 Ошибка WS: " + (err.message || "Ограничение CORS браузера");
+            statusEl.style.color = "#ff4a5a";
+            statusEl.style.background = "rgba(255, 74, 90, 0.1)";
+            statusEl.style.border = "1px solid rgba(255, 74, 90, 0.3)";
+            console.error("Pusher Connection Error:", err);
+        });
+
+        pusher.connection.bind('state_change', (states) => {
+            if (states.current === 'failed') {
+                statusEl.innerText = "🔴 Ошибка з'єднання (Failed)";
+                statusEl.style.color = "#ff4a5a";
+            }
+        });
+
+        const channel = pusher.subscribe(`chatrooms.${chatroomId}.v2`);
+        
+        // Используем bind_global для автоматического обхода любых изменений названий событий со стороны Kick
+        channel.bind_global(function(event, data) {
+            if (event && event.indexOf('ChatMessageEvent') !== -1) {
+                if (data && data.sender && data.content) {
+                    const user = data.sender.username;
+                    const msg = data.content.trim();
+                    handleChatCommands(user, msg);
+                }
+            }
         });
     }
 
-    // ОБРОБКА КОМАНД ЧАТУ З УРАХУВАННЯМ ТУМБЛЕРІВ (ЗАХИСТ ВІД СПАМУ)
     function handleChatCommands(user, msg) {
         if (currentGlobalMode === 'solo' && guessInteractActive) {
             if (msg.startsWith('!x ')) {
@@ -461,7 +488,6 @@
             document.getElementById('btn-solo').className = 'global-mode-btn ' + (currentGlobalMode === 'solo' ? 'active-solo' : ''); document.getElementById('btn-battle').className = 'global-mode-btn ' + (currentGlobalMode === 'battle' ? 'active-battle' : '');
             document.getElementById('panel-solo').style.display = currentGlobalMode === 'solo' ? 'block' : 'none'; document.getElementById('panel-battle').style.display = currentGlobalMode === 'battle' ? 'block' : 'none';
 
-            // Синхронізація тумблера СОЛО
             guessInteractActive = data.guess_interact_active ?? false;
             document.getElementById('toggle-guess').checked = guessInteractActive;
 
@@ -490,7 +516,6 @@
             document.getElementById('fin-spent-val').innerText = formatNumberCompact(totalSpent) + ' ' + startBalanceCurr; 
             document.getElementById('fin-bal-val').innerText = formatNumberCompact(startBalance || 0) + ' ' + startBalanceCurr;
             
-            // Рахуємо та закидаємо точну кількість прогнозів
             latestGuessesFromFirebase = data.current_guesses || {};
             const guessesCount = Object.keys(latestGuessesFromFirebase).length;
             document.getElementById('fin-guesses-val').innerText = guessesCount;
@@ -523,7 +548,6 @@
             battleActiveIndex = b.active_index || 0;
             const currentBMode = b.display_mode || 'hunt';
 
-            // Синхронізація тумблера БИТВИ
             battleInteractActive = b.votes_interact_active ?? false;
             document.getElementById('toggle-battle-votes').checked = battleInteractActive;
 
@@ -551,7 +575,6 @@
             document.getElementById('b-fin-p1-win').innerText = formatNumberCompact(bP1Win) + ' ' + bCurr;
             document.getElementById('b-fin-p2-win').innerText = formatNumberCompact(bP2Win) + ' ' + bCurr;
             
-            // Прораховуємо живі голоса Битви
             const votesData = b.votes_data || {};
             let p1V = 0, p2V = 0;
             Object.values(votesData).forEach(v => { if(v === '!p1') p1V++; else p2V++; });
@@ -626,7 +649,6 @@
     function updateInlineSlot(index, field, value) { if (field === 'buy' || field === 'win') value = Number(value); db.ref(`slots/${index}/${field}`).set(value).then(() => { if (field === 'win') db.ref('display_mode').set('bonusbuy'); }); } window.updateInlineSlot = updateInlineSlot;
     function saveFinanceSettings() { const val = document.getElementById('balance-input').value; const bal = val === "" ? "" : Number(val); const curr = document.getElementById('balance-curr-select').value; db.ref('/').update({ start_balance: bal, start_balance_currency: curr }); } window.saveFinanceSettings = saveFinanceSettings;
     
-    // ФІНАЛЬНИЙ РОЗРАХУНОК СНАЙПЕРА ТА ОЧИЩЕННЯ БАЗИ ПЕРЕД НАСТУПНИМ СЛОТОМ
     function saveCurrentWin() { 
         if (slotsArray.length === 0) return; 
         const winVal = Number(document.getElementById('current-win').value); 
@@ -649,7 +671,6 @@
                 });
             }
             
-            // Повністю скидаємо лотерею під новий слот
             db.ref('current_guesses').remove();
             db.ref('current_guesses_count').set(0);
 
@@ -681,7 +702,6 @@
         db.ref(`battle/rounds/${battleActiveIndex}/p2/win`).set(w2).then(() => { 
             db.ref('battle/display_mode').set('bonusbuy'); 
             
-            // Скидаємо голосування фракцій перед наступним раундом битви
             db.ref('battle/votes_data').remove();
             db.ref('battle/live_votes').set({ p1: 0, p2: 0 });
 
