@@ -103,7 +103,7 @@
         </div>
 
         <div class="box" style="padding: 0; background: transparent; max-width: 420px;">
-            <div id="kick-bot-status" class="bot-status">📡 Подключение к чату Kick (kosteze231)...</div>
+            <div id="kick-bot-status" class="bot-status">⏳ Инициализация сокета Kick...</div>
         </div>
 
         <div class="global-mode-switcher">
@@ -400,52 +400,51 @@
         else { document.getElementById('login-screen').style.display = 'flex'; document.getElementById('main-content').style.display = 'none'; }
     });
 
-    // ОПТИМИЗИРОВАННОЕ ПОДКЛЮЧЕНИЕ К ЧАТУ С ЗАЩИТОЙ ДЛЯ HTTPS И ДИНАМИЧЕСКИМИ СОБЫТИЯМИ
+    // НАДІЙНЕ ПІДКЛЮЧЕННЯ ДО ЧАТУ KICK
     function initKickChatBot() {
         const chatroomId = 235222;
         const statusEl = document.getElementById('kick-bot-status');
 
-        // Добавляем обязательные параметры для HTTPS сред (forceTLS и транспорты)
         const pusher = new Pusher('eb1d5f283081a78b93b4', { 
             cluster: 'us2',
             forceTLS: true,
             enabledTransports: ['ws', 'wss']
         });
         
-        pusher.connection.bind('connected', () => {
-            statusEl.innerText = "🟢 Чат Kick подключен! Бот активен.";
-            statusEl.style.color = "#2ecc71";
-            statusEl.style.background = "rgba(46, 204, 113, 0.1)";
-            statusEl.style.border = "1px solid rgba(46, 204, 113, 0.3)";
-        });
-
-        pusher.connection.bind('error', (err) => {
-            statusEl.innerText = "🔴 Ошибка WS: " + (err.message || "Ограничение CORS браузера");
-            statusEl.style.color = "#ff4a5a";
-            statusEl.style.background = "rgba(255, 74, 90, 0.1)";
-            statusEl.style.border = "1px solid rgba(255, 74, 90, 0.3)";
-            console.error("Pusher Connection Error:", err);
-        });
-
+        // Живий моніторинг статусів сокета
         pusher.connection.bind('state_change', (states) => {
-            if (states.current === 'failed') {
-                statusEl.innerText = "🔴 Ошибка з'єднання (Failed)";
+            const current = states.current;
+            if (current === 'connected') {
+                statusEl.innerText = "🟢 Чат Kick подключен! Бот активен.";
+                statusEl.style.color = "#2ecc71";
+                statusEl.style.background = "rgba(46, 204, 113, 0.1)";
+                statusEl.style.border = "1px solid rgba(46, 204, 113, 0.3)";
+            } else if (current === 'connecting') {
+                statusEl.innerText = "⏳ Подключение к чату Kick (kosteze231)...";
+                statusEl.style.color = "#e67e22";
+                statusEl.style.background = "rgba(230, 126, 34, 0.1)";
+                statusEl.style.border = "1px solid rgba(230, 126, 34, 0.3)";
+            } else {
+                statusEl.innerText = `🔴 Статус сокета: ${current.toUpperCase()}`;
                 statusEl.style.color = "#ff4a5a";
+                statusEl.style.background = "rgba(255, 74, 90, 0.1)";
+                statusEl.style.border = "1px solid rgba(255, 74, 90, 0.3)";
             }
         });
 
         const channel = pusher.subscribe(`chatrooms.${chatroomId}.v2`);
         
-        // Используем bind_global для автоматического обхода любых изменений названий событий со стороны Kick
-        channel.bind_global(function(event, data) {
-            if (event && event.indexOf('ChatMessageEvent') !== -1) {
-                if (data && data.sender && data.content) {
-                    const user = data.sender.username;
-                    const msg = data.content.trim();
-                    handleChatCommands(user, msg);
-                }
+        // Безпечний парсинг повідомлень без використання збійних функцій
+        function processMessage(data) {
+            if (data && data.sender && data.content) {
+                const user = data.sender.username;
+                const msg = data.content.trim();
+                handleChatCommands(user, msg);
             }
-        });
+        }
+
+        channel.bind('App\\Events\\ChatMessageEvent', processMessage);
+        channel.bind('ChatMessageEvent', processMessage);
     }
 
     function handleChatCommands(user, msg) {
