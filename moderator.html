@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Панель Модератора Bonus Buy (Fish Audio AI UI)</title>
+    <title>Панель Модератора Bonus Buy (UI)</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -89,25 +89,11 @@
     <div id="main-content" style="display: none;">
         <div style="max-width: 420px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <button onclick="handleLogout()" style="width: auto; background: #555; padding: 6px 12px; font-size: 11px; margin: 0;">Выйти 🚪</button>
-            <div style="font-size: 12px; color: #8a8a93; font-weight: bold;">🇷🇺 Язык: Русский (Зашит по умолчанию)</div>
         </div>
 
         <div class="global-mode-switcher">
             <div id="btn-solo" class="global-mode-btn active-solo" onclick="setGlobalMode('solo')">👤 БОНУСБАЙ</div>
             <div id="btn-battle" class="global-mode-btn" onclick="setGlobalMode('battle')">⚔️ БИТВА СЛОТОВ</div>
-        </div>
-
-        <div class="box" style="border: 1px solid #1abc9c;">
-            <div class="box-header" onclick="toggleBox('box-tts', 'arrow-tts')">
-                <h3 style="color:#1abc9c;">🗣️ AI Озвучка текста (Fish Audio)</h3>
-                <span id="arrow-tts" class="arrow-indicator">▼</span>
-            </div>
-            <div id="box-tts" class="box-content" style="display: none;">
-                <input type="text" id="tts-api-key" value="90a019188b754db6b4b417f15dd03ecc" placeholder="Fish Audio API Key (Bearer Token)" onchange="localStorage.setItem('fish_key', this.value)">
-                <input type="text" id="tts-voice-id" value="0a690dbeb3984a9f88cd39353880775f" placeholder="Fish Audio Model ID" onchange="localStorage.setItem('fish_voice', this.value)">
-                <textarea id="tts-text" placeholder="Введите текст для озвучки..." style="width:100%; height:70px; background:#333; color:#fff; border:1px solid #444; border-radius:5px; padding:8px; box-sizing:border-box; margin:5px 0; font-family:sans-serif; resize:none;"></textarea>
-                <button id="tts-btn" style="background:#1abc9c; font-weight:bold;" onclick="sendTTS()">🔊 Озвучить на стриме</button>
-            </div>
         </div>
 
         <div id="panel-solo">
@@ -232,7 +218,7 @@
                     <div class="modes-grid">
                         <button id="btn-b-hunt" class="mode-btn" onclick="setBattleMode('hunt')">🏹 HUNT</button>
                         <button id="btn-b-bonusbuy" class="mode-btn" onclick="setBattleMode('bonusbuy')">🎯 BONUSBUY</button>
-                        <button id="btn-b-finish" class="mode-btn" onclick="setMode('finish')">🏆 FINISH</button>
+                        <button id="btn-b-finish" class="mode-btn" onclick="setBattleMode('finish')">🏆 FINISH</button>
                     </div>
                 </div>
             </div>
@@ -247,6 +233,7 @@
                         <thead><tr><th>Показатель</th><th>Значение</th></tr></thead>
                         <tbody>
                             <tr><td>Общий выигрыш (Всего):</td><td id="b-fin-total-win" style="color:#2ecc71;">0</td></tr>
+                            <tr><td>Закуплено бонусов (Всего):</td><td id="b-fin-total-spent" style="color:#e67e22;">0</td></tr>
                             <tr><td>Выигрыш Игрока 1 (P1):</td><td id="b-fin-p1-win" style="color:#3498db;">0</td></tr>
                             <tr><td>Выигрыш Игрока 2 (P2):</td><td id="b-fin-p2-win" style="color:#e74c3c;">0</td></tr>
                         </tbody>
@@ -390,65 +377,7 @@
     function toggleBox(contentId, arrowId) { const c = document.getElementById(contentId); const a = document.getElementById(arrowId); c.style.display = c.style.display === 'none' ? 'block' : 'none'; a.innerText = c.style.display === 'none' ? '▲' : '▼'; } window.toggleBox = toggleBox;
     function setGlobalMode(mode) { db.ref('global_mode').set(mode); } window.setGlobalMode = setGlobalMode;
 
-    function sendTTS() {
-        const apiKey = document.getElementById('tts-api-key').value.trim();
-        const voiceId = document.getElementById('tts-voice-id').value.trim();
-        const text = document.getElementById('tts-text').value.trim();
-        const btn = document.getElementById('tts-btn');
-
-        if (!apiKey || !voiceId || !text) return alert("Заполните API Key, Model ID и текст!");
-
-        btn.disabled = true;
-        btn.innerText = "Генерация голоса (Fish)...";
-
-        fetch(`https://api.fish.audio/v1/tts`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                text: text,
-                reference_id: voiceId,
-                format: "mp3"
-            })
-        })
-        .then(async res => {
-            if (!res.ok) {
-                let errorDetails = "";
-                try { errorDetails = await res.text(); } catch (e) { errorDetails = res.statusText; }
-                throw new Error(`Ошибка Fish Audio (Код ${res.status}): ${errorDetails}`);
-            }
-            return res.arrayBuffer();
-        })
-        .then(buffer => {
-            let binary = '';
-            const bytes = new Uint8Array(buffer);
-            for (let i = 0; i < bytes.byteLength; i++) { binary += String.fromCharCode(bytes[i]); }
-            const base64 = btoa(binary);
-
-            return db.ref('tts_trigger').set({
-                audio: base64,
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-        })
-        .then(() => {
-            document.getElementById('tts-text').value = '';
-            btn.disabled = false;
-            btn.innerText = "🔊 Озвучить на стриме";
-        })
-        .catch(err => {
-            alert(err.message);
-            btn.disabled = false;
-            btn.innerText = "🔊 Озвучить на стриме";
-        });
-    }
-    window.sendTTS = sendTTS;
-
     function initDatabaseListeners() {
-        document.getElementById('tts-api-key').value = localStorage.getItem('fish_key') || '90a019188b754db6b4b417f15dd03ecc';
-        document.getElementById('tts-voice-id').value = localStorage.getItem('fish_voice') || '0a690dbeb3984a9f88cd39353880775f';
-
         db.ref('/').on('value', snapshot => {
             const data = snapshot.val() || {};
             
@@ -475,7 +404,6 @@
             const allNames = new Set([...AUTOCOMPLETE_LIST, ...Object.keys(firebaseCustomIcons)]);
             allNames.forEach(name => { let opt = document.createElement('option'); opt.value = name; datalist.appendChild(opt); });
 
-            // ПОДСЧЕТ ФИНАНСОВ С УЧЕТОМ ЗАКУПКИ БОНУСОВ
             let totalWin = 0; let totalSpent = 0;
             slotsArray.forEach(s => { 
                 totalWin += Number(s.win || 0); 
@@ -528,10 +456,17 @@
                 if(document.activeElement !== document.getElementById('curr-b-p2-win')) document.getElementById('curr-b-p2-win').value = '';
             }
 
+            // СЧИТАЕМ ВЫИГРЫШ И ЗАКУПКУ БИТВЫ
             let bTotalWin = 0, bP1Win = 0, bP2Win = 0;
-            battleRounds.forEach(r => { bP1Win += Number(r.p1?.win || 0); bP2Win += Number(r.p2?.win || 0); });
+            let bTotalBuy = 0;
+            battleRounds.forEach(r => { 
+                bP1Win += Number(r.p1?.win || 0); 
+                bP2Win += Number(r.p2?.win || 0); 
+                bTotalBuy += Number(r.p1?.buy || 0) + Number(r.p2?.buy || 0);
+            });
             bTotalWin = bP1Win + bP2Win; const bCurr = b.currency || '₽';
             document.getElementById('b-fin-total-win').innerText = formatNumberCompact(bTotalWin) + ' ' + bCurr;
+            document.getElementById('b-fin-total-spent').innerText = formatNumberCompact(bTotalBuy) + ' ' + bCurr;
             document.getElementById('b-fin-p1-win').innerText = formatNumberCompact(bP1Win) + ' ' + bCurr;
             document.getElementById('b-fin-p2-win').innerText = formatNumberCompact(bP2Win) + ' ' + bCurr;
             
