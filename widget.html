@@ -81,7 +81,17 @@
     </div>
 </div>
 <script>
-    const firebaseConfig = { apiKey: "AIzaSyD5A81EQXjywE72h3zbqaqwNAUbO8I7KNc", databaseURL: "https://bonusbyra-default-rtdb.europe-west1.firebasedatabase.app/", projectId: "obswidget-110cf" };
+    // Твої оновлені налаштування Firebase для віджета
+    const firebaseConfig = {
+        apiKey: "AIzaSyC3WVO3p4EwDec5J2PEooIoAkHxIfw6R8w",
+        authDomain: "bonusbyra.firebaseapp.com",
+        databaseURL: "https://bonusbyra-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "bonusbyra",
+        storageBucket: "bonusbyra.firebasestorage.app",
+        messagingSenderId: "873732272758",
+        appId: "1:873732272758:web:b71eb5ac35ea6b6bc26557"
+    };
+
     firebase.initializeApp(firebaseConfig); 
     const db = firebase.database();
     function formatNumberCompact(num) { num = Number(num); if (isNaN(num) || num === 0) return '0'; let absNum = Math.abs(num); let sign = num < 0 ? '-' : ''; if (absNum >= 1000000) return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк'; if (absNum >= 1000) return sign + parseFloat((absNum / 1000).toFixed(1)) + 'к'; return sign + absNum.toString(); }
