@@ -127,7 +127,7 @@
                     <span id="arrow-add" class="arrow-indicator">▼</span>
                 </div>
                 <div id="box-add" class="box-content">
-                    <input type="text" id="new-name" list="slots-base" placeholder="Название слота..." oninput="checkSlotDatabase()">
+                    <input type="text" id="new-name" list="slots-base" placeholder="Название slots..." oninput="checkSlotDatabase()">
                     <datalist id="slots-base"></datalist>
                     <input type="number" id="new-buy" placeholder="Сумма покупки">
                     <div class="currency-toggle-container">
@@ -280,16 +280,23 @@
         </div>
     </div>
 <script>
+    // Твої оновлені налаштування Firebase для модератора
+    const firebaseConfig = {
+        apiKey: "AIzaSyC3WVO3p4EwDec5J2PEooIoAkHxIfw6R8w",
+        authDomain: "bonusbyra.firebaseapp.com",
+        databaseURL: "https://bonusbyra-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "bonusbyra",
+        storageBucket: "bonusbyra.firebasestorage.app",
+        messagingSenderId: "873732272758",
+        appId: "1:873732272758:web:b71eb5ac35ea6b6bc26557"
+    };
+
     const AUTOCOMPLETE_LIST = ["Gates of Olympus", "Sweet Bonanza", "Sugar Rush", "Zeus vs Hades", "Wanted Dead or a Wild", "RIP City", "Mental", "San Quentin"];
-    const firebaseConfig = { apiKey: "AIzaSyD5A81EQXjywE72h3zbqaqwNAUbO8I7KNc", authDomain: "obswidget-110cf.firebaseapp.com", projectId: "obswidget-110cf", storageBucket: "obswidget-110cf.firebasestorage.app", messagingSenderId: "336642071325", appId: "1:336642071325:web:b985339f1f3ab75222dff4", measurementId: "G-Y2C8DRSYH1", databaseURL: "https://bonusbyra-default-rtdb.europe-west1.firebasedatabase.app/" };
     firebase.initializeApp(firebaseConfig); const db = firebase.database();
     const HIDDEN_EMAIL = "kostezezanos@gmail.com"; 
     let localActiveIndex = 0, slotsArray = [];
     let isDragging = false, selectedNewCurrency = '$';
-    
-    // Нова логіка для посилань замість Base64
     let currentIconUrl = '', firebaseCustomIcons = {};
-    
     let battlePlayers = ['Игрок 1', 'Игрок 2']; 
     let battleRounds = [], battleActiveIndex = 0;
     let isBattleDragging = false;
@@ -430,7 +437,6 @@
         new Sortable(document.getElementById('drag-container-battle'), { animation: 150, handle: '.drag-handle-battle', onStart: function() { isBattleDragging = true; }, onEnd: function (evt) { isBattleDragging = false; if (evt.oldIndex === evt.newIndex) return; const movedItem = battleRounds.splice(evt.oldIndex, 1)[0]; battleRounds.splice(evt.newIndex, 0, movedItem); let nIdx = battleActiveIndex; if (battleActiveIndex === evt.oldIndex) nIdx = evt.newIndex; else if (battleActiveIndex > evt.oldIndex && battleActiveIndex <= evt.newIndex) nIdx--; else if (battleActiveIndex < evt.oldIndex && battleActiveIndex >= evt.newIndex) nIdx++; db.ref('battle').update({ rounds: battleRounds, active_index: nIdx }); } });
     };
     
-    // Нова функція обробки введення посилання на картинку
     function handleUrlInput() {
         const url = document.getElementById('image-url-input').value.trim();
         currentIconUrl = url;
@@ -442,7 +448,6 @@
             previewImg.style.display = 'block';
             uploadHint.style.display = 'none';
             
-            // Якщо ім'я слота вже введено, одразу зберігаємо в базу іконок
             const name = document.getElementById('new-name').value.trim();
             if (name) { db.ref(`custom_icons/${name}`).set(url); }
         } else {
@@ -483,7 +488,6 @@
         const buy = document.getElementById('new-buy').value; 
         if(!name || !buy) return alert("Заполните поля!"); 
         
-        // Зберігаємо посилання (URL) на картинку замість Base64
         if (currentIconUrl && !firebaseCustomIcons[name]) { 
             db.ref(`custom_icons/${name}`).set(currentIconUrl); 
         } 
@@ -491,7 +495,6 @@
         slotsArray.push({ name: name, buy: Number(buy), win: 0, currency: selectedNewCurrency }); 
         db.ref('slots').set(slotsArray); 
         
-        // Очищаємо поля
         document.getElementById('new-name').value = ''; 
         document.getElementById('new-buy').value = ''; 
         const urlInput = document.getElementById('image-url-input');
