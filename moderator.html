@@ -22,7 +22,7 @@
         .nav-container { display: flex; justify-content: space-between; }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
-        .upload-zone { width: 54px; height: 54px; border: 2px dashed #555; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #14141a; overflow: hidden; position: relative; }
+        .upload-zone { width: 54px; height: 54px; border: 2px dashed #555; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: #14141a; overflow: hidden; position: relative; }
         .upload-hint { font-size: 22px; color: #666; font-weight: bold; }
         .preview-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
         .modes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 5px 0; }
@@ -134,16 +134,21 @@
                         <button type="button" id="curr-usd" class="currency-btn active" onclick="setNewSlotCurrency('$')">$ (USD)</button>
                         <button type="button" id="curr-rub" class="currency-btn" onclick="setNewSlotCurrency('₽')">₽ (RUB)</button>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 12px; margin: 8px 0;">
-                        <div id="upload-zone" class="upload-zone" onclick="triggerFileInput()">
-                            <span id="upload-hint" class="upload-hint">+</span>
-                            <img id="slot-preview" class="preview-img" style="display: none;">
+                    
+                    <div style="margin: 8px 0;">
+                        <label style="font-size: 11px; color:#aaa;">Ссылка на картинку (URL):</label>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px;">
+                            <div class="upload-zone" style="cursor: default;">
+                                <span id="upload-hint" class="upload-hint">🖼️</span>
+                                <img id="slot-preview" class="preview-img" style="display: none;">
+                            </div>
+                            <input type="text" id="image-url-input" placeholder="Вставьте ссылку https://..." oninput="handleUrlInput()" style="flex: 1; margin: 0;">
                         </div>
-                        <input type="file" id="image-file-input" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
-                        <span style="font-size: 11px; color: #8a8a93; line-height: 1.35;">
-                            💡 <b>Копируй картинку из гугла</b><br>и просто нажми <b>Ctrl + V</b> здесь!
+                        <span style="font-size: 11px; color: #8a8a93; line-height: 1.35; display: block; margin-top: 5px;">
+                            💡 <b>Вставь ссылку на картинку</b> со своего облака или хостинга.
                         </span>
                     </div>
+
                     <button onclick="addSlot()">Добавить в список</button>
                 </div>
             </div>
@@ -281,7 +286,10 @@
     const HIDDEN_EMAIL = "kostezezanos@gmail.com"; 
     let localActiveIndex = 0, slotsArray = [];
     let isDragging = false, selectedNewCurrency = '$';
-    let uploadedIconBase64 = '', firebaseCustomIcons = {};
+    
+    // Нова логіка для посилань замість Base64
+    let currentIconUrl = '', firebaseCustomIcons = {};
+    
     let battlePlayers = ['Игрок 1', 'Игрок 2']; 
     let battleRounds = [], battleActiveIndex = 0;
     let isBattleDragging = false;
@@ -420,15 +428,80 @@
     window.onload = function() {
         new Sortable(document.getElementById('drag-container'), { animation: 150, handle: '.drag-handle', onStart: function() { isDragging = true; }, onEnd: function (evt) { isDragging = false; if (evt.oldIndex === evt.newIndex) return; const movedItem = slotsArray.splice(evt.oldIndex, 1)[0]; slotsArray.splice(evt.newIndex, 0, movedItem); let nIdx = localActiveIndex; if (localActiveIndex === evt.oldIndex) nIdx = evt.newIndex; else if (localActiveIndex > evt.oldIndex && localActiveIndex <= evt.newIndex) nIdx--; else if (localActiveIndex < evt.oldIndex && localActiveIndex >= evt.newIndex) nIdx++; db.ref('/').update({ slots: slotsArray, active_index: nIdx }); } });
         new Sortable(document.getElementById('drag-container-battle'), { animation: 150, handle: '.drag-handle-battle', onStart: function() { isBattleDragging = true; }, onEnd: function (evt) { isBattleDragging = false; if (evt.oldIndex === evt.newIndex) return; const movedItem = battleRounds.splice(evt.oldIndex, 1)[0]; battleRounds.splice(evt.newIndex, 0, movedItem); let nIdx = battleActiveIndex; if (battleActiveIndex === evt.oldIndex) nIdx = evt.newIndex; else if (battleActiveIndex > evt.oldIndex && battleActiveIndex <= evt.newIndex) nIdx--; else if (battleActiveIndex < evt.oldIndex && battleActiveIndex >= evt.newIndex) nIdx++; db.ref('battle').update({ rounds: battleRounds, active_index: nIdx }); } });
-        window.addEventListener('paste', function(e) { const items = (e.clipboardData || e.originalEvent.clipboardData).items; for (let index in items) { const item = items[index]; if (item.kind === 'file' && item.type.indexOf('image') !== -1) { const blob = item.getAsFile(); const reader = new FileReader(); reader.onload = function(event) { uploadedIconBase64 = event.target.result; document.getElementById('slot-preview').src = uploadedIconBase64; document.getElementById('slot-preview').style.display = 'block'; document.getElementById('upload-hint').style.display = 'none'; const name = document.getElementById('new-name').value.trim(); if (name) { db.ref(`custom_icons/${name}`).set(uploadedIconBase64); } }; reader.readAsDataURL(blob); } } });
     };
-    function triggerFileInput() { document.getElementById('image-file-input').click(); } window.triggerFileInput = triggerFileInput;
-    function handleFileSelect(event) { const file = event.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { uploadedIconBase64 = e.target.result; document.getElementById('slot-preview').src = uploadedIconBase64; document.getElementById('slot-preview').style.display = 'block'; document.getElementById('upload-hint').style.display = 'none'; const name = document.getElementById('new-name').value.trim(); if (name) { db.ref(`custom_icons/${name}`).set(uploadedIconBase64); } }; reader.readAsDataURL(file); } window.handleFileSelect = handleFileSelect;
-    function checkSlotDatabase() { const inputName = document.getElementById('new-name').value.trim(); const previewImg = document.getElementById('slot-preview'); const uploadHint = document.getElementById('upload-hint'); uploadedIconBase64 = ''; if (firebaseCustomIcons[inputName]) { previewImg.src = firebaseCustomIcons[inputName]; previewImg.style.display = 'block'; uploadHint.style.display = 'none'; uploadedIconBase64 = firebaseCustomIcons[inputName]; } else { previewImg.style.display = 'none'; uploadHint.style.display = 'block'; } } window.checkSlotDatabase = checkSlotDatabase;
+    
+    // Нова функція обробки введення посилання на картинку
+    function handleUrlInput() {
+        const url = document.getElementById('image-url-input').value.trim();
+        currentIconUrl = url;
+        const previewImg = document.getElementById('slot-preview');
+        const uploadHint = document.getElementById('upload-hint');
+        
+        if (url) {
+            previewImg.src = url;
+            previewImg.style.display = 'block';
+            uploadHint.style.display = 'none';
+            
+            // Якщо ім'я слота вже введено, одразу зберігаємо в базу іконок
+            const name = document.getElementById('new-name').value.trim();
+            if (name) { db.ref(`custom_icons/${name}`).set(url); }
+        } else {
+            previewImg.style.display = 'none';
+            uploadHint.style.display = 'block';
+        }
+    }
+    window.handleUrlInput = handleUrlInput;
+
+    function checkSlotDatabase() { 
+        const inputName = document.getElementById('new-name').value.trim(); 
+        const previewImg = document.getElementById('slot-preview'); 
+        const uploadHint = document.getElementById('upload-hint'); 
+        const urlInput = document.getElementById('image-url-input');
+        
+        currentIconUrl = ''; 
+        if (urlInput) urlInput.value = '';
+
+        if (firebaseCustomIcons[inputName]) { 
+            previewImg.src = firebaseCustomIcons[inputName]; 
+            previewImg.style.display = 'block'; 
+            uploadHint.style.display = 'none'; 
+            currentIconUrl = firebaseCustomIcons[inputName]; 
+            if (urlInput) urlInput.value = currentIconUrl; 
+        } else { 
+            previewImg.style.display = 'none'; 
+            uploadHint.style.display = 'block'; 
+        } 
+    } 
+    window.checkSlotDatabase = checkSlotDatabase;
+
     function updateInlineSlot(index, field, value) { if (field === 'buy' || field === 'win') value = Number(value); db.ref(`slots/${index}/${field}`).set(value).then(() => { if (field === 'win') db.ref('display_mode').set('bonusbuy'); }); } window.updateInlineSlot = updateInlineSlot;
     function saveFinanceSettings() { const val = document.getElementById('balance-input').value; const bal = val === "" ? "" : Number(val); const curr = document.getElementById('balance-curr-select').value; db.ref('/').update({ start_balance: bal, start_balance_currency: curr }); } window.saveFinanceSettings = saveFinanceSettings;
     function saveCurrentWin() { if (slotsArray.length === 0) return; const winVal = Number(document.getElementById('current-win').value); db.ref(`slots/${localActiveIndex}/win`).set(winVal).then(() => { db.ref('display_mode').set('bonusbuy'); if (localActiveIndex < slotsArray.length - 1) { db.ref('active_index').set(localActiveIndex + 1); } }); } window.saveCurrentWin = saveCurrentWin;
-    function addSlot() { const name = document.getElementById('new-name').value.trim(); const buy = document.getElementById('new-buy').value; if(!name || !buy) return alert("Заполните поля!"); if (uploadedIconBase64 && !firebaseCustomIcons[name]) { db.ref(`custom_icons/${name}`).set(uploadedIconBase64); } slotsArray.push({ name: name, buy: Number(buy), win: 0, currency: selectedNewCurrency }); db.ref('slots').set(slotsArray); document.getElementById('new-name').value = ''; document.getElementById('new-buy').value = ''; document.getElementById('slot-preview').style.display = 'none'; document.getElementById('upload-hint').style.display = 'block'; uploadedIconBase64 = ''; } window.addSlot = addSlot;
+    
+    function addSlot() { 
+        const name = document.getElementById('new-name').value.trim(); 
+        const buy = document.getElementById('new-buy').value; 
+        if(!name || !buy) return alert("Заполните поля!"); 
+        
+        // Зберігаємо посилання (URL) на картинку замість Base64
+        if (currentIconUrl && !firebaseCustomIcons[name]) { 
+            db.ref(`custom_icons/${name}`).set(currentIconUrl); 
+        } 
+        
+        slotsArray.push({ name: name, buy: Number(buy), win: 0, currency: selectedNewCurrency }); 
+        db.ref('slots').set(slotsArray); 
+        
+        // Очищаємо поля
+        document.getElementById('new-name').value = ''; 
+        document.getElementById('new-buy').value = ''; 
+        const urlInput = document.getElementById('image-url-input');
+        if (urlInput) urlInput.value = '';
+        document.getElementById('slot-preview').style.display = 'none'; 
+        document.getElementById('upload-hint').style.display = 'block'; 
+        currentIconUrl = ''; 
+    } 
+    window.addSlot = addSlot;
+    
     function deleteArchiveEvent(event, key) { event.stopPropagation(); if (confirm("Удалить сессию из архива?")) { db.ref('archives/' + key).remove(); } } window.deleteArchiveEvent = deleteArchiveEvent;
     function deleteSlotEvent(event, index) { event.stopPropagation(); if (confirm("Удалить этот слот?")) { let nIdx = localActiveIndex; if (index === localActiveIndex) { if (localActiveIndex >= slotsArray.length - 1) nIdx = Math.max(0, slotsArray.length - 2); } else if (index < localActiveIndex) nIdx--; slotsArray.splice(index, 1); db.ref('/').update({ slots: slotsArray, active_index: nIdx }); } } window.deleteSlotEvent = deleteSlotEvent;
     function setNewSlotCurrency(symbol) { selectedNewCurrency = symbol; document.getElementById('curr-usd').classList.remove('active'); document.getElementById('curr-rub').classList.remove('active'); document.getElementById(symbol === '$' ? 'curr-usd' : 'curr-rub').classList.add('active'); } window.setNewSlotCurrency = setNewSlotCurrency;
