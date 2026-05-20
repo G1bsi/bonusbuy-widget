@@ -518,7 +518,27 @@
     function setBattleMode(mode) { db.ref('battle/display_mode').set(mode); } window.setBattleMode = setBattleMode;
     function updateInlineBattle(roundIndex, playerIndex, field, value) { if (field === 'buy' || field === 'win') value = Number(value); db.ref(`battle/rounds/${roundIndex}/p/${playerIndex}/${field}`).set(value).then(() => { if (field === 'win') db.ref('battle/display_mode').set('bonusbuy'); }); } window.updateInlineBattle = updateInlineBattle;
     function addBattleRound() { let newRound = { p: [] }; battlePlayers.forEach((_, i) => { let elName = document.getElementById(`new-b-p${i}-title`); let elBuy = document.getElementById(`new-b-p${i}-buy`); newRound.p.push({ name: elName.value || 'Слот', buy: Number(elBuy.value || 0), win: 0 }); elName.value = ''; elBuy.value = ''; }); battleRounds.push(newRound); db.ref('battle/rounds').set(battleRounds); } window.addBattleRound = addBattleRound;
-    function saveBattleWin() { if(!battleRounds[battleActiveIndex]) return; battlePlayers.forEach((_, i) => { let elWin = document.getElementById(`curr-b-p${i}-win`); db.ref(`battle/rounds/${battleActiveIndex}/p/${i}/win`).set(Number(elWin.value || 0)); }); db.ref('battle/display_mode').set('bonusbuy'); if(battleActiveIndex < battleRounds.length - 1) db.ref('battle/active_index').set(battleActiveIndex + 1); } window.saveBattleWin = saveBattleWin;
+    function saveBattleWin() { 
+        if(!battleRounds[battleActiveIndex]) return; 
+        
+        let updates = {}; 
+        
+        
+        battlePlayers.forEach((_, i) => { 
+            let elWin = document.getElementById(`curr-b-p${i}-win`); 
+            updates[`battle/rounds/${battleActiveIndex}/p/${i}/win`] = Number(elWin.value || 0); 
+        }); 
+        
+        updates['battle/display_mode'] = 'bonusbuy'; 
+        
+        if (battleActiveIndex < battleRounds.length - 1) {
+            updates['battle/active_index'] = battleActiveIndex + 1; 
+        }
+        
+        
+        db.ref('/').update(updates); 
+    } 
+    window.saveBattleWin = saveBattleWin;
     function changeBattleIndex(dir) { let n = Math.max(0, Math.min(battleRounds.length - 1, battleActiveIndex + dir)); db.ref('battle/active_index').set(n); } window.changeBattleIndex = changeBattleIndex;
     function deleteBattleRound(event, index) { event.stopPropagation(); if (confirm("Удалить этот раунд?")) { let nIdx = battleActiveIndex; if (index === battleActiveIndex) { if (battleActiveIndex >= battleRounds.length - 1) nIdx = Math.max(0, battleRounds.length - 2); } else if (index < battleActiveIndex) nIdx--; battleRounds.splice(index, 1); db.ref('battle').update({ rounds: battleRounds, active_index: nIdx }); } } window.deleteBattleRound = deleteBattleRound;
     function resetBattle() { if(confirm('Точно удалить все раунды битвы?')) { db.ref('battle').update({ rounds: {}, active_index: 0, display_mode: 'hunt', start_balance: "" }); } } window.resetBattle = resetBattle;
