@@ -81,7 +81,7 @@
     </div>
 </div>
 <script>
-    const firebaseConfig = { apiKey: "AIzaSyD5A81EQXjywE72h3zbqaqwNAUbO8I7KNc", databaseURL: "https://obswidget-110cf-default-rtdb.europe-west1.firebasedatabase.app/", projectId: "obswidget-110cf" };
+    const firebaseConfig = { apiKey: "AIzaSyD5A81EQXjywE72h3zbqaqwNAUbO8I7KNc", databaseURL: "https://bonusbyra-default-rtdb.europe-west1.firebasedatabase.app/", projectId: "obswidget-110cf" };
     firebase.initializeApp(firebaseConfig); 
     const db = firebase.database();
     function formatNumberCompact(num) { num = Number(num); if (isNaN(num) || num === 0) return '0'; let absNum = Math.abs(num); let sign = num < 0 ? '-' : ''; if (absNum >= 1000000) return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк'; if (absNum >= 1000) return sign + parseFloat((absNum / 1000).toFixed(1)) + 'к'; return sign + absNum.toString(); }
