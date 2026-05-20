@@ -4,72 +4,60 @@
     <meta charset="UTF-8">
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap" rel="stylesheet">
     <style>
         body { margin: 0; padding: 15px; font-family: 'Plus Jakarta Sans', sans-serif; color: #fff; background: transparent; overflow: hidden; }
-        
-        /* === ОБЩИЕ СТИЛИ И ЦЕНТРИРОВАНИЕ === */
-        .tracker-container { margin: 0 auto; width: 560px; height: fit-content; background: rgba(10, 10, 14, 0.98); backdrop-filter: blur(8px); border-radius: 36px; padding: 24px; box-shadow: 0 35px 85px rgba(0,0,0,0.6), inset 0 1px 3px rgba(255,255,255,0.05); border: 1px solid rgba(255, 255, 255, 0.03); display: flex; flex-direction: column; box-sizing: border-box; transition: all 0.4s; }
-        
+        .tracker-container { margin: 0 auto; width: 580px; height: auto; min-height: 100px; background: rgba(10, 10, 14, 0.98); backdrop-filter: blur(8px); border-radius: 36px; padding: 24px; box-shadow: 0 35px 85px rgba(0,0,0,0.6), inset 0 1px 3px rgba(255,255,255,0.05); border: 1px solid rgba(255, 255, 255, 0.03); display: flex; flex-direction: column; box-sizing: border-box; transition: width 0.4s ease; }
+        .slots-viewport { max-height: 488px; overflow: hidden; position: relative; border-radius: 24px; padding: 15px; margin: -15px; transition: max-height 0.4s ease; }
+        .slots-list { display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes infiniteWheel { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
         .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 0; transition: margin-bottom 0.3s ease; }
         .tracker-container.has-items .stats-grid { margin-bottom: 24px; }
-        .stat-card { background: rgba(25, 25, 35, 0.8); border-radius: 18px; padding: 14px 6px; text-align: center; border: 1px solid rgba(255,255,255,0.02); box-shadow: inset 0 1px 2px rgba(255,255,255,0.02); }
-        .stat-icon { font-size: 22px; margin-bottom: 6px; display: block; filter: drop-shadow(0 3px 6px rgba(0,0,0,0.5)); }
-        .stat-val { font-size: 18px; font-weight: 800; color: #e2e8f0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.2px; }
-        
-        .slots-viewport { display: none; height: auto; max-height: 540px; overflow: hidden; position: relative; border-radius: 24px; padding: 10px; margin: -10px; }
-        .slots-list { display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box; }
-        .slot-row { display: flex; align-items: center; padding: 18px 22px; background: rgba(18, 18, 24, 0.85); border-radius: 24px; border: 1px solid rgba(255,255,255,0.01); box-sizing: border-box; height: 88px; transition: all 0.4s; }
+        .stat-card { background: rgba(25, 25, 35, 0.8); border-radius: 18px; padding: 14px 6px; text-align: center; border: 1px solid rgba(255,255,255,0.02); }
+        .stat-icon { font-size: 22px; margin-bottom: 6px; display: block; }
+        .stat-val { font-size: 18px; font-weight: 800; color: #e2e8f0; }
+        .slot-row { display: flex; align-items: center; padding: 18px 22px; background: rgba(18, 18, 24, 0.85); border-radius: 24px; border: 1px solid rgba(255,255,255,0.01); box-sizing: border-box; height: 88px; transition: all 0.4s; flex-shrink: 0; }
         .slot-icon-wrapper { position: relative; width: 55px; height: 55px; margin-right: 20px; flex-shrink: 0; }
-        .slot-icon-img { width: 100%; height: 100%; border-radius: 14px; background: #222; object-fit: cover; box-shadow: 0 5px 15px rgba(0,0,0,0.4); }
-        .slot-icon-text { width: 100%; height: 100%; border-radius: 14px; background: linear-gradient(135deg, #1a1a24, #111116); color: #ffb703; border: 1px solid rgba(255, 183, 3, 0.15); display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 800; text-transform: uppercase; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .slot-icon-img { width: 100%; height: 100%; border-radius: 14px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .slot-icon-text { width: 100%; height: 100%; border-radius: 14px; background: linear-gradient(135deg, #1a1a24, #111116); color: #ffb703; display: flex; align-items: center; justify-content: center; font-weight: 800; }
         .crown-overlay { display: none; }
         .mode-finish .crown-overlay { display: block; position: absolute; top: -16px; left: -16px; font-size: 28px; transform: rotate(-28deg); filter: drop-shadow(0 3px 8px rgba(0,0,0,0.9)); z-index: 10; animation: crownPop 0.45s both; }
         @keyframes crownPop { 0% { transform: scale(0) rotate(-60deg); opacity: 0; } 100% { transform: scale(1) rotate(-28deg); opacity: 1; } }
-        .slot-info { flex-grow: 1; min-width: 0; }
-        .slot-name { font-size: 21px; font-weight: 700; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .slot-amounts { font-size: 19px; color: #64748b; font-weight: 500; margin-top: 4px; }
-        .arrow-blue { color: #00f2fe; font-weight: bold; margin: 0 6px; filter: drop-shadow(0 0 6px rgba(0,242,254,0.4)); }
-        .multiplier-badge { font-size: 18px; font-weight: 800; padding: 8px 14px; border-radius: 30px; min-width: 88px; text-align: center; box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
-        .mult-pending { background: rgba(30, 41, 59, 0.75); color: #94a3b8; border: 1px solid rgba(255,255,255,0.03); }
+        .slot-info { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+        .slot-name-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 4px; width: 100%; }
+        .slot-name { font-size: 20px; font-weight: 800; color: #f1f5f9; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.1; margin: 0; flex: 1; }
+        .slot-amounts { font-size: 18px; color: #64748b; font-weight: 500; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 2px; }
+        .arrow-blue { color: #00f2fe; font-weight: bold; margin: 0 4px; filter: drop-shadow(0 0 6px rgba(0,242,254,0.4)); }
+        .multiplier-badge { flex-shrink: 0; font-size: 18px; font-weight: 800; padding: 6px 14px; margin: 0; border-radius: 30px; min-width: 75px; text-align: center; }
+        .mult-win { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
         .mult-loss { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
-        .mult-win { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); filter: drop-shadow(0 0 8px rgba(16,185,129,0.15)); }
-        .mode-bonusbuy .slot-row { opacity: 0.25; transform: scale(0.96); filter: blur(0.5px); }
-        .mode-bonusbuy .slot-row.active { opacity: 1; filter: none; background: linear-gradient(90deg, rgba(124, 58, 237, 0.16) 0%, rgba(18, 18, 24, 0.8) 100%); border: 1px solid rgba(124, 58, 237, 0.3); transform: scale(1.03); box-shadow: 0 14px 35px rgba(124, 58, 237, 0.25); }
-        @keyframes infiniteWheel { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
-
-        /* === БИТВА СТИЛИ === */
-        .battle-container { width: 900px; padding: 26px; }
-        .battle-shared-stats { display: flex; justify-content: center; gap: 20px; margin-bottom: 20px; }
-        .b-stat-pill { background: rgba(25, 25, 35, 0.8); border: 1px solid rgba(255,255,255,0.05); padding: 10px 24px; border-radius: 30px; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; box-shadow: inset 0 1px 2px rgba(255,255,255,0.02); }
-        
-        .battle-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 25px; position: relative; }
-        .battle-player-block { flex: 1; display: flex; flex-direction: column; position: relative; }
-        .battle-player-block.p1 { text-align: left; align-items: flex-start; }
-        .battle-player-block.p2 { text-align: right; align-items: flex-end; }
-        
-        .b-name { font-size: 38px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
-        .p1 .b-name { color: #3498db; }
-        .p2 .b-name { color: #e74c3c; }
-        
-        .b-meta { font-size: 20px; color: #a4a4af; margin-top: 6px; font-weight: 700; letter-spacing: -0.1px; }
-        
-        .player-crown { font-size: 36px; position: absolute; top: -42px; filter: drop-shadow(0 4px 10px rgba(255,215,0,0.6)); display: none; animation: crownDrop 0.55s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; z-index: 10; }
-        .p1 .player-crown { left: 10px; transform: rotate(-15deg); }
-        .p2 .player-crown { right: 10px; transform: rotate(15deg); }
-        
-        @keyframes crownDrop { 0% { transform: translateY(-30px) scale(0) rotate(-50deg); opacity: 0; } 100% { opacity: 1; } }
-
-        .battle-score-center { background: rgba(255,183,3,0.08); border: 1px solid rgba(255,183,3,0.25); padding: 12px 34px; border-radius: 22px; font-size: 36px; font-weight: 800; color: #ffb703; text-align: center; display: flex; gap: 14px; align-items: center; margin: 0 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
-        .battle-row { display: flex; align-items: center; background: rgba(18, 18, 24, 0.85); border-radius: 24px; border: 1px solid rgba(255,255,255,0.01); height: 95px; padding: 0 16px; box-sizing: border-box; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); position: relative; overflow: hidden; }
-        
-        .b-side { flex: 1; display: flex; align-items: center; min-width: 0; height: 100%; padding: 0 8px; transition: all 0.4s; }
-        .b-side-p2 { flex-direction: row-reverse; text-align: right; }
-        .b-divider-vs { font-size: 14px; font-weight: 800; color: rgba(255,255,255,0.15); margin: 0 15px; z-index: 2; }
+        .mult-pending { background: rgba(30, 41, 59, 0.75); color: #94a3b8; border: 1px solid rgba(255,255,255,0.03); }
+        .battle-shared-stats { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .b-stat-pill { background: rgba(25, 25, 35, 0.8); border: 1px solid rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 16px; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .battle-header { display: flex; align-items: center; justify-content: space-around; margin-bottom: 20px; background: rgba(18, 18, 24, 0.6); border-radius: 20px; padding: 16px 18px; border: 1px solid rgba(255,255,255,0.02); gap: 15px; }
+        .battle-player-block { display: flex; flex-direction: column; position: relative; flex: 1; text-align: center; align-items: center; min-width: 0; }
+        .b-name { font-size: 30px; font-weight: 900; color: #3498db; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; letter-spacing: 0.5px; line-height: 1.1; margin-bottom: 2px; }
+        .b-meta { font-size: 13px; color: #a4a4af; margin-top: 4px; font-weight: 700; }
+        .b-score-box { margin-top: 10px; background: rgba(255,183,3,0.1); border: 1px solid rgba(255,183,3,0.3); color: #ffb703; font-size: 26px; font-weight: 900; padding: 4px 18px; border-radius: 14px; box-shadow: 0 4px 15px rgba(255,183,3,0.15); }
+        .battle-row { display: flex; align-items: center; justify-content: space-between; background: rgba(18, 18, 24, 0.85); border-radius: 20px; border: 1px solid rgba(255,255,255,0.02); padding: 0 15px; box-sizing: border-box; flex-shrink: 0; position: relative; overflow: hidden; transition: all 0.3s; height: 88px; }
+        .b-side { flex: 1; display: flex; align-items: center; min-width: 0; position: relative; z-index: 2; padding: 8px; border-radius: 16px; transition: 0.3s; }
+        .b-side.winner { background: rgba(46, 204, 113, 0.12); border: 1px solid rgba(46,204,113,0.35); box-shadow: inset 0 0 15px rgba(46,204,113,0.1); }
+        .b-name-wrap { position: relative; display: inline-block; max-width: 100%; }
+        .b-crown-diagonal { display: none; position: absolute; top: -14px; left: -10px; font-size: 22px; transform: rotate(-30deg); filter: drop-shadow(0 2px 6px rgba(0,0,0,0.9)); z-index: 5; animation: crownPopName 0.5s both; pointer-events: none; }
+        @keyframes crownPopName { 0% { transform: scale(0) rotate(-70deg); opacity: 0; } 100% { transform: scale(1) rotate(-30deg); opacity: 1; } }
+        .winner-block .b-crown-diagonal { display: block; }
+        .winner-block .b-name { color: #ffb703 !important; text-shadow: 0 0 12px rgba(255,183,3,0.6), 0 0 28px rgba(255,183,3,0.35); animation: nameGlow 1.8s ease-in-out infinite; }
+        @keyframes nameGlow { 0%,100% { text-shadow: 0 0 12px rgba(255,183,3,0.6), 0 0 28px rgba(255,183,3,0.35); } 50% { text-shadow: 0 0 20px rgba(255,183,3,0.95), 0 0 45px rgba(255,183,3,0.6); } }
+        .b-vs-text { font-size: 14px; font-weight: 900; color: rgba(255,255,255,0.2); margin: 0 10px; flex-shrink: 0; z-index: 2; }
+        .b-side .slot-icon-wrapper { width: 44px; height: 44px; flex-shrink: 0; margin-right: 12px; }
+        .b-side .slot-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+        .b-side .slot-name-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 4px; width: 100%; }
+        .b-side .slot-name { font-size: 13.5px; font-weight: 800; color: #f1f5f9; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.1; margin: 0; flex: 1; }
+        .b-side .multiplier-badge { flex-shrink: 0; font-size: 12.5px; min-width: 45px; padding: 2px 6px; margin: 0; border-radius: 8px; text-align: center; }
+        .b-side .slot-amounts { font-size: 13.5px; color: #64748b; font-weight: 700; white-space: normal; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
     </style>
 </head>
 <body>
-
 <div id="solo-container" class="tracker-container" style="display: none;">
     <div class="stats-grid">
         <div class="stat-card"><span class="stat-icon">💰</span><span id="stat-total" class="stat-val">0</span></div>
@@ -81,264 +69,173 @@
         <div id="slots-container" class="slots-list"></div>
     </div>
 </div>
-
 <div id="battle-container" class="tracker-container battle-container" style="display: none;">
     <div class="battle-shared-stats" id="battle-stats-bar">
-        <div class="b-stat-pill"><span style="font-size:20px; margin-right:2px;">💰</span> <span id="b-stat-shared-depo">0</span></div>
-        <div class="b-stat-pill"><span style="font-size:20px; margin-right:2px;">⭐</span> <span id="b-stat-shared-count" style="color:#e2e8f0;">0/0</span></div>
-        <div class="b-stat-pill"><span style="font-size:20px; margin-right:2px;">⚖️</span> <span id="b-stat-shared-comeback" style="color:#e2e8f0;">0.00x</span></div>
+        <div class="b-stat-pill">💰 <span id="b-stat-shared-depo">0</span></div>
+        <div class="b-stat-pill">⭐ <span id="b-stat-shared-count" style="color:#e2e8f0;">0/0</span></div>
+        <div class="b-stat-pill">⚖️ <span id="b-stat-shared-comeback" style="color:#e2e8f0;">0.00x</span></div>
     </div>
-
-    <div class="battle-header">
-        <div class="battle-player-block p1">
-            <div class="player-crown" id="crown-p1">👑</div>
-            <span id="b-p1-name" class="b-name">Игрок 1</span>
-            <span id="b-p1-meta" class="b-meta">⚖️ Средний X: 0.00x</span>
-        </div>
-        <div class="battle-score-center">
-            <span id="b-score-p1">0</span> <span style="color:#64748b; font-size:20px;">VS</span> <span id="b-score-p2">0</span>
-        </div>
-        <div class="battle-player-block p2">
-            <div class="player-crown" id="crown-p2">👑</div>
-            <span id="b-p2-name" class="b-name">Игрок 2</span>
-            <span id="b-p2-meta" class="b-meta">⚖️ Средний X: 0.00x</span>
-        </div>
-    </div>
+    <div class="battle-header" id="battle-header"></div>
     <div id="battle-viewport" class="slots-viewport">
         <div id="battle-slots-container" class="slots-list"></div>
     </div>
 </div>
-
 <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyD5A81EQXjywE72h3zbqaqwNAUbO8I7KNc",
-      authDomain: "obswidget-110cf.firebaseapp.com",
-      databaseURL: "https://obswidget-110cf-default-rtdb.europe-west1.firebasedatabase.app/",
-      projectId: "obswidget-110cf",
-      storageBucket: "obswidget-110cf.firebasestorage.app",
-      messagingSenderId: "336642071325",
-      appId: "1:336642071325:web:b985339f1f3ab75222dff4",
-      measurementId: "G-Y2C8DRSYH1"
-    };
-    firebase.initializeApp(firebaseConfig); const db = firebase.database();
-
-    function formatNumberCompact(num) { num = Number(num); if (isNaN(num) || num === 0) return '0'; let absNum = Math.abs(num); let sign = num < 0 ? '-' : ''; if (absNum >= 1000000) return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк'; if (absNum >= 1000) return sign + parseFloat((absNum / 1000).toFixed(2)) + 'к'; return sign + absNum.toString(); }
-    function formatNumberWithCommas(num) { return Number(num).toLocaleString('en-US'); }
-
+    const firebaseConfig = { apiKey: "AIzaSyD5A81EQXjywE72h3zbqaqwNAUbO8I7KNc", databaseURL: "https://obswidget-110cf-default-rtdb.europe-west1.firebasedatabase.app/", projectId: "obswidget-110cf" };
+    firebase.initializeApp(firebaseConfig); 
+    const db = firebase.database();
+    function formatNumberCompact(num) { num = Number(num); if (isNaN(num) || num === 0) return '0'; let absNum = Math.abs(num); let sign = num < 0 ? '-' : ''; if (absNum >= 1000000) return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк'; if (absNum >= 1000) return sign + parseFloat((absNum / 1000).toFixed(1)) + 'к'; return sign + absNum.toString(); }
+    function formatNumberWithCommas(num) { return Number(num).toLocaleString('en-US').replace(/,/g, ' '); }
     db.ref('/').on('value', function(snapshot) {
-        const data = snapshot.val() || {};
-        const mode = data.global_mode || 'solo';
-
-        if (mode === 'solo') {
-            document.getElementById('solo-container').style.display = 'flex'; document.getElementById('battle-container').style.display = 'none';
-            renderSoloMode(data);
-        } else {
-            document.getElementById('solo-container').style.display = 'none'; document.getElementById('battle-container').style.display = 'flex';
-            renderBattleMode(data.battle || {}, data.custom_icons || {});
-        }
+        const data = snapshot.val() || {}; const mode = data.global_mode || 'solo';
+        if (mode === 'solo') { document.getElementById('solo-container').style.display = 'flex'; document.getElementById('battle-container').style.display = 'none'; renderSoloMode(data); } 
+        else { document.getElementById('solo-container').style.display = 'none'; document.getElementById('battle-container').style.display = 'flex'; renderBattleMode(data.battle || {}, data.custom_icons || {}); }
     });
-
     function renderSoloMode(data) {
         const slots = data.slots ? Object.values(data.slots) : [];
         const activeIndex = data.active_index !== undefined ? data.active_index : 0;
         const displayMode = data.display_mode || 'hunt';
         const startBalance = data.start_balance ?? 0; const balanceCurr = data.start_balance_currency || '₽';
         const customIcons = data.custom_icons || {};
-
-        const mainContainer = document.getElementById('solo-container');
-        if (mainContainer) mainContainer.className = 'tracker-container ' + (slots.length > 0 ? 'has-items ' : '') + 'mode-' + displayMode;
-
         let totalWin = 0; let totalBuy = 0; let openedCount = 0; let remainingBuy = 0; let openedTotalBuy = 0; let openedTotalWin = 0; let maxX = 0;
-
         slots.forEach(function(s, idx) {
             const buy = Number(s.buy || 0); const win = Number(s.win || 0); totalBuy += buy; totalWin += win;
             const isOpened = win > 0 || (win === 0 && idx < activeIndex);
             if (isOpened) { openedCount++; openedTotalBuy += buy; openedTotalWin += win; } else { remainingBuy += buy; }
             if (buy > 0 && win > 0 && (win/buy) > maxX) maxX = win/buy;
         });
-
         const deficit = totalBuy - totalWin; let comebackXText = '0.00x';
         if (totalBuy === 0) comebackXText = '0.00x'; else if (deficit <= 0) comebackXText = 'ОКУП'; else if (deficit > 0 && remainingBuy === 0) comebackXText = (totalWin / (startBalance > 0 ? startBalance : totalBuy)).toFixed(2) + 'x'; else comebackXText = (deficit / remainingBuy).toFixed(2) + 'x';
-
         const openedAvgX = openedTotalBuy > 0 ? (openedTotalWin / openedTotalBuy) : 0;
-
         document.getElementById('stat-total').innerText = formatNumberCompact(startBalance) + ' ' + balanceCurr;
         document.getElementById('stat-count').innerText = openedCount + '/' + slots.length;
         document.getElementById('stat-comeback').innerText = comebackXText; 
         document.getElementById('stat-avg-opened').innerText = openedAvgX.toFixed(2) + 'x'; 
-
-        const viewport = document.getElementById('viewport'); if (slots.length > 0) viewport.style.display = 'block'; else viewport.style.display = 'none';
-        const container = document.getElementById('slots-container'); if (!container) return;
-
-        let slotsToRender = (displayMode === 'hunt') ? slots.map((s,i)=>Object.assign({},s,{orig:i})).slice(-5) : slots.map((s,i)=>Object.assign({},s,{orig:i}));
+        const container = document.getElementById('slots-container');
+        document.getElementById('solo-container').className = 'tracker-container ' + (slots.length > 0 ? 'has-items ' : '') + 'mode-' + displayMode;
+        let slotsToRender = slots.map((s,i)=>Object.assign({},s,{orig:i}));
         let listHTML = '';
-
+        let focusIndex = (displayMode === 'hunt' && slotsToRender.length > 0) ? slotsToRender.length - 1 : activeIndex;
         slotsToRender.forEach(function(slot) {
-            const isActive = slot.orig === activeIndex; const slotCur = slot.currency || '₽'; const buy = Number(slot.buy || 0); const win = Number(slot.win || 0);
-            
+            const isActive = slot.orig === focusIndex; 
+            const slotCur = slot.currency || '₽'; const buy = Number(slot.buy || 0); const win = Number(slot.win || 0);
             let xValText = '—'; let multClass = 'mult-pending';
             if (win > 0 && buy > 0) { xValText = (win / buy).toFixed(2) + 'x'; multClass = (win / buy) >= 1 ? 'mult-win' : 'mult-loss'; } else if (win === 0 && slot.orig < activeIndex) { xValText = '0.00x'; multClass = 'mult-loss'; }
-
             let isCrown = (displayMode === 'finish' && win > 0 && buy > 0 && (win/buy) === maxX && maxX > 0);
             let iconInner = '?'; if (customIcons[slot.name]) iconInner = `<img class="slot-icon-img" src="${customIcons[slot.name]}">`; else if (slot.name) iconInner = `<div class="slot-icon-text">${slot.name.substring(0, 2)}</div>`;
-            const buyFormatted = formatNumberWithCommas(buy); const winFormatted = win > 0 ? formatNumberWithCommas(win) : ''; const winDisplayHTML = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${winFormatted} ${slotCur}</span>` : '';
-
-            listHTML += `<div class="slot-row ${isActive ? 'active' : ''}"><div class="slot-icon-wrapper">${iconInner}${isCrown ? '<div class="crown-overlay">👑</div>' : ''}</div><div class="slot-info"><div class="slot-name">${slot.name}</div><div class="slot-amounts">${buyFormatted} ${slotCur} ${winDisplayHTML}</div></div><div class="multiplier-badge ${multClass}">${xValText}</div></div>`;
+            const winDisplayHTML = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${formatNumberCompact(win)} ${slotCur}</span>` : '';
+            let showActiveEffects = isActive && displayMode !== 'finish';
+            listHTML += `
+                <div class="slot-row ${showActiveEffects ? 'active' : ''}" style="${showActiveEffects ? 'border: 1px solid rgba(124, 58, 237, 0.4); box-shadow: 0 10px 30px rgba(124,58,237,0.15); transform: scale(1.02); z-index: 10;' : ''}">
+                    <div class="slot-icon-wrapper">${iconInner}${isCrown ? '<div class="crown-overlay">👑</div>' : ''}</div>
+                    <div class="slot-info">
+                        <div class="slot-name-row">
+                            <div class="slot-name">${slot.name}</div>
+                            <div class="multiplier-badge ${multClass}">${xValText}</div>
+                        </div>
+                        <div class="slot-amounts"><span>${formatNumberCompact(buy)} ${slotCur}</span>${winDisplayHTML}</div>
+                    </div>
+                </div>`;
         });
-
-        if (displayMode === 'bonusbuy') {
-            container.innerHTML = listHTML; container.style.animation = 'none';
-            let itemHeight = 88 + 12; let targetY = 0;
-            if (activeIndex >= 2) { targetY = -((activeIndex - 2) * itemHeight); }
-            container.style.transform = `translateY(${targetY}px)`;
-            container.style.transition = "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)";
+        if (displayMode === 'bonusbuy' || displayMode === 'hunt') {
+            container.innerHTML = listHTML; container.style.animation = 'none'; let itemHeight = 100; let totalItems = slotsToRender.length;
+            if (focusIndex >= 2) { let listHeight = (totalItems * itemHeight) - 12; let maxScroll = Math.max(0, listHeight - 488); let targetY = Math.min(maxScroll, (focusIndex - 2) * itemHeight); container.style.transform = `translateY(-${targetY}px)`; } 
+            else { container.style.transform = `translateY(0px)`; }
         } else if (displayMode === 'finish' && slotsToRender.length > 0) {
-            container.style.transform = "none"; container.style.transition = "none";
-            container.innerHTML = listHTML.repeat(6);
-            const timeToMoveOneCopy = slotsToRender.length * 3.5;
-            container.style.animation = `infiniteWheel ${timeToMoveOneCopy * 3}s linear infinite`;
-        } else {
-            container.style.transform = "none"; container.style.transition = "none"; container.style.animation = 'none';
-            container.innerHTML = listHTML;
-        }
+            container.style.transform = "none"; container.innerHTML = listHTML.repeat(6);
+            const timeToMove = slotsToRender.length * 3.5; container.style.animation = `infiniteWheel ${timeToMove * 3}s linear infinite`;
+        } else { container.style.transform = "none"; container.style.animation = 'none'; container.innerHTML = listHTML; }
     }
-
     function renderBattleMode(bData, globalIcons) {
-        const rounds = bData.rounds ? Object.values(bData.rounds) : [];
+        let players = bData.players || [bData.p1_name || 'Игрок 1', bData.p2_name || 'Игрок 2'];
+        let requiredWidth = Math.max(580, players.length * 280); 
+        document.getElementById('battle-container').style.width = requiredWidth + 'px';
+        let rawRounds = bData.rounds ? Object.values(bData.rounds) : [];
+        let rounds = rawRounds.map(r => { if (!r.p) return { p: [r.p1 || {name:'',buy:0,win:0}, r.p2 || {name:'',buy:0,win:0}] }; return r; });
         const activeIndex = bData.active_index !== undefined ? bData.active_index : 0;
         const displayMode = bData.display_mode || 'hunt';
-        const curr = bData.currency || '₽';
-        const sharedBalance = bData.start_balance || 0;
-
-        document.getElementById('b-p1-name').innerText = bData.p1_name || 'Игрок 1';
-        document.getElementById('b-p2-name').innerText = bData.p2_name || 'Игрок 2';
-
-        const mainContainer = document.getElementById('battle-container');
-        if (mainContainer) mainContainer.className = 'tracker-container battle-container ' + (rounds.length > 0 ? 'has-items ' : '') + 'mode-' + displayMode;
-
-        let p1_opened_buy = 0, p1_opened_win = 0, p2_opened_buy = 0, p2_opened_win = 0, score1 = 0, score2 = 0;
-        let openedTotalBuyAll = 0, openedTotalWinAll = 0;
-        let openedCount = 0; // Считаем открытые раунды для Битвы
-
+        const curr = bData.currency || '₽'; const sharedBalance = bData.start_balance || 0;
+        let playersStats = Array(players.length).fill().map(()=>({ opened_buy: 0, opened_win: 0, score: 0 }));
+        let openedTotalBuyAll = 0, openedTotalWinAll = 0, openedCount = 0;
         rounds.forEach((r, idx) => {
-            const b1 = Number(r.p1?.buy || 0); const w1 = Number(r.p1?.win || 0);
-            const b2 = Number(r.p2?.buy || 0); const w2 = Number(r.p2?.win || 0);
-            const isOpened = w1 > 0 || w2 > 0 || idx < activeIndex;
-
-            if (isOpened) {
-                p1_opened_buy += b1; p1_opened_win += w1; p2_opened_buy += b2; p2_opened_win += w2;
-                openedTotalBuyAll += (b1 + b2); openedTotalWinAll += (w1 + w2);
-
-                const x1 = b1 > 0 ? w1/b1 : 0; const x2 = b2 > 0 ? w2/b2 : 0;
-                if (x1 > x2) score1++; else if (x2 > x1) score2++;
+            let isRoundOpened = idx < activeIndex;
+            r.p.forEach(p => { if (Number(p.win || 0) > 0) isRoundOpened = true; });
+            if (isRoundOpened) {
+                let round_max_x = 0; let round_xs = [];
+                r.p.forEach((p, i) => {
+                    let b = Number(p.buy || 0); let w = Number(p.win || 0);
+                    if(playersStats[i]) { playersStats[i].opened_buy += b; playersStats[i].opened_win += w; }
+                    openedTotalBuyAll += b; openedTotalWinAll += w;
+                    let x = b > 0 ? w/b : 0; round_xs.push(x);
+                    if (x > round_max_x) round_max_x = x;
+                });
+                if (round_max_x > 0) { round_xs.forEach((x, i) => { if (x === round_max_x && playersStats[i]) playersStats[i].score += 1; }); }
                 openedCount++;
             }
         });
-
+        let maxScore = -1;
+        if (displayMode === 'finish') { playersStats.forEach(ps => { if (ps.score > maxScore) maxScore = ps.score; }); }
+        let headerHTML = '';
+        players.forEach((pName, i) => {
+            let avgX = playersStats[i].opened_buy > 0 ? (playersStats[i].opened_win / playersStats[i].opened_buy) : 0;
+            let isHighestScore = (displayMode === 'finish' && playersStats[i].score === maxScore && maxScore > 0);
+            headerHTML += `
+                <div class="battle-player-block ${isHighestScore ? 'winner-block' : ''}">
+                    <div class="b-name-wrap">
+                        <span class="b-crown-diagonal">👑</span>
+                        <span class="b-name">${pName}</span>
+                    </div>
+                    <span class="b-meta">Средний: ${avgX.toFixed(2)}x</span>
+                    <div class="b-score-box">${playersStats[i].score}</div>
+                </div>`;
+            if (i < players.length - 1) headerHTML += `<div style="font-weight:900; color:#444; font-size: 20px; align-self: center; padding-top: 10px;">VS</div>`;
+        });
+        document.getElementById('battle-header').innerHTML = headerHTML;
         const sharedAvgX = openedTotalBuyAll > 0 ? (openedTotalWinAll / openedTotalBuyAll) : 0;
-        const avgX1 = p1_opened_buy > 0 ? (p1_opened_win / p1_opened_buy) : 0;
-        const avgX2 = p2_opened_buy > 0 ? (p2_opened_win / p2_opened_buy) : 0;
-
-        document.getElementById('b-score-p1').innerText = score1;
-        document.getElementById('b-score-p2').innerText = score2;
         document.getElementById('b-stat-shared-depo').innerText = formatNumberCompact(sharedBalance) + ' ' + curr;
         document.getElementById('b-stat-shared-comeback').innerText = sharedAvgX.toFixed(2) + 'x';
-        
-        // Выводим количество раундов в среднюю колонку Битвы
         document.getElementById('b-stat-shared-count').innerText = openedCount + '/' + rounds.length;
-
-        document.getElementById('b-p1-meta').innerText = `⚖️ Средний X: ${avgX1.toFixed(2)}x`;
-        document.getElementById('b-p2-meta').innerText = `⚖️ Средний X: ${avgX2.toFixed(2)}x`;
-
-        const crown1 = document.getElementById('crown-p1'); const crown2 = document.getElementById('crown-p2');
-        if (score1 > score2) { crown1.style.display = 'block'; crown2.style.display = 'none'; } 
-        else if (score2 > score1) { crown2.style.display = 'block'; crown1.style.display = 'none'; } 
-        else { crown1.style.display = 'none'; crown2.style.display = 'none'; }
-
-        const viewport = document.getElementById('battle-viewport');
-        if (rounds.length > 0) { viewport.style.display = 'block'; document.getElementById('battle-stats-bar').style.display = 'flex'; } 
-        else { viewport.style.display = 'none'; document.getElementById('battle-stats-bar').style.display = 'none'; }
-
-        const container = document.getElementById('battle-slots-container'); if (!container) return;
-
-        let roundsToRender = (displayMode === 'hunt') ? rounds.map((r,i)=>Object.assign({},r,{orig:i})).slice(-5) : rounds.map((r,i)=>Object.assign({},r,{orig:i}));
+        const container = document.getElementById('battle-slots-container');
+        document.getElementById('battle-container').className = 'tracker-container battle-container ' + (rounds.length > 0 ? 'has-items ' : '') + 'mode-' + displayMode;
+        let roundsToRender = rounds.map((r,i)=>Object.assign({},r,{orig:i}));
         let listHTML = '';
-
+        let focusIndex = (displayMode === 'hunt' && roundsToRender.length > 0) ? roundsToRender.length - 1 : activeIndex;
         roundsToRender.forEach((r) => {
-            const isActive = r.orig === activeIndex;
-            const b1 = Number(r.p1?.buy || 0); const w1 = Number(r.p1?.win || 0);
-            const b2 = Number(r.p2?.buy || 0); const w2 = Number(r.p2?.win || 0);
-            const x1 = b1 > 0 ? w1/b1 : 0; const x2 = b2 > 0 ? w2/b2 : 0;
-            const isScored = r.orig < activeIndex || w1 > 0 || w2 > 0;
-
-            let distance = Math.abs(r.orig - activeIndex);
-            let dynamicOpacity = 1;
-            if (displayMode === 'bonusbuy' && distance > 0) {
-                dynamicOpacity = Math.max(0.35, 1 - (distance * 0.18)); 
-            }
-
+            const isActive = r.orig === focusIndex; 
+            let isScored = r.orig < activeIndex; r.p.forEach(p => { if (Number(p.win || 0) > 0) isScored = true; });
             let showActiveEffects = isActive && displayMode !== 'finish';
-
-            let p1GradientStyle = '', p2GradientStyle = '';
-            if (isScored) {
-                if (x1 > x2) {
-                    p1GradientStyle = 'background: linear-gradient(90deg, rgba(46, 204, 113, 0.18) 0%, rgba(18, 18, 24, 0) 100%); border-radius: 24px 0 0 24px;';
-                    p2GradientStyle = 'background: linear-gradient(270deg, rgba(231, 76, 60, 0.12) 0%, rgba(18, 18, 24, 0) 100%); border-radius: 0 24px 24px 0;';
-                } else if (x2 > x1) {
-                    p1GradientStyle = 'background: linear-gradient(90deg, rgba(231, 76, 60, 0.12) 0%, rgba(18, 18, 24, 0) 100%); border-radius: 24px 0 0 24px;';
-                    p2GradientStyle = 'background: linear-gradient(270deg, rgba(46, 204, 113, 0.18) 0%, rgba(18, 18, 24, 0) 100%); border-radius: 0 24px 24px 0;';
-                }
-            }
-
-            let tx1 = w1 > 0 ? x1.toFixed(2) + 'x' : (isScored ? '0.00x' : '—');
-            let tx2 = w2 > 0 ? x2.toFixed(2) + 'x' : (isScored ? '0.00x' : '—');
-            let mc1 = w1 > 0 && x1 >= 1 ? 'mult-win' : (isScored ? 'mult-loss' : 'mult-pending');
-            let mc2 = w2 > 0 && x2 >= 1 ? 'mult-win' : (isScored ? 'mult-loss' : 'mult-pending');
-
-            const wDisplay1 = w1 > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${formatNumberWithCommas(w1)}</span>` : '';
-            const wDisplay2 = w2 > 0 ? `<span style="color:#2ecc71;">${formatNumberWithCommas(w2)}</span> <span class="arrow-blue">⬅</span>` : '';
-
-            let icn1 = globalIcons[r.p1?.name] ? `<img class="slot-icon-img" src="${globalIcons[r.p1?.name]}">` : `<div class="slot-icon-text">${(r.p1?.name || '?').substring(0, 2)}</div>`;
-            let icn2 = globalIcons[r.p2?.name] ? `<img class="slot-icon-img" src="${globalIcons[r.p2?.name]}">` : `<div class="slot-icon-text">${(r.p2?.name || '?').substring(0, 2)}</div>`;
-
-            listHTML += `
-                <div class="battle-row" style="opacity: ${dynamicOpacity}; transform: scale(${showActiveEffects ? '1.02' : '1'}); ${showActiveEffects ? 'border: 1px solid rgba(124, 58, 237, 0.4); box-shadow: 0 10px 30px rgba(124,58,237,0.15);' : ''}">
-                    <div class="b-side" style="${p1GradientStyle}">
-                        <div class="slot-icon-wrapper" style="width:48px; height:48px; margin-right:14px;">${icn1}</div>
+            let max_x = 0; r.p.forEach(p => { let x = Number(p.buy||0) > 0 ? Number(p.win||0) / Number(p.buy||0) : 0; if(x > max_x) max_x = x; });
+            let playersRowHTML = '';
+            r.p.forEach((p, i) => {
+                let buy = Number(p.buy||0); let win = Number(p.win||0); let x = buy > 0 ? win/buy : 0;
+                let isWinner = (isScored && x === max_x && max_x > 0);
+                let tx = win > 0 ? x.toFixed(2) + 'x' : (isScored ? '0.00x' : '—');
+                let mc = win > 0 && x >= 1 ? 'mult-win' : (isScored ? 'mult-loss' : 'mult-pending');
+                let wDisplay = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${formatNumberCompact(win)} ${curr}</span>` : '';
+                let icn = globalIcons[p.name] ? `<img class="slot-icon-img" src="${globalIcons[p.name]}">` : `<div class="slot-icon-text" style="font-size: 14px;">${(p.name || '?').substring(0, 2)}</div>`;
+                playersRowHTML += `
+                    <div class="b-side ${isWinner ? 'winner' : ''}">
+                        <div class="slot-icon-wrapper">${icn}</div>
                         <div class="slot-info">
-                            <div class="slot-name" style="font-size:17px;">${r.p1?.name}</div>
-                            <div class="slot-amounts" style="font-size:15px;">${formatNumberWithCommas(b1)} ${wDisplay1}</div>
+                            <div class="slot-name-row">
+                                <div class="slot-name">${p.name || 'Слот'}</div>
+                                <div class="multiplier-badge ${mc}">${tx}</div>
+                            </div>
+                            <div class="slot-amounts"><span>${formatNumberCompact(buy)} ${curr}</span>${wDisplay}</div>
                         </div>
-                        <div class="multiplier-badge ${mc1}" style="margin-right:10px; font-size:15px; min-width:75px; padding:6px 10px;">${tx1}</div>
-                    </div>
-                    <div class="b-divider-vs">VS</div>
-                    <div class="b-side b-side-p2" style="${p2GradientStyle}">
-                        <div class="slot-icon-wrapper" style="width:48px; height:48px; margin-right:0; margin-left:14px;">${icn2}</div>
-                        <div class="slot-info">
-                            <div class="slot-name" style="font-size:17px;">${r.p2?.name}</div>
-                            <div class="slot-amounts" style="font-size:15px;">${wDisplay2} ${formatNumberWithCommas(b2)}</div>
-                        </div>
-                        <div class="multiplier-badge ${mc2}" style="margin-left:10px; font-size:15px; min-width:75px; padding:6px 10px;">${tx2}</div>
-                    </div>
-                </div>
-            `;
+                    </div>`;
+                if (i < r.p.length - 1) playersRowHTML += `<div class="b-vs-text">VS</div>`;
+            });
+            listHTML += `<div class="battle-row" style="transform: scale(${showActiveEffects ? '1.02' : '1'}); ${showActiveEffects ? 'border: 1px solid rgba(124, 58, 237, 0.4); box-shadow: 0 10px 30px rgba(124,58,237,0.15); z-index: 10;' : ''}">${playersRowHTML}</div>`;
         });
-
-        if (displayMode === 'bonusbuy') {
-            container.innerHTML = listHTML; container.style.animation = 'none';
-            let itemHeight = 95 + 12; let targetY = 0;
-            if (activeIndex >= 2) { targetY = -((activeIndex - 2) * itemHeight); }
-            container.style.transform = `translateY(${targetY}px)`;
-            container.style.transition = "transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)";
+        if (displayMode === 'bonusbuy' || displayMode === 'hunt') {
+            container.innerHTML = listHTML; container.style.animation = 'none'; let itemHeight = 100; let totalItems = roundsToRender.length;
+            if (focusIndex >= 2) { let listHeight = (totalItems * itemHeight) - 12; let maxScroll = Math.max(0, listHeight - 488); let targetY = Math.min(maxScroll, (focusIndex - 2) * itemHeight); container.style.transform = `translateY(-${targetY}px)`; } 
+            else { container.style.transform = `translateY(0px)`; }
         } else if (displayMode === 'finish' && roundsToRender.length > 0) {
-            container.style.transform = "none"; container.style.transition = "none";
-            container.innerHTML = listHTML.repeat(6);
-            const timeToMoveOneCopy = roundsToRender.length * 3.5; 
-            container.style.animation = `infiniteWheel ${timeToMoveOneCopy * 3}s linear infinite`;
-        } else {
-            container.style.transform = "none"; container.style.transition = "none"; container.style.animation = 'none';
-            container.innerHTML = listHTML;
-        }
+            container.style.transform = "none"; container.innerHTML = listHTML.repeat(6);
+            const timeToMove = roundsToRender.length * 3.5; container.style.animation = `infiniteWheel ${timeToMove * 3}s linear infinite`;
+        } else { container.style.transform = "none"; container.style.animation = 'none'; container.innerHTML = listHTML; }
     }
 </script>
 </body>
