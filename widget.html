@@ -32,6 +32,11 @@
         .mult-win { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
         .mult-loss { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
         .mult-pending { background: rgba(15, 15, 20, 0.95); color: #4a5568; border: 1px solid rgba(255,255,255,0.04); min-width: 55px; }
+        /* ★ BEST X BADGE – solo finish mode */
+        .best-x-badge { flex-shrink: 0; font-size: 15px; font-weight: 900; padding: 5px 12px; border-radius: 30px; text-align: center; background: rgba(255,183,3,0.15); color: #ffb703; border: 1px solid rgba(255,183,3,0.45); margin-left: 8px; white-space: nowrap; }
+        /* ★ GOLD highlight for battle best-X slot */
+        .b-side.best-x-winner { background: rgba(255,183,3,0.13); border: 1px solid rgba(255,183,3,0.45); box-shadow: inset 0 0 18px rgba(255,183,3,0.08); }
+        .b-side.best-x-winner .slot-name { color: #ffb703; }
         .battle-shared-stats { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
         .b-stat-pill { background: rgba(25, 25, 35, 0.8); border: 1px solid rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 16px; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; }
         .battle-header { display: flex; align-items: center; justify-content: space-around; margin-bottom: 20px; background: rgba(18, 18, 24, 0.6); border-radius: 20px; padding: 16px 18px; border: 1px solid rgba(255,255,255,0.02); gap: 15px; }
@@ -81,7 +86,6 @@
     </div>
 </div>
 <script>
-    // Твої оновлені налаштування Firebase для віджета
     const firebaseConfig = {
         apiKey: "AIzaSyC3WVO3p4EwDec5J2PEooIoAkHxIfw6R8w",
         authDomain: "bonusbyra.firebaseapp.com",
@@ -132,17 +136,24 @@
             let xValText = '—'; let multClass = 'mult-pending';
             if (win > 0 && buy > 0) { xValText = (win / buy).toFixed(2) + 'x'; multClass = (win / buy) >= 1 ? 'mult-win' : 'mult-loss'; } else if (win === 0 && slot.orig < activeIndex) { xValText = '0.00x'; multClass = 'mult-loss'; }
             let isCrown = (displayMode === 'finish' && win > 0 && buy > 0 && (win/buy) === maxX && maxX > 0);
-            let iconInner = '?'; if (customIcons[slot.name]) iconInner = `<img class="slot-icon-img" src="${customIcons[slot.name]}">`; else if (slot.name) iconInner = `<div class="slot-icon-text">${slot.name.substring(0, 2)}</div>`;
+            // ★ BEST X BADGE: show "👑 Best X" column in finish mode for the slot with highest multiplier
+            let isBestX = (displayMode === 'finish' && win > 0 && buy > 0 && (win/buy) === maxX && maxX > 0);
+            let iconInner = '?'; if (customIcons[slot.name]) iconInner = `<img class="slot-icon-img" src="${customIcons[slot.name]}"`  + ` onerror="this.style.display='none'">`; else if (slot.name) iconInner = `<div class="slot-icon-text">${slot.name.substring(0, 2)}</div>`;
             const winDisplayHTML = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${formatNumberCompact(win)} ${slotCur}</span>` : '';
             let showActiveEffects = isActive && displayMode !== 'finish';
+            // ★ In finish mode, gold border for best-x slot
+            let rowExtra = '';
+            if (isBestX) rowExtra = 'border: 1px solid rgba(255,183,3,0.45); background: rgba(255,183,3,0.07);';
+            else if (showActiveEffects) rowExtra = 'border: 1px solid rgba(124, 58, 237, 0.4); box-shadow: 0 10px 30px rgba(124,58,237,0.15); transform: scale(1.02); z-index: 10;';
             listHTML += `
-                <div class="slot-row ${showActiveEffects ? 'active' : ''}" style="${showActiveEffects ? 'border: 1px solid rgba(124, 58, 237, 0.4); box-shadow: 0 10px 30px rgba(124,58,237,0.15); transform: scale(1.02); z-index: 10;' : ''}">
+                <div class="slot-row" style="${rowExtra}">
                     <div class="slot-icon-wrapper">${iconInner}${isCrown ? '<div class="crown-overlay">👑</div>' : ''}</div>
                     <div class="slot-info">
                         <div class="slot-name">${slot.name}</div>
                         <div class="slot-amounts"><span>${formatNumberCompact(buy)} ${slotCur}</span>${winDisplayHTML}</div>
                     </div>
                     <div class="multiplier-badge ${multClass}" style="margin-left:14px;">${xValText}</div>
+                    ${isBestX ? `<div class="best-x-badge">⭐ Лучший X</div>` : ''}
                 </div>`;
         });
         if (displayMode === 'bonusbuy' || displayMode === 'hunt') {
@@ -163,6 +174,22 @@
         const activeIndex = bData.active_index !== undefined ? bData.active_index : 0;
         const displayMode = bData.display_mode || 'hunt';
         const curr = bData.currency || '₽'; const sharedBalance = bData.start_balance || 0;
+        const bonusXEnabled = bData.bonus_x_enabled === true;
+
+        // ★ Find global best X across ALL rounds (round index + player index)
+        let globalBestX = 0;
+        let globalBestRound = -1;
+        let globalBestPlayer = -1;
+        rounds.forEach((r, rIdx) => {
+            r.p.forEach((p, pIdx) => {
+                let b = Number(p.buy || 0); let w = Number(p.win || 0);
+                if (b > 0 && w > 0) {
+                    let x = w / b;
+                    if (x > globalBestX) { globalBestX = x; globalBestRound = rIdx; globalBestPlayer = pIdx; }
+                }
+            });
+        });
+
         let playersStats = Array(players.length).fill().map(()=>({ opened_buy: 0, opened_win: 0, score: 0 }));
         let openedTotalBuyAll = 0, openedTotalWinAll = 0, openedCount = 0;
         rounds.forEach((r, idx) => {
@@ -181,6 +208,18 @@
                 openedCount++;
             }
         });
+
+        // ★ If bonusXEnabled: add extra score point to the player with the global best X
+        if (bonusXEnabled && globalBestPlayer >= 0 && globalBestRound < activeIndex) {
+            // only count if the best-x round has been opened
+            let bestRound = rounds[globalBestRound];
+            let isOpened = globalBestRound < activeIndex;
+            if (!isOpened && bestRound) { bestRound.p.forEach(p => { if (Number(p.win || 0) > 0) isOpened = true; }); }
+            if (isOpened && playersStats[globalBestPlayer]) {
+                playersStats[globalBestPlayer].score += 1;
+            }
+        }
+
         let maxScore = -1;
         if (displayMode === 'finish') { playersStats.forEach(ps => { if (ps.score > maxScore) maxScore = ps.score; }); }
         let headerHTML = '';
@@ -217,17 +256,23 @@
             r.p.forEach((p, i) => {
                 let buy = Number(p.buy||0); let win = Number(p.win||0); let x = buy > 0 ? win/buy : 0;
                 let isWinner = (isScored && x === max_x && max_x > 0);
+                // ★ Gold class for global best-X slot (only if bonusXEnabled)
+                let isGlobalBestX = bonusXEnabled && (r.orig === globalBestRound) && (i === globalBestPlayer) && globalBestX > 0;
                 let tx = win > 0 ? x.toFixed(2) + 'x' : (isScored ? '0.00x' : '—');
                 let mc = win > 0 && x >= 1 ? 'mult-win' : (isScored ? 'mult-loss' : 'mult-pending');
                 let wDisplay = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${formatNumberCompact(win)} ${curr}</span>` : '';
-                let icn = globalIcons[p.name] ? `<img class="slot-icon-img" src="${globalIcons[p.name]}">` : `<div class="slot-icon-text" style="font-size: 14px;">${(p.name || '?').substring(0, 2)}</div>`;
+                let icn = globalIcons[p.name] ? `<img class="slot-icon-img" src="${globalIcons[p.name]}" onerror="this.style.display='none'">` : `<div class="slot-icon-text" style="font-size: 14px;">${(p.name || '?').substring(0, 2)}</div>`;
+                // Priority: if isGlobalBestX → gold (overrides green winner)
+                let sideClass = 'b-side';
+                if (isGlobalBestX) sideClass += ' best-x-winner';
+                else if (isWinner) sideClass += ' winner';
                 playersRowHTML += `
-                    <div class="b-side ${isWinner ? 'winner' : ''}">
+                    <div class="${sideClass}">
                         <div class="slot-icon-wrapper">${icn}</div>
                         <div class="slot-info">
                             <div class="slot-name-row">
                                 <div class="slot-name">${p.name || 'Слот'}</div>
-                                <div class="multiplier-badge ${mc}">${tx}</div>
+                                <div class="multiplier-badge ${mc}">${tx}${isGlobalBestX ? ' ⭐' : ''}</div>
                             </div>
                             <div class="slot-amounts"><span>${formatNumberCompact(buy)} ${curr}</span>${wDisplay}</div>
                         </div>
