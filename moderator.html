@@ -57,6 +57,16 @@
         .battle-half { background: #1e1e24; padding: 10px; border-radius: 6px; border: 1px solid #333; }
         .battle-half h4 { margin: 0 0 8px 0; font-size: 12px; text-align: center; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
         .controls-row { display: flex; gap: 10px; margin-bottom: 15px; }
+        /* ★ Toggle switch styles */
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid #333; margin-top: 8px; }
+        .toggle-label { font-size: 13px; font-weight: bold; color: #e2e8f0; display: flex; flex-direction: column; gap: 2px; }
+        .toggle-label span { font-size: 11px; color: #8a8a93; font-weight: normal; }
+        .toggle-wrap { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
+        .toggle-wrap input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; margin: 0; z-index: 2; }
+        .toggle-track { display: block; width: 46px; height: 26px; background: #444; border-radius: 13px; transition: background 0.25s; position: relative; }
+        .toggle-wrap input:checked ~ .toggle-track { background: #ffb703; }
+        .toggle-knob { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform 0.25s; pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
+        .toggle-wrap input:checked ~ .toggle-knob { transform: translateX(20px); }
     </style>
 </head>
 <body>
@@ -123,18 +133,17 @@
             </div>
             <div class="box">
                 <div class="box-header" onclick="toggleBox('box-add', 'arrow-add')">
-                    <h3>1. Добавить слот в queue</h3>
+                    <h3>1. Добавить слот в очередь</h3>
                     <span id="arrow-add" class="arrow-indicator">▼</span>
                 </div>
                 <div id="box-add" class="box-content">
-                    <input type="text" id="new-name" list="slots-base" placeholder="Название slots..." oninput="checkSlotDatabase()">
+                    <input type="text" id="new-name" list="slots-base" placeholder="Название слота..." oninput="checkSlotDatabase()">
                     <datalist id="slots-base"></datalist>
                     <input type="number" id="new-buy" placeholder="Сумма покупки">
                     <div class="currency-toggle-container">
                         <button type="button" id="curr-usd" class="currency-btn active" onclick="setNewSlotCurrency('$')">$ (USD)</button>
                         <button type="button" id="curr-rub" class="currency-btn" onclick="setNewSlotCurrency('₽')">₽ (RUB)</button>
                     </div>
-                    
                     <div style="margin: 8px 0;">
                         <label style="font-size: 11px; color:#aaa;">Ссылка на картинку (URL):</label>
                         <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px;">
@@ -145,10 +154,9 @@
                             <input type="text" id="image-url-input" placeholder="Вставьте ссылку https://..." oninput="handleUrlInput()" style="flex: 1; margin: 0;">
                         </div>
                         <span style="font-size: 11px; color: #8a8a93; line-height: 1.35; display: block; margin-top: 5px;">
-                            💡 <b>Вставь ссылку на картинку</b> со своего облака или хостинга.
+                            💡 <b>Вставьте ссылку на картинку</b> со своего облака или хостинга.
                         </span>
                     </div>
-
                     <button onclick="addSlot()">Добавить в список</button>
                 </div>
             </div>
@@ -241,6 +249,17 @@
                             </select>
                         </div>
                     </div>
+                    <div class="toggle-row">
+                        <div class="toggle-label">
+                            ⭐ Бонус за лучший X
+                            <span>Игрок с самым высоким иксом получает +1 балл</span>
+                        </div>
+                        <div class="toggle-wrap">
+                            <input type="checkbox" id="bonus-x-toggle" onchange="setBonusXEnabled(this.checked)">
+                            <span class="toggle-track"></span>
+                            <span class="toggle-knob"></span>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="box">
@@ -274,13 +293,12 @@
                 </div>
                 <div id="box-battle-sort" class="box-content">
                     <div id="drag-container-battle" class="drag-list" style="max-height:250px; overflow-y:auto; padding-right:5px;"></div>
-                    <button style="background: #ff4a5a; margin-top:15px;" onclick="resetBattle()">💥 Сбросить Битву (Удалить все)</button>
+                    <button style="background: #ff4a5a; margin-top:15px;" onclick="resetBattle()">💥 Сбросить Битву (Удалить всё)</button>
                 </div>
             </div>
         </div>
     </div>
 <script>
-    // Твої оновлені налаштування Firebase для модератора
     const firebaseConfig = {
         apiKey: "AIzaSyC3WVO3p4EwDec5J2PEooIoAkHxIfw6R8w",
         authDomain: "bonusbyra.firebaseapp.com",
@@ -309,6 +327,12 @@
     function formatNumberCompact(num) { num=Number(num); if(isNaN(num)||num===0)return'0'; if(num>=1000000)return parseFloat((num/1000000).toFixed(2))+'кк'; if(num>=1000)return parseFloat((num/1000).toFixed(2))+'к'; return num.toString(); }
     function toggleBox(contentId, arrowId) { const c = document.getElementById(contentId); const a = document.getElementById(arrowId); c.style.display = c.style.display === 'none' ? 'block' : 'none'; a.innerText = c.style.display === 'none' ? '▲' : '▼'; } window.toggleBox = toggleBox;
     function setGlobalMode(mode) { db.ref('global_mode').set(mode); } window.setGlobalMode = setGlobalMode;
+
+    function setBonusXEnabled(enabled) {
+        db.ref('battle/bonus_x_enabled').set(enabled);
+    }
+    window.setBonusXEnabled = setBonusXEnabled;
+
     function initDatabaseListeners() {
         db.ref('/').on('value', snapshot => {
             const data = snapshot.val() || {};
@@ -366,8 +390,20 @@
             const activeBBtn = document.getElementById('btn-b-' + currentBMode); if(activeBBtn) activeBBtn.classList.add('active');
             if(document.activeElement !== document.getElementById('battle-balance-input')) document.getElementById('battle-balance-input').value = b.start_balance !== undefined ? b.start_balance : '';
             if(document.activeElement !== document.getElementById('battle-currency-select')) document.getElementById('battle-currency-select').value = b.currency || '₽';
+            const bonusXToggle = document.getElementById('bonus-x-toggle');
+            if (bonusXToggle) bonusXToggle.checked = b.bonus_x_enabled === true;
+
             let bTotalWin = 0, bTotalBuy = 0;
             let pWins = Array(battlePlayers.length).fill(0);
+
+            let globalBestX = 0, globalBestPlayer = -1, globalBestRound = -1;
+            battleRounds.forEach((r, rIdx) => {
+                r.p.forEach((p, pIdx) => {
+                    let b2 = Number(p.buy || 0); let w = Number(p.win || 0);
+                    if (b2 > 0 && w > 0 && (w/b2) > globalBestX) { globalBestX = w/b2; globalBestPlayer = pIdx; globalBestRound = rIdx; }
+                });
+            });
+
             battleRounds.forEach(r => { 
                 r.p.forEach((p, i) => {
                     let w = Number(p.win || 0); let buy = Number(p.buy || 0);
@@ -381,6 +417,9 @@
                 <tr><td>Закуплено бонусов (Всего):</td><td style="color:#e67e22;">${formatNumberCompact(bTotalBuy)} ${bCurr}</td></tr>
             `;
             battlePlayers.forEach((pName, i) => { tbodyHTML += `<tr><td>Выигрыш: ${pName}</td><td style="color:#3498db;">${formatNumberCompact(pWins[i])} ${bCurr}</td></tr>`; });
+            if (b.bonus_x_enabled && globalBestPlayer >= 0) {
+                tbodyHTML += `<tr><td style="color:#ffb703;">⭐ Бонус X (${battlePlayers[globalBestPlayer] || '?'}):</td><td style="color:#ffb703;">${globalBestX.toFixed(2)}x</td></tr>`;
+            }
             document.getElementById('battle-finance-tbody').innerHTML = tbodyHTML;
             const metaContainer = document.getElementById('battle-players-meta');
             let metaHTML = '';
@@ -442,18 +481,11 @@
         currentIconUrl = url;
         const previewImg = document.getElementById('slot-preview');
         const uploadHint = document.getElementById('upload-hint');
-        
         if (url) {
-            previewImg.src = url;
-            previewImg.style.display = 'block';
-            uploadHint.style.display = 'none';
-            
+            previewImg.src = url; previewImg.style.display = 'block'; uploadHint.style.display = 'none';
             const name = document.getElementById('new-name').value.trim();
             if (name) { db.ref(`custom_icons/${name}`).set(url); }
-        } else {
-            previewImg.style.display = 'none';
-            uploadHint.style.display = 'block';
-        }
+        } else { previewImg.style.display = 'none'; uploadHint.style.display = 'block'; }
     }
     window.handleUrlInput = handleUrlInput;
 
@@ -462,46 +494,53 @@
         const previewImg = document.getElementById('slot-preview'); 
         const uploadHint = document.getElementById('upload-hint'); 
         const urlInput = document.getElementById('image-url-input');
-        
         currentIconUrl = ''; 
         if (urlInput) urlInput.value = '';
-
         if (firebaseCustomIcons[inputName]) { 
-            previewImg.src = firebaseCustomIcons[inputName]; 
-            previewImg.style.display = 'block'; 
-            uploadHint.style.display = 'none'; 
-            currentIconUrl = firebaseCustomIcons[inputName]; 
+            previewImg.src = firebaseCustomIcons[inputName]; previewImg.style.display = 'block'; uploadHint.style.display = 'none'; currentIconUrl = firebaseCustomIcons[inputName]; 
             if (urlInput) urlInput.value = currentIconUrl; 
-        } else { 
-            previewImg.style.display = 'none'; 
-            uploadHint.style.display = 'block'; 
-        } 
+        } else { previewImg.style.display = 'none'; uploadHint.style.display = 'block'; } 
     } 
     window.checkSlotDatabase = checkSlotDatabase;
 
-    function updateInlineSlot(index, field, value) { if (field === 'buy' || field === 'win') value = Number(value); db.ref(`slots/${index}/${field}`).set(value).then(() => { if (field === 'win') db.ref('display_mode').set('bonusbuy'); }); } window.updateInlineSlot = updateInlineSlot;
+    function updateInlineSlot(index, field, value) { 
+        if (field === 'buy' || field === 'win') value = Number(value); 
+        db.ref(`slots/${index}/${field}`).set(value).then(() => { 
+            if (field === 'win') { 
+                if (index === slotsArray.length - 1) db.ref('display_mode').set('finish'); 
+                else db.ref('display_mode').set('bonusbuy'); 
+            } 
+        }); 
+    } 
+    window.updateInlineSlot = updateInlineSlot;
+
     function saveFinanceSettings() { const val = document.getElementById('balance-input').value; const bal = val === "" ? "" : Number(val); const curr = document.getElementById('balance-curr-select').value; db.ref('/').update({ start_balance: bal, start_balance_currency: curr }); } window.saveFinanceSettings = saveFinanceSettings;
-    function saveCurrentWin() { if (slotsArray.length === 0) return; const winVal = Number(document.getElementById('current-win').value); db.ref(`slots/${localActiveIndex}/win`).set(winVal).then(() => { db.ref('display_mode').set('bonusbuy'); if (localActiveIndex < slotsArray.length - 1) { db.ref('active_index').set(localActiveIndex + 1); } }); } window.saveCurrentWin = saveCurrentWin;
+    
+    function saveCurrentWin() { 
+        if (slotsArray.length === 0) return; 
+        const winVal = Number(document.getElementById('current-win').value); 
+        db.ref(`slots/${localActiveIndex}/win`).set(winVal).then(() => { 
+            if (localActiveIndex < slotsArray.length - 1) { 
+                db.ref('display_mode').set('bonusbuy'); 
+                db.ref('active_index').set(localActiveIndex + 1); 
+            } else { 
+                db.ref('display_mode').set('finish'); 
+            } 
+        }); 
+    } 
+    window.saveCurrentWin = saveCurrentWin;
     
     function addSlot() { 
         const name = document.getElementById('new-name').value.trim(); 
         const buy = document.getElementById('new-buy').value; 
         if(!name || !buy) return alert("Заполните поля!"); 
-        
-        if (currentIconUrl && !firebaseCustomIcons[name]) { 
-            db.ref(`custom_icons/${name}`).set(currentIconUrl); 
-        } 
-        
+        if (currentIconUrl && !firebaseCustomIcons[name]) { db.ref(`custom_icons/${name}`).set(currentIconUrl); } 
         slotsArray.push({ name: name, buy: Number(buy), win: 0, currency: selectedNewCurrency }); 
         db.ref('slots').set(slotsArray); 
-        
-        document.getElementById('new-name').value = ''; 
-        document.getElementById('new-buy').value = ''; 
+        document.getElementById('new-name').value = ''; document.getElementById('new-buy').value = ''; 
         const urlInput = document.getElementById('image-url-input');
         if (urlInput) urlInput.value = '';
-        document.getElementById('slot-preview').style.display = 'none'; 
-        document.getElementById('upload-hint').style.display = 'block'; 
-        currentIconUrl = ''; 
+        document.getElementById('slot-preview').style.display = 'none'; document.getElementById('upload-hint').style.display = 'block'; currentIconUrl = ''; 
     } 
     window.addSlot = addSlot;
     
@@ -511,37 +550,46 @@
     function toggleArchive(id) { const target = document.getElementById(id); target.style.display = target.style.display === 'block' ? 'none' : 'block'; } window.toggleArchive = toggleArchive;
     function setMode(modeName) { db.ref('display_mode').set(modeName); } window.setMode = setMode;
     function changeIndex(dir) { let n = Math.max(0, Math.min(slotsArray.length - 1, localActiveIndex + dir)); db.ref('active_index').set(n); } window.changeIndex = changeIndex;
-    function resetAll() { if (slotsArray.length === 0) { db.ref('/').update({ active_index: 0, display_mode: 'hunt', slots: {}, start_balance: "" }); return; } if(confirm("Заархивировать сессию?")) { const now = new Date(); const timeStr = now.toLocaleDateString('ru-RU') + ' ' + now.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'}); let tSpent = 0, tWin = 0; slotsArray.forEach(s => { tSpent += Number(s.buy || 0); tWin += Number(s.win || 0); }); db.ref('archives').push({ date: timeStr, slots_count: slotsArray.length, total_spent: tSpent, total_win: tWin, slots: slotsArray }).then(() => { db.ref('/').update({ active_index: 0, display_mode: 'hunt', slots: {}, start_balance: "" }); }); } } window.resetAll = resetAll;
+    function resetAll() { if (slotsArray.length === 0) { db.ref('/').update({ active_index: 0, display_mode: 'hunt', slots: {}, start_balance: "" }); return; } if(confirm("Заархивировать сессию?")) { const now = new Date(); const timeStr = now.toLocaleDateString('uk-UA') + ' ' + now.toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'}); let tSpent = 0, tWin = 0; slotsArray.forEach(s => { tSpent += Number(s.buy || 0); tWin += Number(s.win || 0); }); db.ref('archives').push({ date: timeStr, slots_count: slotsArray.length, total_spent: tSpent, total_win: tWin, slots: slotsArray }).then(() => { db.ref('/').update({ active_index: 0, display_mode: 'hunt', slots: {}, start_balance: "" }); }); } } window.resetAll = resetAll;
     function changePlayerCount(delta) { let current = [...battlePlayers]; if (delta > 0) { current.push(`Игрок ${current.length + 1}`); } else if (delta < 0 && current.length > 2) { current.pop(); } let updatedRounds = battleRounds.map(r => { if (delta > 0) { r.p.push({name:'', buy:0, win:0}); } else if (delta < 0 && r.p.length > 2) { r.p.pop(); } return r; }); db.ref('battle').update({ players: current, rounds: updatedRounds }); } window.changePlayerCount = changePlayerCount;
     function updateBattlePlayerName(index, newName) { battlePlayers[index] = newName; db.ref('battle/players').set(battlePlayers); } window.updateBattlePlayerName = updateBattlePlayerName;
     function updateBattleBalance() { db.ref('battle').update({ start_balance: Number(document.getElementById('battle-balance-input').value), currency: document.getElementById('battle-currency-select').value }); } window.updateBattleBalance = updateBattleBalance;
     function setBattleMode(mode) { db.ref('battle/display_mode').set(mode); } window.setBattleMode = setBattleMode;
-    function updateInlineBattle(roundIndex, playerIndex, field, value) { if (field === 'buy' || field === 'win') value = Number(value); db.ref(`battle/rounds/${roundIndex}/p/${playerIndex}/${field}`).set(value).then(() => { if (field === 'win') db.ref('battle/display_mode').set('bonusbuy'); }); } window.updateInlineBattle = updateInlineBattle;
+    
+    function updateInlineBattle(roundIndex, playerIndex, field, value) { 
+        if (field === 'buy' || field === 'win') value = Number(value); 
+        db.ref(`battle/rounds/${roundIndex}/p/${playerIndex}/${field}`).set(value).then(() => { 
+            if (field === 'win') { 
+                if (roundIndex === battleRounds.length - 1) db.ref('battle/display_mode').set('finish'); 
+                else db.ref('battle/display_mode').set('bonusbuy'); 
+            } 
+        }); 
+    } 
+    window.updateInlineBattle = updateInlineBattle;
+
     function addBattleRound() { let newRound = { p: [] }; battlePlayers.forEach((_, i) => { let elName = document.getElementById(`new-b-p${i}-title`); let elBuy = document.getElementById(`new-b-p${i}-buy`); newRound.p.push({ name: elName.value || 'Слот', buy: Number(elBuy.value || 0), win: 0 }); elName.value = ''; elBuy.value = ''; }); battleRounds.push(newRound); db.ref('battle/rounds').set(battleRounds); } window.addBattleRound = addBattleRound;
+    
     function saveBattleWin() { 
         if(!battleRounds[battleActiveIndex]) return; 
-        
         let updates = {}; 
-        
-        
         battlePlayers.forEach((_, i) => { 
             let elWin = document.getElementById(`curr-b-p${i}-win`); 
             updates[`battle/rounds/${battleActiveIndex}/p/${i}/win`] = Number(elWin.value || 0); 
         }); 
         
-        updates['battle/display_mode'] = 'bonusbuy'; 
-        
-        if (battleActiveIndex < battleRounds.length - 1) {
+        if (battleActiveIndex < battleRounds.length - 1) { 
+            updates['battle/display_mode'] = 'bonusbuy'; 
             updates['battle/active_index'] = battleActiveIndex + 1; 
+        } else {
+            updates['battle/display_mode'] = 'finish';
         }
-        
-        
         db.ref('/').update(updates); 
     } 
     window.saveBattleWin = saveBattleWin;
+    
     function changeBattleIndex(dir) { let n = Math.max(0, Math.min(battleRounds.length - 1, battleActiveIndex + dir)); db.ref('battle/active_index').set(n); } window.changeBattleIndex = changeBattleIndex;
     function deleteBattleRound(event, index) { event.stopPropagation(); if (confirm("Удалить этот раунд?")) { let nIdx = battleActiveIndex; if (index === battleActiveIndex) { if (battleActiveIndex >= battleRounds.length - 1) nIdx = Math.max(0, battleRounds.length - 2); } else if (index < battleActiveIndex) nIdx--; battleRounds.splice(index, 1); db.ref('battle').update({ rounds: battleRounds, active_index: nIdx }); } } window.deleteBattleRound = deleteBattleRound;
-    function resetBattle() { if(confirm('Точно удалить все раунды битвы?')) { db.ref('battle').update({ rounds: {}, active_index: 0, display_mode: 'hunt', start_balance: "" }); } } window.resetBattle = resetBattle;
+    function resetBattle() { if(confirm('Точно удалить все раунды битвы?')) { db.ref('battle').update({ rounds: {}, active_index: 0, display_mode: 'hunt', start_balance: "", bonus_x_enabled: false }); } } window.resetBattle = resetBattle;
 </script>
 </body>
 </html>
