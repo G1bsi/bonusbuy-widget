@@ -26,15 +26,13 @@
         .slot-info { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
         .slot-name-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 0; width: 100%; }
         .slot-name { font-size: 20px; font-weight: 800; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; margin: 0; flex: 1; }
-        .slot-amounts { font-size: 20px; color: #8a95a3; font-weight: 600; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 6px; margin-top: 6px; }
+        .slot-amounts { font-size: 20px; color: #8a95a3; font-weight: 600; display: flex; align-items: center; justify-content: flex-start; gap: 6px; margin-top: 6px; white-space: nowrap; }
         .arrow-blue { color: #00f2fe; font-weight: bold; margin: 0 4px; filter: drop-shadow(0 0 6px rgba(0,242,254,0.4)); }
         .multiplier-badge { flex-shrink: 0; font-size: 18px; font-weight: 800; padding: 6px 14px; margin: 0; border-radius: 30px; min-width: 75px; text-align: center; align-self: center; }
         .mult-win { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
         .mult-loss { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
         .mult-pending { background: rgba(15, 15, 20, 0.95); color: #4a5568; border: 1px solid rgba(255,255,255,0.04); min-width: 55px; }
-        /* ★ BEST X BADGE – solo finish mode */
         .best-x-badge { flex-shrink: 0; font-size: 15px; font-weight: 900; padding: 5px 12px; border-radius: 30px; text-align: center; background: rgba(255,183,3,0.15); color: #ffb703; border: 1px solid rgba(255,183,3,0.45); margin-left: 8px; white-space: nowrap; }
-        /* ★ GOLD highlight for battle best-X slot */
         .b-side.best-x-winner { background: rgba(255,183,3,0.13); border: 1px solid rgba(255,183,3,0.45); box-shadow: inset 0 0 18px rgba(255,183,3,0.08); }
         .b-side.best-x-winner .slot-name { color: #ffb703; }
         .battle-shared-stats { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
@@ -59,7 +57,159 @@
         .b-side .slot-name-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 4px; width: 100%; }
         .b-side .slot-name { font-size: 13.5px; font-weight: 800; color: #f1f5f9; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.1; margin: 0; flex: 1; }
         .b-side .multiplier-badge { flex-shrink: 0; font-size: 12.5px; min-width: 45px; padding: 2px 6px; margin: 0; border-radius: 8px; text-align: center; }
-        .b-side .slot-amounts { font-size: 13.5px; color: #64748b; font-weight: 700; white-space: normal; display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+        .b-side .slot-amounts { font-size: 13.5px; color: #64748b; font-weight: 700; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+
+        /* ═══════════════════════════════════════
+           WHEEL BANNER — повністю новий дизайн
+        ═══════════════════════════════════════ */
+        .wheel-banner {
+            margin: 14px auto 0 auto;
+            width: 580px;
+            height: 140px;
+            box-sizing: border-box;
+            display: none;
+            position: relative;
+            border-radius: 28px;
+            overflow: hidden;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+            background:
+                repeating-linear-gradient(
+                    130deg,
+                    rgba(0,210,200,0.03) 0px,
+                    rgba(0,210,200,0.03) 1px,
+                    transparent 1px,
+                    transparent 18px
+                ),
+                repeating-linear-gradient(
+                    45deg,
+                    rgba(255,255,255,0.01) 0px,
+                    rgba(255,255,255,0.01) 1px,
+                    transparent 1px,
+                    transparent 22px
+                ),
+                linear-gradient(135deg, #0d0d11 0%, #14121a 50%, #0d0d11 100%);
+            border: 1px solid rgba(0,210,200,0.22);
+            box-shadow:
+                0 0 0 1px rgba(0,210,200,0.08),
+                0 20px 60px rgba(0,0,0,0.7),
+                inset 0 1px 0 rgba(0,210,200,0.15),
+                inset 0 -1px 0 rgba(0,0,0,0.5);
+        }
+        @keyframes slideUp { from { transform: translateY(18px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+        /* Велике фонове колесо — займає ліву половину банера */
+        .wheel-bg {
+            position: absolute;
+            left: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 260px;
+            height: 260px;
+            opacity: 0.13;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .wheel-bg svg {
+            width: 100%;
+            height: 100%;
+            animation: spinWheel 55s linear infinite;
+            filter: drop-shadow(0 0 18px rgba(0,210,200,0.25));
+        }
+
+        /* Темний оверлей зліва щоб затемнити колесо */
+        .wheel-bg-overlay {
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 290px;
+            background: linear-gradient(90deg, rgba(10,10,14,0.55) 0%, rgba(10,10,14,0.2) 70%, transparent 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Маленький значок колеса у лівому блоці */
+        @keyframes spinWheel {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Центральний текстовий блок — на весь банер */
+        .wheel-banner-center {
+            position: absolute;
+            left: 0; right: 0; top: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            z-index: 2;
+            box-sizing: border-box;
+        }
+        .wb-title {
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(0,210,200,1);
+            text-align: center;
+            white-space: nowrap;
+            line-height: 1;
+            text-shadow: 0 0 22px rgba(0,210,200,0.5);
+            flex-shrink: 0;
+        }
+        .wb-grid {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+            width: 100%;
+            flex-shrink: 0;
+        }
+        .wb-card {
+            flex: 1;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 6px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .wb-card.wb-gold {
+            background: rgba(0,210,200,0.09);
+            border-color: rgba(0,210,200,0.35);
+            box-shadow: inset 0 0 18px rgba(0,210,200,0.08);
+        }
+        .wb-label {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: rgba(255,255,255,0.5);
+            white-space: nowrap;
+        }
+        .wb-card.wb-gold .wb-label { color: rgba(0,210,200,1); }
+        .wb-val {
+            font-size: 24px;
+            font-weight: 900;
+            color: #fff;
+            white-space: nowrap;
+            line-height: 1;
+        }
+        .wb-card.wb-gold .wb-val {
+            color: #00d2c8;
+            text-shadow: 0 0 14px rgba(0,210,200,0.6);
+        }
+        .wb-link {
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: rgba(0,210,200,0.8);
+            text-transform: uppercase;
+            text-align: center;
+            white-space: nowrap;
+            line-height: 1;
+            flex-shrink: 0;
+        }
     </style>
 </head>
 <body>
@@ -67,7 +217,7 @@
     <div class="stats-grid">
         <div class="stat-card"><span class="stat-icon">💰</span><span id="stat-total" class="stat-val">0</span></div>
         <div class="stat-card"><span class="stat-icon">⭐</span><span id="stat-count" class="stat-val">0/0</span></div>
-        <div class="stat-card"><span class="stat-icon">📈</span><span id="stat-comeback" class="stat-val">0.00x</span></div>
+        <div class="stat-card"><span class="stat-icon">📈</span><span id="stat-comeback" class="stat-val">—</span></div>
         <div class="stat-card"><span class="stat-icon">⚖️</span><span id="stat-avg-opened" class="stat-val">0.00x</span></div>
     </div>
     <div id="viewport" class="slots-viewport">
@@ -85,6 +235,68 @@
         <div id="battle-slots-container" class="slots-list"></div>
     </div>
 </div>
+
+<!-- ═══ WHEEL BANNER ═══ -->
+<div id="wheel-banner" class="wheel-banner">
+
+    <!-- Велике фонове колесо (ліва половина) -->
+    <div class="wheel-bg">
+        <svg viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="130" cy="130" r="124" fill="none" stroke="rgba(0,210,200,0.9)" stroke-width="3"/>
+            <circle cx="130" cy="130" r="110" fill="none" stroke="rgba(0,210,200,0.5)" stroke-width="1"/>
+            <path d="M130 130 L130 6 A124 124 0 0 1 192 29.4 Z" fill="rgba(0,210,200,0.12)"/>
+            <path d="M130 130 L192 29.4 A124 124 0 0 1 230.6 68 Z" fill="rgba(0,210,200,0.06)"/>
+            <path d="M130 130 L230.6 68 A124 124 0 0 1 254 130 Z" fill="rgba(0,210,200,0.12)"/>
+            <path d="M130 130 L254 130 A124 124 0 0 1 230.6 192 Z" fill="rgba(0,210,200,0.06)"/>
+            <path d="M130 130 L230.6 192 A124 124 0 0 1 192 230.6 Z" fill="rgba(0,210,200,0.12)"/>
+            <path d="M130 130 L192 230.6 A124 124 0 0 1 130 254 Z" fill="rgba(0,210,200,0.06)"/>
+            <path d="M130 130 L130 254 A124 124 0 0 1 68 230.6 Z" fill="rgba(0,210,200,0.12)"/>
+            <path d="M130 130 L68 230.6 A124 124 0 0 1 29.4 192 Z" fill="rgba(0,210,200,0.06)"/>
+            <path d="M130 130 L29.4 192 A124 124 0 0 1 6 130 Z" fill="rgba(0,210,200,0.12)"/>
+            <path d="M130 130 L6 130 A124 124 0 0 1 29.4 68 Z" fill="rgba(0,210,200,0.06)"/>
+            <path d="M130 130 L29.4 68 A124 124 0 0 1 68 29.4 Z" fill="rgba(0,210,200,0.12)"/>
+            <path d="M130 130 L68 29.4 A124 124 0 0 1 130 6 Z" fill="rgba(0,210,200,0.06)"/>
+            <line x1="130" y1="20" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="192" y1="36" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="232" y1="68" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="244" y1="130" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="232" y1="192" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="192" y1="224" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="130" y1="240" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="68" y1="224" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="28" y1="192" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="16" y1="130" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="28" y1="68" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="68" y1="36" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <circle cx="130" cy="130" r="28" fill="#0d0d11" stroke="rgba(0,210,200,0.7)" stroke-width="2"/>
+            <circle cx="130" cy="130" r="7" fill="rgba(0,210,200,0.85)"/>
+        </svg>
+    </div>
+
+    <!-- Темний оверлей для затемнення колеса -->
+    <div class="wheel-bg-overlay"></div>
+
+    <!-- Центральний контент -->
+    <div class="wheel-banner-center">
+        <div class="wb-title">🎡 КОЛЕСО ДЛЯ РЕФЕРАЛОВ</div>
+        <div class="wb-grid">
+            <div class="wb-card">
+                <span class="wb-label">МИН. ДЕПОЗИТ</span>
+                <span class="wb-val" id="wb-val-dep">—</span>
+            </div>
+            <div class="wb-card wb-gold">
+                <span class="wb-label">СУММА КОЛЕСА</span>
+                <span class="wb-val" id="wb-val-amount">—</span>
+            </div>
+            <div class="wb-card">
+                <span class="wb-label">ПОБЕДИТЕЛИ</span>
+                <span class="wb-val" id="wb-val-winners">—</span>
+            </div>
+        </div>
+        <div class="wb-link">🔗 УЧАСТВУЙ ПО ССЫЛКЕ В ЗАКРЕПЕ</div>
+    </div>
+</div>
+
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyC3WVO3p4EwDec5J2PEooIoAkHxIfw6R8w",
@@ -95,16 +307,41 @@
         messagingSenderId: "873732272758",
         appId: "1:873732272758:web:b71eb5ac35ea6b6bc26557"
     };
-
     firebase.initializeApp(firebaseConfig); 
     const db = firebase.database();
+    
     function formatNumberCompact(num) { num = Number(num); if (isNaN(num) || num === 0) return '0'; let absNum = Math.abs(num); let sign = num < 0 ? '-' : ''; if (absNum >= 1000000) return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк'; if (absNum >= 1000) return sign + parseFloat((absNum / 1000).toFixed(1)) + 'к'; return sign + absNum.toString(); }
     function formatNumberWithCommas(num) { return Number(num).toLocaleString('en-US').replace(/,/g, ' '); }
+    
     db.ref('/').on('value', function(snapshot) {
-        const data = snapshot.val() || {}; const mode = data.global_mode || 'solo';
-        if (mode === 'solo') { document.getElementById('solo-container').style.display = 'flex'; document.getElementById('battle-container').style.display = 'none'; renderSoloMode(data); } 
-        else { document.getElementById('solo-container').style.display = 'none'; document.getElementById('battle-container').style.display = 'flex'; renderBattleMode(data.battle || {}, data.custom_icons || {}); }
+        const data = snapshot.val() || {};
+        const mode = data.global_mode || 'solo';
+        if (mode === 'solo') {
+            document.getElementById('solo-container').style.display = 'flex';
+            document.getElementById('battle-container').style.display = 'none';
+            renderSoloMode(data);
+        } else {
+            document.getElementById('solo-container').style.display = 'none';
+            document.getElementById('battle-container').style.display = 'flex';
+            renderBattleMode(data.battle || {}, data.custom_icons || {});
+        }
+        
+        // КОЛЕСО — тільки показ/приховати + вивід значень у $
+        const wheel = data.wheel || {};
+        const banner = document.getElementById('wheel-banner');
+        if (wheel.enabled) {
+            banner.style.display = 'block';
+            const amt = Number(wheel.amount || 0);
+            const dep = Number(wheel.min_dep || 0);
+            const win = Number(wheel.winners || 0);
+            document.getElementById('wb-val-amount').innerText = amt > 0 ? (formatNumberWithCommas(amt) + ' $') : '—';
+            document.getElementById('wb-val-dep').innerText   = dep > 0 ? (formatNumberWithCommas(dep) + ' $') : '—';
+            document.getElementById('wb-val-winners').innerText = win > 0 ? win + ' чел.' : '—';
+        } else {
+            banner.style.display = 'none';
+        }
     });
+    
     function renderSoloMode(data) {
         const slots = data.slots ? Object.values(data.slots) : [];
         const activeIndex = data.active_index !== undefined ? data.active_index : 0;
@@ -114,12 +351,66 @@
         let totalWin = 0; let totalBuy = 0; let openedCount = 0; let remainingBuy = 0; let openedTotalBuy = 0; let openedTotalWin = 0; let maxX = 0;
         slots.forEach(function(s, idx) {
             const buy = Number(s.buy || 0); const win = Number(s.win || 0); totalBuy += buy; totalWin += win;
-            const isOpened = win > 0 || (win === 0 && idx < activeIndex);
+            // В режимі hunt "відкрита" = є виграш (win > 0). В bonusbuy/finish — стара логіка
+            const isOpened = displayMode === 'hunt'
+                ? (win > 0)
+                : (win > 0 || (win === 0 && idx < activeIndex));
             if (isOpened) { openedCount++; openedTotalBuy += buy; openedTotalWin += win; } else { remainingBuy += buy; }
             if (buy > 0 && win > 0 && (win/buy) > maxX) maxX = win/buy;
         });
-        const deficit = totalBuy - totalWin; let comebackXText = '0.00x';
-        if (totalBuy === 0) comebackXText = '0.00x'; else if (deficit <= 0) comebackXText = 'ОКУП'; else if (deficit > 0 && remainingBuy === 0) comebackXText = (totalWin / (startBalance > 0 ? startBalance : totalBuy)).toFixed(2) + 'x'; else comebackXText = (deficit / remainingBuy).toFixed(2) + 'x';
+        // === COMEBACK логіка ===
+        // openedTotalWin — сума виграшів по відкритих слотах
+        // totalBuy       — загальна сума всіх купів (весь депозит хант/ббай)
+        // openedTotalBuy — сума купів по відкритих слотах
+        // remainingBuy   — залишилось ще не відкрити
+
+        let comebackXText;
+
+        if (displayMode === 'hunt') {
+            // ХАНТ: депозит = startBalance. Бонуски ловимо, кожна має свій buy.
+            // Потрібний ікс = скільки мають дати НЕВІДКРИТІ бонуски щоб вийти в 0.
+            // "Невідкриті" в ханті = ті де ще немає win (win === 0).
+            // remainingBuy = сума buy слотів без виграшу (вже вираховується правильно).
+            // Депозит = startBalance (не сума купів!).
+            const deposit = Number(startBalance) || 0;
+            if (slots.length === 0 || deposit === 0) {
+                // нічого не додано або депозит не вказано — прочерк
+                comebackXText = '—';
+            } else if (openedTotalWin >= deposit) {
+                comebackXText = 'ОКУП';
+            } else if (remainingBuy === 0) {
+                // всі бонуски мають виграш — але загальний виграш < депозиту
+                comebackXText = openedTotalWin >= deposit ? 'ОКУП' : 'НЕ ОКУП';
+            } else {
+                // скільки ще треба виграти
+                const needWin = deposit - openedTotalWin;
+                const needX = needWin / remainingBuy;
+                comebackXText = needX.toFixed(2) + 'x';
+            }
+        } else if (displayMode === 'bonusbuy') {
+            // БОНУСБАЙ: депозит = startBalance (як у ханті).
+            // Показуємо потрібний середній ікс по НЕВІДКРИТИХ (де ще немає win).
+            const deposit = Number(startBalance) || 0;
+            if (slots.length === 0 || deposit === 0) {
+                comebackXText = '—';
+            } else if (openedTotalWin >= deposit) {
+                comebackXText = 'ОКУП';
+            } else if (remainingBuy === 0) {
+                comebackXText = openedTotalWin >= deposit ? 'ОКУП' : 'НЕ ОКУП';
+            } else {
+                const needWin = deposit - openedTotalWin;
+                const needX = needWin / remainingBuy;
+                comebackXText = needX.toFixed(2) + 'x';
+            }
+        } else {
+            // finish — підсумкова логіка
+            if (slots.length === 0) {
+                comebackXText = '—';
+            } else {
+                comebackXText = totalBuy === 0 ? '—' : (totalWin >= totalBuy ? 'ОКУП' : 'НЕ ОКУП');
+            }
+        }
+
         const openedAvgX = openedTotalBuy > 0 ? (openedTotalWin / openedTotalBuy) : 0;
         document.getElementById('stat-total').innerText = formatNumberCompact(startBalance) + ' ' + balanceCurr;
         document.getElementById('stat-count').innerText = openedCount + '/' + slots.length;
@@ -136,24 +427,20 @@
             let xValText = '—'; let multClass = 'mult-pending';
             if (win > 0 && buy > 0) { xValText = (win / buy).toFixed(2) + 'x'; multClass = (win / buy) >= 1 ? 'mult-win' : 'mult-loss'; } else if (win === 0 && slot.orig < activeIndex) { xValText = '0.00x'; multClass = 'mult-loss'; }
             let isCrown = (displayMode === 'finish' && win > 0 && buy > 0 && (win/buy) === maxX && maxX > 0);
-            // ★ BEST X BADGE: show "👑 Best X" column in finish mode for the slot with highest multiplier
-            let isBestX = (displayMode === 'finish' && win > 0 && buy > 0 && (win/buy) === maxX && maxX > 0);
-            let iconInner = '?'; if (customIcons[slot.name]) iconInner = `<img class="slot-icon-img" src="${customIcons[slot.name]}"`  + ` onerror="this.style.display='none'">`; else if (slot.name) iconInner = `<div class="slot-icon-text">${slot.name.substring(0, 2)}</div>`;
-            const winDisplayHTML = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${formatNumberCompact(win)} ${slotCur}</span>` : '';
+            let iconInner = '?'; if (customIcons[slot.name]) iconInner = `<img class="slot-icon-img" src="${customIcons[slot.name]}" onerror="this.style.display='none'">`; else if (slot.name) iconInner = `<div class="slot-icon-text">${slot.name.substring(0, 2)}</div>`;
+            const winDisplayHTML = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${formatNumberWithCommas(win)} ${slotCur}</span>` : '';
             let showActiveEffects = isActive && displayMode !== 'finish';
-            // ★ In finish mode, gold border for best-x slot
             let rowExtra = '';
-            if (isBestX) rowExtra = 'border: 1px solid rgba(255,183,3,0.45); background: rgba(255,183,3,0.07);';
+            if (isCrown) rowExtra = 'border: 1px solid rgba(255,183,3,0.45); background: rgba(255,183,3,0.07);';
             else if (showActiveEffects) rowExtra = 'border: 1px solid rgba(124, 58, 237, 0.4); box-shadow: 0 10px 30px rgba(124,58,237,0.15); transform: scale(1.02); z-index: 10;';
             listHTML += `
                 <div class="slot-row" style="${rowExtra}">
                     <div class="slot-icon-wrapper">${iconInner}${isCrown ? '<div class="crown-overlay">👑</div>' : ''}</div>
                     <div class="slot-info">
                         <div class="slot-name">${slot.name}</div>
-                        <div class="slot-amounts"><span>${formatNumberCompact(buy)} ${slotCur}</span>${winDisplayHTML}</div>
+                        <div class="slot-amounts"><span>${formatNumberWithCommas(buy)} ${slotCur}</span>${winDisplayHTML}</div>
                     </div>
                     <div class="multiplier-badge ${multClass}" style="margin-left:14px;">${xValText}</div>
-                    ${isBestX ? `<div class="best-x-badge">⭐ Лучший X</div>` : ''}
                 </div>`;
         });
         if (displayMode === 'bonusbuy' || displayMode === 'hunt') {
@@ -165,31 +452,24 @@
             const timeToMove = slotsToRender.length * 3.5; container.style.animation = `infiniteWheel ${timeToMove * 3}s linear infinite`;
         } else { container.style.transform = "none"; container.style.animation = 'none'; container.innerHTML = listHTML; }
     }
+    
     function renderBattleMode(bData, globalIcons) {
         let players = bData.players || [bData.p1_name || 'Игрок 1', bData.p2_name || 'Игрок 2'];
         let requiredWidth = Math.max(580, players.length * 280); 
         document.getElementById('battle-container').style.width = requiredWidth + 'px';
         let rawRounds = bData.rounds ? Object.values(bData.rounds) : [];
-        let rounds = rawRounds.map(r => { if (!r.p) return { p: [r.p1 || {name:'',buy:0,win:0}, r.p2 || {name:'',buy:0,win:0}] }; return r; });
+        let rounds = rawRounds.map((r, i) => { let rr = (!r.p) ? { p: [r.p1 || {name:'',buy:0,win:0}, r.p2 || {name:'',buy:0,win:0}] } : r; rr.orig = i; return rr; });
         const activeIndex = bData.active_index !== undefined ? bData.active_index : 0;
         const displayMode = bData.display_mode || 'hunt';
         const curr = bData.currency || '₽'; const sharedBalance = bData.start_balance || 0;
         const bonusXEnabled = bData.bonus_x_enabled === true;
-
-        // ★ Find global best X across ALL rounds (round index + player index)
-        let globalBestX = 0;
-        let globalBestRound = -1;
-        let globalBestPlayer = -1;
+        let globalBestX = 0; let globalBestRound = -1; let globalBestPlayer = -1;
         rounds.forEach((r, rIdx) => {
             r.p.forEach((p, pIdx) => {
                 let b = Number(p.buy || 0); let w = Number(p.win || 0);
-                if (b > 0 && w > 0) {
-                    let x = w / b;
-                    if (x > globalBestX) { globalBestX = x; globalBestRound = rIdx; globalBestPlayer = pIdx; }
-                }
+                if (b > 0 && w > 0) { let x = w / b; if (x > globalBestX) { globalBestX = x; globalBestRound = rIdx; globalBestPlayer = pIdx; } }
             });
         });
-
         let playersStats = Array(players.length).fill().map(()=>({ opened_buy: 0, opened_win: 0, score: 0 }));
         let openedTotalBuyAll = 0, openedTotalWinAll = 0, openedCount = 0;
         rounds.forEach((r, idx) => {
@@ -208,33 +488,18 @@
                 openedCount++;
             }
         });
-
-        // ★ If bonusXEnabled: add extra score point to the player with the global best X
         if (bonusXEnabled && globalBestPlayer >= 0 && globalBestRound < activeIndex) {
-            // only count if the best-x round has been opened
-            let bestRound = rounds[globalBestRound];
-            let isOpened = globalBestRound < activeIndex;
+            let bestRound = rounds[globalBestRound]; let isOpened = globalBestRound < activeIndex;
             if (!isOpened && bestRound) { bestRound.p.forEach(p => { if (Number(p.win || 0) > 0) isOpened = true; }); }
-            if (isOpened && playersStats[globalBestPlayer]) {
-                playersStats[globalBestPlayer].score += 1;
-            }
+            if (isOpened && playersStats[globalBestPlayer]) { playersStats[globalBestPlayer].score += 1; }
         }
-
         let maxScore = -1;
         if (displayMode === 'finish') { playersStats.forEach(ps => { if (ps.score > maxScore) maxScore = ps.score; }); }
         let headerHTML = '';
         players.forEach((pName, i) => {
             let avgX = playersStats[i].opened_buy > 0 ? (playersStats[i].opened_win / playersStats[i].opened_buy) : 0;
             let isHighestScore = (displayMode === 'finish' && playersStats[i].score === maxScore && maxScore > 0);
-            headerHTML += `
-                <div class="battle-player-block ${isHighestScore ? 'winner-block' : ''}">
-                    <div class="b-name-wrap">
-                        <span class="b-crown-diagonal">👑</span>
-                        <span class="b-name">${pName}</span>
-                    </div>
-                    <span class="b-meta">Средний: ${avgX.toFixed(2)}x</span>
-                    <div class="b-score-box">${playersStats[i].score}</div>
-                </div>`;
+            headerHTML += `<div class="battle-player-block ${isHighestScore ? 'winner-block' : ''}"><div class="b-name-wrap"><span class="b-crown-diagonal">👑</span><span class="b-name">${pName}</span></div><span class="b-meta">Средний: ${avgX.toFixed(2)}x</span><div class="b-score-box">${playersStats[i].score}</div></div>`;
             if (i < players.length - 1) headerHTML += `<div style="font-weight:900; color:#444; font-size: 20px; align-self: center; padding-top: 10px;">VS</div>`;
         });
         document.getElementById('battle-header').innerHTML = headerHTML;
@@ -243,51 +508,34 @@
         document.getElementById('b-stat-shared-comeback').innerText = sharedAvgX.toFixed(2) + 'x';
         document.getElementById('b-stat-shared-count').innerText = openedCount + '/' + rounds.length;
         const container = document.getElementById('battle-slots-container');
-        document.getElementById('battle-container').className = 'tracker-container battle-container ' + (rounds.length > 0 ? 'has-items ' : '') + 'mode-' + displayMode;
-        let roundsToRender = rounds.map((r,i)=>Object.assign({},r,{orig:i}));
         let listHTML = '';
-        let focusIndex = (displayMode === 'hunt' && roundsToRender.length > 0) ? roundsToRender.length - 1 : activeIndex;
-        roundsToRender.forEach((r) => {
-            const isActive = r.orig === focusIndex; 
+        let focusIndex = (displayMode === 'hunt' && rounds.length > 0) ? rounds.length - 1 : activeIndex;
+        rounds.forEach((r) => {
             let isScored = r.orig < activeIndex; r.p.forEach(p => { if (Number(p.win || 0) > 0) isScored = true; });
-            let showActiveEffects = isActive && displayMode !== 'finish';
+            let showActiveEffects = r.orig === focusIndex && displayMode !== 'finish';
             let max_x = 0; r.p.forEach(p => { let x = Number(p.buy||0) > 0 ? Number(p.win||0) / Number(p.buy||0) : 0; if(x > max_x) max_x = x; });
             let playersRowHTML = '';
             r.p.forEach((p, i) => {
                 let buy = Number(p.buy||0); let win = Number(p.win||0); let x = buy > 0 ? win/buy : 0;
                 let isWinner = (isScored && x === max_x && max_x > 0);
-                // ★ Gold class for global best-X slot (only if bonusXEnabled)
-                let isGlobalBestX = bonusXEnabled && (r.orig === globalBestRound) && (i === globalBestPlayer) && globalBestX > 0;
+                let isGlobalBestX = bonusXEnabled && displayMode === 'finish' && (r.orig === globalBestRound) && (i === globalBestPlayer) && globalBestX > 0;
                 let tx = win > 0 ? x.toFixed(2) + 'x' : (isScored ? '0.00x' : '—');
                 let mc = win > 0 && x >= 1 ? 'mult-win' : (isScored ? 'mult-loss' : 'mult-pending');
-                let wDisplay = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${formatNumberCompact(win)} ${curr}</span>` : '';
+                let wDisplay = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${formatNumberWithCommas(win)} ${curr}</span>` : '';
                 let icn = globalIcons[p.name] ? `<img class="slot-icon-img" src="${globalIcons[p.name]}" onerror="this.style.display='none'">` : `<div class="slot-icon-text" style="font-size: 14px;">${(p.name || '?').substring(0, 2)}</div>`;
-                // Priority: if isGlobalBestX → gold (overrides green winner)
-                let sideClass = 'b-side';
-                if (isGlobalBestX) sideClass += ' best-x-winner';
-                else if (isWinner) sideClass += ' winner';
-                playersRowHTML += `
-                    <div class="${sideClass}">
-                        <div class="slot-icon-wrapper">${icn}</div>
-                        <div class="slot-info">
-                            <div class="slot-name-row">
-                                <div class="slot-name">${p.name || 'Слот'}</div>
-                                <div class="multiplier-badge ${mc}">${tx}${isGlobalBestX ? ' ⭐' : ''}</div>
-                            </div>
-                            <div class="slot-amounts"><span>${formatNumberCompact(buy)} ${curr}</span>${wDisplay}</div>
-                        </div>
-                    </div>`;
+                let sideClass = 'b-side'; if (isGlobalBestX) sideClass += ' best-x-winner'; else if (isWinner) sideClass += ' winner';
+                playersRowHTML += `<div class="${sideClass}"><div class="slot-icon-wrapper">${icn}</div><div class="slot-info"><div class="slot-name-row"><div class="slot-name">${p.name || 'Слот'}</div><div class="multiplier-badge ${mc}">${tx}${isGlobalBestX ? ' ⭐' : ''}</div></div><div class="slot-amounts"><span>${formatNumberWithCommas(buy)} ${curr}</span>${wDisplay}</div></div></div>`;
                 if (i < r.p.length - 1) playersRowHTML += `<div class="b-vs-text">VS</div>`;
             });
             listHTML += `<div class="battle-row" style="transform: scale(${showActiveEffects ? '1.02' : '1'}); ${showActiveEffects ? 'border: 1px solid rgba(124, 58, 237, 0.4); box-shadow: 0 10px 30px rgba(124,58,237,0.15); z-index: 10;' : ''}">${playersRowHTML}</div>`;
         });
         if (displayMode === 'bonusbuy' || displayMode === 'hunt') {
-            container.innerHTML = listHTML; container.style.animation = 'none'; let itemHeight = 100; let totalItems = roundsToRender.length;
-            if (focusIndex >= 2) { let listHeight = (totalItems * itemHeight) - 12; let maxScroll = Math.max(0, listHeight - 488); let targetY = Math.min(maxScroll, (focusIndex - 2) * itemHeight); container.style.transform = `translateY(-${targetY}px)`; } 
+            container.innerHTML = listHTML; container.style.animation = 'none'; let itemHeight = 100; let totalItems = rounds.length;
+            if (focusIndex >= 2) { let listHeight = (totalItems * itemHeight) - 12; let maxScroll = Math.max(0, listHeight - 488); let targetY = Math.min(maxScroll, (focusIndex - 2) * itemHeight); container.style.transform = `translateY(-${targetY}px)`; }
             else { container.style.transform = `translateY(0px)`; }
-        } else if (displayMode === 'finish' && roundsToRender.length > 0) {
+        } else if (displayMode === 'finish' && rounds.length > 0) {
             container.style.transform = "none"; container.innerHTML = listHTML.repeat(6);
-            const timeToMove = roundsToRender.length * 3.5; container.style.animation = `infiniteWheel ${timeToMove * 3}s linear infinite`;
+            const timeToMove = rounds.length * 3.5; container.style.animation = `infiniteWheel ${timeToMove * 3}s linear infinite`;
         } else { container.style.transform = "none"; container.style.animation = 'none'; container.innerHTML = listHTML; }
     }
 </script>
