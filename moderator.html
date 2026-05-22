@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
         body { font-family: sans-serif; background: #1c1c21; color: #fff; padding: 20px; }
-        .box { background: #25252c; padding: 15px; border-radius: 8px; margin-bottom: 15px; max-width: 420px; }
+        .box { background: #25252c; padding: 15px; border-radius: 8px; margin-bottom: 15px; max-width: 420px; box-sizing: border-box; }
         .box-header { cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
         .box-header h3 { margin: 0; font-size: 16px; }
         .arrow-indicator { font-size: 11px; color: #8a8a93; font-weight: bold; }
@@ -22,7 +22,7 @@
         .nav-container { display: flex; justify-content: space-between; }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         input[type=number] { -moz-appearance: textfield; }
-        .upload-zone { width: 54px; height: 54px; border: 2px dashed #555; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: #14141a; overflow: hidden; position: relative; }
+        .upload-zone { width: 54px; height: 54px; border: 2px dashed #555; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; background: #14141a; overflow: hidden; position: relative; }
         .upload-hint { font-size: 22px; color: #666; font-weight: bold; }
         .preview-img { width: 100%; height: 100%; object-fit: cover; position: absolute; top: 0; left: 0; }
         .modes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 5px 0; }
@@ -57,16 +57,24 @@
         .battle-half { background: #1e1e24; padding: 10px; border-radius: 6px; border: 1px solid #333; }
         .battle-half h4 { margin: 0 0 8px 0; font-size: 12px; text-align: center; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; }
         .controls-row { display: flex; gap: 10px; margin-bottom: 15px; }
-        /* ★ Toggle switch styles */
-        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid #333; margin-top: 8px; }
-        .toggle-label { font-size: 13px; font-weight: bold; color: #e2e8f0; display: flex; flex-direction: column; gap: 2px; }
-        .toggle-label span { font-size: 11px; color: #8a8a93; font-weight: normal; }
-        .toggle-wrap { position: relative; width: 46px; height: 26px; flex-shrink: 0; }
-        .toggle-wrap input { position: absolute; opacity: 0; width: 100%; height: 100%; cursor: pointer; margin: 0; z-index: 2; }
-        .toggle-track { display: block; width: 46px; height: 26px; background: #444; border-radius: 13px; transition: background 0.25s; position: relative; }
-        .toggle-wrap input:checked ~ .toggle-track { background: #ffb703; }
-        .toggle-knob { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform 0.25s; pointer-events: none; box-shadow: 0 1px 4px rgba(0,0,0,0.4); }
-        .toggle-wrap input:checked ~ .toggle-knob { transform: translateX(20px); }
+
+        /* ═══ WHEEL PANEL STYLES ═══ */
+        .switch-container { display: flex; align-items: center; justify-content: space-between; background: #1e1e24; padding: 12px 14px; border-radius: 10px; margin-bottom: 14px; border: 1px solid rgba(255,183,3,0.2); }
+        .switch-label { font-size: 13px; font-weight: 800; color: #ffb703; }
+        .switch { position: relative; display: inline-block; width: 52px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #3e3e4a; transition: .3s; border-radius: 26px; }
+        .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #ffb703; box-shadow: 0 0 8px rgba(255,183,3,0.5); }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+        /* 3 поля вводу у колесі */
+        .wheel-fields { display: flex; flex-direction: column; gap: 10px; }
+        .wheel-field-row { display: flex; flex-direction: column; gap: 4px; }
+        .wheel-field-label { font-size: 11px; font-weight: 800; color: #8a8a93; text-transform: uppercase; letter-spacing: 0.5px; }
+        .wheel-field-input { background: #1e1e24; border: 1px solid rgba(255,183,3,0.15); color: #fff; border-radius: 8px; padding: 10px 12px; font-size: 15px; font-weight: 700; width: 100%; box-sizing: border-box; margin: 0; transition: border-color 0.2s; }
+        .wheel-field-input:focus { outline: none; border-color: rgba(255,183,3,0.5); }
+        .wheel-field-input.gold { border-color: rgba(255,183,3,0.35); }
     </style>
 </head>
 <body>
@@ -89,6 +97,40 @@
             <div id="btn-solo" class="global-mode-btn active-solo" onclick="setGlobalMode('solo')">👤 БОНУСБАЙ</div>
             <div id="btn-battle" class="global-mode-btn" onclick="setGlobalMode('battle')">⚔️ БИТВА СЛОТОВ</div>
         </div>
+
+        <!-- ═══ WHEEL BOX — завжди видимий (не залежить від solo/battle) ═══ -->
+        <div class="box" style="border: 1px solid rgba(255,183,3,0.4); box-shadow: 0 0 20px rgba(255,183,3,0.06);">
+            <div class="box-header" onclick="toggleBox('box-wheel', 'arrow-wheel')">
+                <h3 style="color:#ffb703;">🎡 КОЛЕСО (Розыгрыш)</h3>
+                <span id="arrow-wheel" class="arrow-indicator">▼</span>
+            </div>
+            <div id="box-wheel" class="box-content">
+                <!-- Тумблер -->
+                <div class="switch-container">
+                    <span class="switch-label">📺 Показать в OBS</span>
+                    <label class="switch">
+                        <input type="checkbox" id="wheel-toggle" onchange="setWheelEnabled(this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <!-- 3 поля -->
+                <div class="wheel-fields">
+                    <div class="wheel-field-row">
+                        <label class="wheel-field-label">💰 Сумма розыгрыша ($)</label>
+                        <input type="number" id="wheel-amount" class="wheel-field-input gold" placeholder="Например: 100" oninput="saveWheelData()">
+                    </div>
+                    <div class="wheel-field-row">
+                        <label class="wheel-field-label">🏆 Количество победителей</label>
+                        <input type="number" id="wheel-winners" class="wheel-field-input" placeholder="Например: 5" oninput="saveWheelData()">
+                    </div>
+                    <div class="wheel-field-row">
+                        <label class="wheel-field-label">🎯 Минимальный депозит ($)</label>
+                        <input type="number" id="wheel-min-dep" class="wheel-field-input" placeholder="Например: 10" oninput="saveWheelData()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="panel-solo">
             <div class="box" style="border: 1px solid #e67e22;">
                 <div class="box-header" onclick="toggleBox('box-fin', 'arrow-fin')">
@@ -133,7 +175,7 @@
             </div>
             <div class="box">
                 <div class="box-header" onclick="toggleBox('box-add', 'arrow-add')">
-                    <h3>1. Добавить слот в очередь</h3>
+                    <h3>1. Добавить слот в queue</h3>
                     <span id="arrow-add" class="arrow-indicator">▼</span>
                 </div>
                 <div id="box-add" class="box-content">
@@ -144,17 +186,14 @@
                         <button type="button" id="curr-usd" class="currency-btn active" onclick="setNewSlotCurrency('$')">$ (USD)</button>
                         <button type="button" id="curr-rub" class="currency-btn" onclick="setNewSlotCurrency('₽')">₽ (RUB)</button>
                     </div>
-                    <div style="margin: 8px 0;">
-                        <label style="font-size: 11px; color:#aaa;">Ссылка на картинку (URL):</label>
-                        <div style="display: flex; align-items: center; gap: 12px; margin-top: 4px;">
-                            <div class="upload-zone" style="cursor: default;">
-                                <span id="upload-hint" class="upload-hint">🖼️</span>
-                                <img id="slot-preview" class="preview-img" style="display: none;">
-                            </div>
-                            <input type="text" id="image-url-input" placeholder="Вставьте ссылку https://..." oninput="handleUrlInput()" style="flex: 1; margin: 0;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin: 8px 0;">
+                        <div id="upload-zone" class="upload-zone" onclick="triggerFileInput()">
+                            <span id="upload-hint" class="upload-hint">+</span>
+                            <img id="slot-preview" class="preview-img" style="display: none;">
                         </div>
-                        <span style="font-size: 11px; color: #8a8a93; line-height: 1.35; display: block; margin-top: 5px;">
-                            💡 <b>Вставьте ссылку на картинку</b> со своего облака или хостинга.
+                        <input type="file" id="image-file-input" accept="image/*" style="display: none;" onchange="handleFileSelect(event)">
+                        <span style="font-size: 11px; color: #8a8a93; line-height: 1.35;">
+                            💡 <b>Копируй картинку из гугла</b><br>и просто нажми <b>Ctrl + V</b> здесь!
                         </span>
                     </div>
                     <button onclick="addSlot()">Добавить в список</button>
@@ -196,6 +235,7 @@
                 <button style="background:#ff4a5a;" onclick="resetAll()">💥 Закрыть стрим и сохранить в архив</button>
             </div>
         </div>
+
         <div id="panel-battle" style="display: none;">
             <div class="box" style="border: 1px solid #9b59b6;">
                 <div class="box-header" onclick="toggleBox('box-battle-modes', 'arrow-battle-modes')">
@@ -218,8 +258,7 @@
                 <div id="box-battle-fin" class="box-content">
                     <table class="finance-table">
                         <thead><tr><th>Показатель</th><th>Значение</th></tr></thead>
-                        <tbody id="battle-finance-tbody">
-                        </tbody>
+                        <tbody id="battle-finance-tbody"></tbody>
                     </table>
                 </div>
             </div>
@@ -249,16 +288,15 @@
                             </select>
                         </div>
                     </div>
-                    <div class="toggle-row">
-                        <div class="toggle-label">
-                            ⭐ Бонус за лучший X
-                            <span>Игрок с самым высоким иксом получает +1 балл</span>
+                    <div class="switch-container" style="margin-top: 14px; border-color: rgba(255,183,3,0.2);">
+                        <div>
+                            <span class="switch-label">⭐ Бонус за найкращий X</span>
+                            <div style="font-size: 11px; color: #8a8a93; margin-top: 2px;">Гравець з найвищим іксом отримує +1 бал</div>
                         </div>
-                        <div class="toggle-wrap">
+                        <label class="switch">
                             <input type="checkbox" id="bonus-x-toggle" onchange="setBonusXEnabled(this.checked)">
-                            <span class="toggle-track"></span>
-                            <span class="toggle-knob"></span>
-                        </div>
+                            <span class="slider"></span>
+                        </label>
                     </div>
                 </div>
             </div>
@@ -293,12 +331,13 @@
                 </div>
                 <div id="box-battle-sort" class="box-content">
                     <div id="drag-container-battle" class="drag-list" style="max-height:250px; overflow-y:auto; padding-right:5px;"></div>
-                    <button style="background: #ff4a5a; margin-top:15px;" onclick="resetBattle()">💥 Сбросить Битву (Удалить всё)</button>
+                    <button style="background: #ff4a5a; margin-top:15px;" onclick="resetBattle()">💥 Сбросить Битву (Удалить все)</button>
                 </div>
             </div>
         </div>
     </div>
 <script>
+    const AUTOCOMPLETE_LIST = ["Gates of Olympus", "Sweet Bonanza", "Sugar Rush", "Zeus vs Hades", "Wanted Dead or a Wild", "RIP City", "Mental", "San Quentin"];
     const firebaseConfig = {
         apiKey: "AIzaSyC3WVO3p4EwDec5J2PEooIoAkHxIfw6R8w",
         authDomain: "bonusbyra.firebaseapp.com",
@@ -308,288 +347,170 @@
         messagingSenderId: "873732272758",
         appId: "1:873732272758:web:b71eb5ac35ea6b6bc26557"
     };
-
-    const AUTOCOMPLETE_LIST = ["Gates of Olympus", "Sweet Bonanza", "Sugar Rush", "Zeus vs Hades", "Wanted Dead or a Wild", "RIP City", "Mental", "San Quentin"];
     firebase.initializeApp(firebaseConfig); const db = firebase.database();
     const HIDDEN_EMAIL = "kostezezanos@gmail.com"; 
     let localActiveIndex = 0, slotsArray = [];
     let isDragging = false, selectedNewCurrency = '$';
-    let currentIconUrl = '', firebaseCustomIcons = {};
+    let uploadedIconBase64 = '', firebaseCustomIcons = {};
     let battlePlayers = ['Игрок 1', 'Игрок 2']; 
     let battleRounds = [], battleActiveIndex = 0;
     let isBattleDragging = false;
+
     db.ref('lang').set('ru');
-    firebase.auth().onAuthStateChanged(user => { if (user) { document.getElementById('login-screen').style.display = 'none'; document.getElementById('main-content').style.display = 'block'; initDatabaseListeners(); } else { document.getElementById('login-screen').style.display = 'flex'; document.getElementById('main-content').style.display = 'none'; } });
-    function handleLogin() { const pass = document.getElementById('login-password').value; const errEl = document.getElementById('login-error'); errEl.style.display = 'none'; if(!pass) { errEl.innerText = "Введите пароль!"; errEl.style.display = 'block'; return; } firebase.auth().signInWithEmailAndPassword(HIDDEN_EMAIL, pass).catch(err => { errEl.innerText = "Ошибка: " + err.message; errEl.style.display = 'block'; }); } window.handleLogin = handleLogin;
+
+    /* ═══ AUTH ═══ */
+    firebase.auth().onAuthStateChanged(user => {
+        if (user) { document.getElementById('login-screen').style.display = 'none'; document.getElementById('main-content').style.display = 'block'; initDatabaseListeners(); }
+        else { document.getElementById('login-screen').style.display = 'flex'; document.getElementById('main-content').style.display = 'none'; }
+    });
+    function handleLogin() { const pass = document.getElementById('login-password').value; const errEl = document.getElementById('login-error'); errEl.style.display = 'none'; if(!pass){errEl.innerText="Введите пароль!";errEl.style.display='block';return;} firebase.auth().signInWithEmailAndPassword(HIDDEN_EMAIL, pass).catch(err=>{errEl.innerText="Ошибка: "+err.message;errEl.style.display='block';}); } window.handleLogin = handleLogin;
     function handleLogout() { firebase.auth().signOut(); } window.handleLogout = handleLogout;
-    function togglePasswordVisibility() { const p = document.getElementById('login-password'); const b = document.querySelector('.toggle-password-btn'); if(p.type==='password'){p.type='text'; b.innerText='🙈';}else{p.type='password'; b.innerText='👁️';} } window.togglePasswordVisibility = togglePasswordVisibility;
-    document.getElementById('login-password').addEventListener('keydown', e => { if(e.key === 'Enter') handleLogin(); });
+    function togglePasswordVisibility() { const p=document.getElementById('login-password'); const b=document.querySelector('.toggle-password-btn'); if(p.type==='password'){p.type='text';b.innerText='🙈';}else{p.type='password';b.innerText='👁️';} } window.togglePasswordVisibility = togglePasswordVisibility;
+    document.getElementById('login-password').addEventListener('keydown', e => { if(e.key==='Enter') handleLogin(); });
+
+    /* ═══ HELPERS ═══ */
     function formatNumberCompact(num) { num=Number(num); if(isNaN(num)||num===0)return'0'; if(num>=1000000)return parseFloat((num/1000000).toFixed(2))+'кк'; if(num>=1000)return parseFloat((num/1000).toFixed(2))+'к'; return num.toString(); }
-    function toggleBox(contentId, arrowId) { const c = document.getElementById(contentId); const a = document.getElementById(arrowId); c.style.display = c.style.display === 'none' ? 'block' : 'none'; a.innerText = c.style.display === 'none' ? '▲' : '▼'; } window.toggleBox = toggleBox;
+    function toggleBox(contentId, arrowId) { const c=document.getElementById(contentId); const a=document.getElementById(arrowId); c.style.display=c.style.display==='none'?'block':'none'; a.innerText=c.style.display==='none'?'▲':'▼'; } window.toggleBox = toggleBox;
     function setGlobalMode(mode) { db.ref('global_mode').set(mode); } window.setGlobalMode = setGlobalMode;
 
-    function setBonusXEnabled(enabled) {
-        db.ref('battle/bonus_x_enabled').set(enabled);
-    }
-    window.setBonusXEnabled = setBonusXEnabled;
+    /* ═══ WHEEL ═══ */
+    function setWheelEnabled(enabled) {
+        db.ref('wheel/enabled').set(enabled);
+    } window.setWheelEnabled = setWheelEnabled;
 
+    function saveWheelData() {
+        const amt = document.getElementById('wheel-amount').value;
+        const win = document.getElementById('wheel-winners').value;
+        const dep = document.getElementById('wheel-min-dep').value;
+        db.ref('wheel').update({
+            amount:  amt !== '' ? Number(amt) : 0,
+            winners: win !== '' ? Number(win) : 0,
+            min_dep: dep !== '' ? Number(dep) : 0
+        });
+    } window.saveWheelData = saveWheelData;
+
+    /* ═══ DB LISTENER ═══ */
     function initDatabaseListeners() {
         db.ref('/').on('value', snapshot => {
             const data = snapshot.val() || {};
             const globalMode = data.global_mode || 'solo';
-            document.getElementById('btn-solo').className = 'global-mode-btn ' + (globalMode === 'solo' ? 'active-solo' : ''); document.getElementById('btn-battle').className = 'global-mode-btn ' + (globalMode === 'battle' ? 'active-battle' : '');
-            document.getElementById('panel-solo').style.display = globalMode === 'solo' ? 'block' : 'none'; document.getElementById('panel-battle').style.display = globalMode === 'battle' ? 'block' : 'none';
+            document.getElementById('btn-solo').className = 'global-mode-btn ' + (globalMode==='solo'?'active-solo':'');
+            document.getElementById('btn-battle').className = 'global-mode-btn ' + (globalMode==='battle'?'active-battle':'');
+            document.getElementById('panel-solo').style.display = globalMode==='solo'?'block':'none';
+            document.getElementById('panel-battle').style.display = globalMode==='battle'?'block':'none';
+
+            /* Синхронізація колеса */
+            const wheel = data.wheel || {};
+            const tog = document.getElementById('wheel-toggle');
+            if(document.activeElement !== tog) tog.checked = !!wheel.enabled;
+            if(document.activeElement !== document.getElementById('wheel-amount')) document.getElementById('wheel-amount').value = wheel.amount || '';
+            if(document.activeElement !== document.getElementById('wheel-winners')) document.getElementById('wheel-winners').value = wheel.winners || '';
+            if(document.activeElement !== document.getElementById('wheel-min-dep')) document.getElementById('wheel-min-dep').value = wheel.min_dep || '';
+
             firebaseCustomIcons = data.custom_icons || {};
             slotsArray = data.slots ? Object.values(data.slots) : [];
             localActiveIndex = data.active_index ?? 0;
             const currentMode = data.display_mode || 'hunt';
             const startBalance = data.start_balance !== undefined ? data.start_balance : '';
             const startBalanceCurr = data.start_balance_currency || '$';
-            if(document.activeElement !== document.getElementById('balance-input')) document.getElementById('balance-input').value = startBalance;
-            if(document.activeElement !== document.getElementById('balance-curr-select')) document.getElementById('balance-curr-select').value = startBalanceCurr;
+            if(document.activeElement!==document.getElementById('balance-input')) document.getElementById('balance-input').value = startBalance;
+            if(document.activeElement!==document.getElementById('balance-curr-select')) document.getElementById('balance-curr-select').value = startBalanceCurr;
             document.querySelectorAll('#panel-solo .mode-btn').forEach(btn => btn.classList.remove('active'));
-            const activeBtn = document.getElementById('btn-' + currentMode); if(activeBtn) activeBtn.classList.add('active');
-            if (slotsArray[localActiveIndex]) { document.getElementById('current-slot-title').innerText = slotsArray[localActiveIndex].name; document.getElementById('current-win').value = slotsArray[localActiveIndex].win || ''; } else { document.getElementById('current-slot-title').innerText = "Очередь пуста"; }
-            const datalist = document.getElementById('slots-base'); datalist.innerHTML = '';
-            const allNames = new Set([...AUTOCOMPLETE_LIST, ...Object.keys(firebaseCustomIcons)]);
-            allNames.forEach(name => { let opt = document.createElement('option'); opt.value = name; datalist.appendChild(opt); });
-            let totalWin = 0; let totalSpent = 0;
-            slotsArray.forEach(s => { totalWin += Number(s.win || 0); totalSpent += Number(s.buy || 0); });
-            document.getElementById('fin-win-val').innerText = formatNumberCompact(totalWin) + ' ' + startBalanceCurr; 
-            document.getElementById('fin-spent-val').innerText = formatNumberCompact(totalSpent) + ' ' + startBalanceCurr; 
-            document.getElementById('fin-bal-val').innerText = formatNumberCompact(startBalance || 0) + ' ' + startBalanceCurr;
-            if (!isDragging) {
-                const dragContainer = document.getElementById('drag-container'); dragContainer.innerHTML = '';
-                slotsArray.forEach((slot, idx) => {
-                    const isActive = idx === localActiveIndex; const slotCur = slot.currency || '$'; const safeName = (slot.name || "").replace(/"/g, '&quot;');
-                    dragContainer.innerHTML += `
-                        <div class="drag-item ${isActive ? 'active-item' : ''}">
-                            <div class="drag-handle" style="cursor: grab; margin-right: 8px; color: #666; font-size: 16px;">☰</div>
-                            <div style="display: flex; gap: 4px; flex-grow: 1; align-items: center; flex-wrap: wrap;">
-                                <span style="font-size: 11px; color: #8a8a93; min-width: 15px;">#${idx + 1}</span>
-                                <input type="text" class="inline-input" value="${safeName}" style="width: 110px;" onchange="updateInlineSlot(${idx}, 'name', this.value)">
-                                <input type="number" class="inline-input" value="${slot.buy}" style="width: 85px;" onchange="updateInlineSlot(${idx}, 'buy', this.value)">
-                                <select class="inline-select" onchange="updateInlineSlot(${idx}, 'currency', this.value)"><option value="$" ${slotCur === '$' ? 'selected' : ''}>$</option><option value="₽" ${slotCur === '₽' ? 'selected' : ''}>₽</option></select>
-                                <span style="color: #3498db; font-weight: bold; margin: 0 1px;">➔</span>
-                                <input type="number" class="inline-input" value="${slot.win || ''}" placeholder="0" style="width: 85px; ${slot.win > 0 ? 'color: #2ecc71; font-weight: bold;' : ''}" onchange="updateInlineSlot(${idx}, 'win', this.value)">
-                            </div>
-                            <button type="button" class="delete-btn" onclick="deleteSlotEvent(event, ${idx})">❌</button>
-                        </div>`;
+            const activeBtn = document.getElementById('btn-'+currentMode); if(activeBtn) activeBtn.classList.add('active');
+            if(slotsArray[localActiveIndex]){document.getElementById('current-slot-title').innerText=slotsArray[localActiveIndex].name;document.getElementById('current-win').value=slotsArray[localActiveIndex].win||'';}else{document.getElementById('current-slot-title').innerText="Очередь пуста";}
+            const datalist=document.getElementById('slots-base');datalist.innerHTML='';
+            const allNames=new Set([...AUTOCOMPLETE_LIST,...Object.keys(firebaseCustomIcons)]);
+            allNames.forEach(name=>{let opt=document.createElement('option');opt.value=name;datalist.appendChild(opt);});
+            let totalWin=0,totalSpent=0;
+            slotsArray.forEach(s=>{totalWin+=Number(s.win||0);totalSpent+=Number(s.buy||0);});
+            document.getElementById('fin-win-val').innerText=formatNumberCompact(totalWin)+' '+startBalanceCurr;
+            document.getElementById('fin-spent-val').innerText=formatNumberCompact(totalSpent)+' '+startBalanceCurr;
+            document.getElementById('fin-bal-val').innerText=formatNumberCompact(startBalance||0)+' '+startBalanceCurr;
+            if(!isDragging){
+                const dragContainer=document.getElementById('drag-container');dragContainer.innerHTML='';
+                slotsArray.forEach((slot,idx)=>{
+                    const isActive=idx===localActiveIndex;const slotCur=slot.currency||'$';const safeName=(slot.name||"").replace(/"/g,'&quot;');
+                    dragContainer.innerHTML+=`<div class="drag-item ${isActive?'active-item':''}"><div class="drag-handle" style="cursor:grab;margin-right:8px;color:#666;font-size:16px;">☰</div><div style="display:flex;gap:4px;flex-grow:1;align-items:center;flex-wrap:wrap;"><span style="font-size:11px;color:#8a8a93;min-width:15px;">#${idx+1}</span><input type="text" class="inline-input" value="${safeName}" style="width:110px;" onchange="updateInlineSlot(${idx},'name',this.value)"><input type="number" class="inline-input" value="${slot.buy}" style="width:85px;" onchange="updateInlineSlot(${idx},'buy',this.value)"><select class="inline-select" onchange="updateInlineSlot(${idx},'currency',this.value)"><option value="$" ${slotCur==='$'?'selected':''}>$</option><option value="₽" ${slotCur==='₽'?'selected':''}>₽</option></select><span style="color:#3498db;font-weight:bold;margin:0 1px;">➔</span><input type="number" class="inline-input" value="${slot.win||''}" placeholder="0" style="width:85px;${slot.win>0?'color:#2ecc71;font-weight:bold;':''}" onchange="updateInlineSlot(${idx},'win',this.value)"></div><button type="button" class="delete-btn" onclick="deleteSlotEvent(event,${idx})">❌</button></div>`;
                 });
             }
-            const b = data.battle || {};
-            battlePlayers = b.players || [b.p1_name || 'Игрок 1', b.p2_name || 'Игрок 2'];
-            let rawRounds = b.rounds ? Object.values(b.rounds) : [];
-            battleRounds = rawRounds.map(r => {
-                if (!r.p) return { p: [r.p1 || {name:'',buy:0,win:0}, r.p2 || {name:'',buy:0,win:0}] };
-                return r;
-            });
-            battleActiveIndex = b.active_index || 0;
-            const currentBMode = b.display_mode || 'hunt';
-            document.querySelectorAll('#box-battle-modes .mode-btn').forEach(btn => btn.classList.remove('active'));
-            const activeBBtn = document.getElementById('btn-b-' + currentBMode); if(activeBBtn) activeBBtn.classList.add('active');
-            if(document.activeElement !== document.getElementById('battle-balance-input')) document.getElementById('battle-balance-input').value = b.start_balance !== undefined ? b.start_balance : '';
-            if(document.activeElement !== document.getElementById('battle-currency-select')) document.getElementById('battle-currency-select').value = b.currency || '₽';
-            const bonusXToggle = document.getElementById('bonus-x-toggle');
-            if (bonusXToggle) bonusXToggle.checked = b.bonus_x_enabled === true;
-
-            let bTotalWin = 0, bTotalBuy = 0;
-            let pWins = Array(battlePlayers.length).fill(0);
-
-            let globalBestX = 0, globalBestPlayer = -1, globalBestRound = -1;
-            battleRounds.forEach((r, rIdx) => {
-                r.p.forEach((p, pIdx) => {
-                    let b2 = Number(p.buy || 0); let w = Number(p.win || 0);
-                    if (b2 > 0 && w > 0 && (w/b2) > globalBestX) { globalBestX = w/b2; globalBestPlayer = pIdx; globalBestRound = rIdx; }
-                });
-            });
-
-            battleRounds.forEach(r => { 
-                r.p.forEach((p, i) => {
-                    let w = Number(p.win || 0); let buy = Number(p.buy || 0);
-                    bTotalWin += w; bTotalBuy += buy;
-                    if(pWins[i] !== undefined) pWins[i] += w;
-                });
-            });
-            const bCurr = b.currency || '₽';
-            let tbodyHTML = `
-                <tr><td>Общий выигрыш (Всего):</td><td style="color:#2ecc71;">${formatNumberCompact(bTotalWin)} ${bCurr}</td></tr>
-                <tr><td>Закуплено бонусов (Всего):</td><td style="color:#e67e22;">${formatNumberCompact(bTotalBuy)} ${bCurr}</td></tr>
-            `;
-            battlePlayers.forEach((pName, i) => { tbodyHTML += `<tr><td>Выигрыш: ${pName}</td><td style="color:#3498db;">${formatNumberCompact(pWins[i])} ${bCurr}</td></tr>`; });
-            if (b.bonus_x_enabled && globalBestPlayer >= 0) {
-                tbodyHTML += `<tr><td style="color:#ffb703;">⭐ Бонус X (${battlePlayers[globalBestPlayer] || '?'}):</td><td style="color:#ffb703;">${globalBestX.toFixed(2)}x</td></tr>`;
-            }
-            document.getElementById('battle-finance-tbody').innerHTML = tbodyHTML;
-            const metaContainer = document.getElementById('battle-players-meta');
-            let metaHTML = '';
-            battlePlayers.forEach((pName, i) => { metaHTML += `<div class="battle-half"><h4>Игрок ${i+1}</h4><input type="text" id="b-p${i}-name" value="${pName.replace(/"/g, '&quot;')}" onchange="updateBattlePlayerName(${i}, this.value)"></div>`; });
-            metaContainer.innerHTML = metaHTML;
-            const addContainer = document.getElementById('battle-add-grid');
-            let addHTML = '';
-            battlePlayers.forEach((pName, i) => { addHTML += `<div class="battle-half"><h4>Слот: ${pName}</h4><input type="text" id="new-b-p${i}-title" list="slots-base" placeholder="Название"><input type="number" id="new-b-p${i}-buy" placeholder="Цена покупки"></div>`; });
-            addContainer.innerHTML = addHTML;
-            const currContainer = document.getElementById('battle-curr-grid');
-            let currHTML = '';
-            battlePlayers.forEach((pName, i) => {
-                let winVal = (battleRounds[battleActiveIndex] && battleRounds[battleActiveIndex].p[i]) ? battleRounds[battleActiveIndex].p[i].win || '' : '';
-                currHTML += `<div class="battle-half"><h4>Выигрыш: ${pName}</h4><input type="number" id="curr-b-p${i}-win" value="${winVal}" placeholder="0"></div>`;
-            });
-            currContainer.innerHTML = currHTML;
-            if (!isBattleDragging) {
-                const battleList = document.getElementById('drag-container-battle'); battleList.innerHTML = '';
-                battleRounds.forEach((r, idx) => {
-                    const isAct = idx === battleActiveIndex ? 'active-item' : '';
-                    let playersHTML = '';
-                    battlePlayers.forEach((pName, i) => {
-                        let pData = r.p[i] || {name:'', buy:0, win:0};
-                        playersHTML += `
-                            <div style="display:flex; gap:4px; align-items:center;">
-                                <span style="font-size:11px; color:#3498db; width:22px; font-weight:bold;">P${i+1}</span>
-                                <input type="text" class="inline-input" value="${(pData.name||'').replace(/"/g, '&quot;')}" style="width: 110px;" onchange="updateInlineBattle(${idx}, ${i}, 'name', this.value)">
-                                <input type="number" class="inline-input" value="${pData.buy}" style="width: 65px;" onchange="updateInlineBattle(${idx}, ${i}, 'buy', this.value)">
-                                <span style="color: #3498db; font-weight: bold; margin: 0 1px;">➔</span>
-                                <input type="number" class="inline-input" value="${pData.win||''}" placeholder="0" style="width: 65px; ${pData.win>0?'color:#2ecc71; font-weight:bold;':''}" onchange="updateInlineBattle(${idx}, ${i}, 'win', this.value)">
-                            </div>`;
-                    });
-                    battleList.innerHTML += `
-                        <div class="drag-item ${isAct}">
-                            <div class="drag-handle-battle" style="cursor: grab; margin-right: 8px; color: #666; font-size: 16px;">☰</div>
-                            <div style="display:flex; flex-direction:column; flex-grow:1; gap:4px;">${playersHTML}</div>
-                            <button type="button" class="delete-btn" style="height:100%; align-self:center;" onclick="deleteBattleRound(event, ${idx})">❌</button>
-                        </div>`;
+            const b=data.battle||{};
+            battlePlayers=b.players||[b.p1_name||'Игрок 1',b.p2_name||'Игрок 2'];
+            let rawRounds=b.rounds?Object.values(b.rounds):[];
+            battleRounds=rawRounds.map(r=>{if(!r.p)return{p:[r.p1||{name:'',buy:0,win:0},r.p2||{name:'',buy:0,win:0}]};return r;});
+            battleActiveIndex=b.active_index||0;
+            const currentBMode=b.display_mode||'hunt';
+            const bonusXTog=document.getElementById('bonus-x-toggle');
+            if(document.activeElement!==bonusXTog) bonusXTog.checked=!!b.bonus_x_enabled;
+            document.querySelectorAll('#box-battle-modes .mode-btn').forEach(btn=>btn.classList.remove('active'));
+            const activeBBtn=document.getElementById('btn-b-'+currentBMode);if(activeBBtn)activeBBtn.classList.add('active');
+            if(document.activeElement!==document.getElementById('battle-balance-input'))document.getElementById('battle-balance-input').value=b.start_balance!==undefined?b.start_balance:'';
+            if(document.activeElement!==document.getElementById('battle-currency-select'))document.getElementById('battle-currency-select').value=b.currency||'₽';
+            let bTotalWin=0,bTotalBuy=0;let pWins=Array(battlePlayers.length).fill(0);
+            battleRounds.forEach(r=>{r.p.forEach((p,i)=>{let w=Number(p.win||0);let buy=Number(p.buy||0);bTotalWin+=w;bTotalBuy+=buy;if(pWins[i]!==undefined)pWins[i]+=w;});});
+            const bCurr=b.currency||'₽';
+            let tbodyHTML=`<tr><td>Общий выигрыш (Всего):</td><td style="color:#2ecc71;">${formatNumberCompact(bTotalWin)} ${bCurr}</td></tr><tr><td>Закуплено бонусов (Всего):</td><td style="color:#e67e22;">${formatNumberCompact(bTotalBuy)} ${bCurr}</td></tr>`;
+            battlePlayers.forEach((pName,i)=>{tbodyHTML+=`<tr><td>Выигрыш: ${pName}</td><td style="color:#3498db;">${formatNumberCompact(pWins[i])} ${bCurr}</td></tr>`;});
+            document.getElementById('battle-finance-tbody').innerHTML=tbodyHTML;
+            const metaContainer=document.getElementById('battle-players-meta');let metaHTML='';
+            battlePlayers.forEach((pName,i)=>{metaHTML+=`<div class="battle-half"><h4>Игрок ${i+1}</h4><input type="text" id="b-p${i}-name" value="${pName.replace(/"/g,'&quot;')}" onchange="updateBattlePlayerName(${i},this.value)"></div>`;});
+            metaContainer.innerHTML=metaHTML;
+            const addContainer=document.getElementById('battle-add-grid');let addHTML='';
+            battlePlayers.forEach((pName,i)=>{addHTML+=`<div class="battle-half"><h4>Слот: ${pName}</h4><input type="text" id="new-b-p${i}-title" list="slots-base" placeholder="Название"><input type="number" id="new-b-p${i}-buy" placeholder="Цена покупки"></div>`;});
+            addContainer.innerHTML=addHTML;
+            const currContainer=document.getElementById('battle-curr-grid');let currHTML='';
+            battlePlayers.forEach((pName,i)=>{let winVal=(battleRounds[battleActiveIndex]&&battleRounds[battleActiveIndex].p[i])?battleRounds[battleActiveIndex].p[i].win||'':'';currHTML+=`<div class="battle-half"><h4>Выигрыш: ${pName}</h4><input type="number" id="curr-b-p${i}-win" value="${winVal}" placeholder="0"></div>`;});
+            currContainer.innerHTML=currHTML;
+            if(!isBattleDragging){
+                const battleList=document.getElementById('drag-container-battle');battleList.innerHTML='';
+                battleRounds.forEach((r,idx)=>{
+                    const isAct=idx===battleActiveIndex?'active-item':'';let playersHTML='';
+                    battlePlayers.forEach((pName,i)=>{let pData=r.p[i]||{name:'',buy:0,win:0};playersHTML+=`<div style="display:flex;gap:4px;align-items:center;"><span style="font-size:11px;color:#3498db;width:22px;font-weight:bold;">P${i+1}</span><input type="text" class="inline-input" value="${(pData.name||'').replace(/"/g,'&quot;')}" style="width:110px;" onchange="updateInlineBattle(${idx},${i},'name',this.value)"><input type="number" class="inline-input" value="${pData.buy}" style="width:65px;" onchange="updateInlineBattle(${idx},${i},'buy',this.value)"><span style="color:#3498db;font-weight:bold;margin:0 1px;">➔</span><input type="number" class="inline-input" value="${pData.win||''}" placeholder="0" style="width:65px;${pData.win>0?'color:#2ecc71;font-weight:bold;':''}" onchange="updateInlineBattle(${idx},${i},'win',this.value)"></div>`;});
+                    battleList.innerHTML+=`<div class="drag-item ${isAct}"><div class="drag-handle-battle" style="cursor:grab;margin-right:8px;color:#666;font-size:16px;">☰</div><div style="display:flex;flex-direction:column;flex-grow:1;gap:4px;">${playersHTML}</div><button type="button" class="delete-btn" style="height:100%;align-self:center;" onclick="deleteBattleRound(event,${idx})">❌</button></div>`;
                 });
             }
         });
         db.ref('archives').on('value', snapshot => {
-            const archivesList = document.getElementById('archives-list'); archivesList.innerHTML = '';
-            const data = snapshot.val(); if (!data) { archivesList.innerHTML = `<span style="color:#666; font-size:13px;">Архив пуст</span>`; return; }
-            Object.entries(data).reverse().forEach(([key, session]) => {
-                const detailsId = 'details-' + key; let slotsHTML = '';
-                if (session.slots && Array.isArray(session.slots)) { session.slots.forEach((s, i) => { const x = s.buy > 0 ? (s.win / s.buy).toFixed(2) : '0.00'; const sCur = s.currency || '$'; slotsHTML += `<div class="archive-slot-row"><span>${i + 1}. ${s.name} (${s.buy}${sCur})</span><span style="color: ${x >= 1 ? '#2ecc71' : '#ff4a5a'}; font-weight:bold;">${s.win}${sCur} (${x}x)</span></div>`; }); }
-                archivesList.innerHTML += `<div class="archive-item" onclick="toggleArchive('${detailsId}')"><div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;"><strong style="color:#2ecc71;">📅 ${session.date}</strong><button type="button" class="delete-btn" onclick="deleteArchiveEvent(event, '${key}')">Удалить 🗑️</button></div>🎰 Бонусов: ${session.slots_count}<div id="${detailsId}" class="archive-details" onclick="event.stopPropagation();">${slotsHTML}</div></div>`;
+            const archivesList=document.getElementById('archives-list');archivesList.innerHTML='';
+            const data=snapshot.val();if(!data){archivesList.innerHTML=`<span style="color:#666;font-size:13px;">Архив пуст</span>`;return;}
+            Object.entries(data).reverse().forEach(([key,session])=>{
+                const detailsId='details-'+key;let slotsHTML='';
+                if(session.slots&&Array.isArray(session.slots)){session.slots.forEach((s,i)=>{const x=s.buy>0?(s.win/s.buy).toFixed(2):'0.00';const sCur=s.currency||'$';slotsHTML+=`<div class="archive-slot-row"><span>${i+1}. ${s.name} (${s.buy}${sCur})</span><span style="color:${x>=1?'#2ecc71':'#ff4a5a'};font-weight:bold;">${s.win}${sCur} (${x}x)</span></div>`;});}
+                archivesList.innerHTML+=`<div class="archive-item" onclick="toggleArchive('${detailsId}')"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;"><strong style="color:#2ecc71;">📅 ${session.date}</strong><button type="button" class="delete-btn" onclick="deleteArchiveEvent(event,'${key}')">Удалить 🗑️</button></div>🎰 Бонусов: ${session.slots_count}<div id="${detailsId}" class="archive-details" onclick="event.stopPropagation();">${slotsHTML}</div></div>`;
             });
         });
     }
+
     window.onload = function() {
-        new Sortable(document.getElementById('drag-container'), { animation: 150, handle: '.drag-handle', onStart: function() { isDragging = true; }, onEnd: function (evt) { isDragging = false; if (evt.oldIndex === evt.newIndex) return; const movedItem = slotsArray.splice(evt.oldIndex, 1)[0]; slotsArray.splice(evt.newIndex, 0, movedItem); let nIdx = localActiveIndex; if (localActiveIndex === evt.oldIndex) nIdx = evt.newIndex; else if (localActiveIndex > evt.oldIndex && localActiveIndex <= evt.newIndex) nIdx--; else if (localActiveIndex < evt.oldIndex && localActiveIndex >= evt.newIndex) nIdx++; db.ref('/').update({ slots: slotsArray, active_index: nIdx }); } });
-        new Sortable(document.getElementById('drag-container-battle'), { animation: 150, handle: '.drag-handle-battle', onStart: function() { isBattleDragging = true; }, onEnd: function (evt) { isBattleDragging = false; if (evt.oldIndex === evt.newIndex) return; const movedItem = battleRounds.splice(evt.oldIndex, 1)[0]; battleRounds.splice(evt.newIndex, 0, movedItem); let nIdx = battleActiveIndex; if (battleActiveIndex === evt.oldIndex) nIdx = evt.newIndex; else if (battleActiveIndex > evt.oldIndex && battleActiveIndex <= evt.newIndex) nIdx--; else if (battleActiveIndex < evt.oldIndex && battleActiveIndex >= evt.newIndex) nIdx++; db.ref('battle').update({ rounds: battleRounds, active_index: nIdx }); } });
+        new Sortable(document.getElementById('drag-container'),{animation:150,handle:'.drag-handle',onStart:function(){isDragging=true;},onEnd:function(evt){isDragging=false;if(evt.oldIndex===evt.newIndex)return;const movedItem=slotsArray.splice(evt.oldIndex,1)[0];slotsArray.splice(evt.newIndex,0,movedItem);let nIdx=localActiveIndex;if(localActiveIndex===evt.oldIndex)nIdx=evt.newIndex;else if(localActiveIndex>evt.oldIndex&&localActiveIndex<=evt.newIndex)nIdx--;else if(localActiveIndex<evt.oldIndex&&localActiveIndex>=evt.newIndex)nIdx++;db.ref('/').update({slots:slotsArray,active_index:nIdx});}});
+        new Sortable(document.getElementById('drag-container-battle'),{animation:150,handle:'.drag-handle-battle',onStart:function(){isBattleDragging=true;},onEnd:function(evt){isBattleDragging=false;if(evt.oldIndex===evt.newIndex)return;const movedItem=battleRounds.splice(evt.oldIndex,1)[0];battleRounds.splice(evt.newIndex,0,movedItem);let nIdx=battleActiveIndex;if(battleActiveIndex===evt.oldIndex)nIdx=evt.newIndex;else if(battleActiveIndex>evt.oldIndex&&battleActiveIndex<=evt.newIndex)nIdx--;else if(battleActiveIndex<evt.oldIndex&&battleActiveIndex>=evt.newIndex)nIdx++;db.ref('battle').update({rounds:battleRounds,active_index:nIdx});}});
+        window.addEventListener('paste',function(e){const items=(e.clipboardData||e.originalEvent.clipboardData).items;for(let index in items){const item=items[index];if(item.kind==='file'&&item.type.indexOf('image')!==-1){const blob=item.getAsFile();const reader=new FileReader();reader.onload=function(event){uploadedIconBase64=event.target.result;document.getElementById('slot-preview').src=uploadedIconBase64;document.getElementById('slot-preview').style.display='block';document.getElementById('upload-hint').style.display='none';const name=document.getElementById('new-name').value.trim();if(name){db.ref(`custom_icons/${name}`).set(uploadedIconBase64);}};reader.readAsDataURL(blob);}}});
     };
-    
-    function handleUrlInput() {
-        const url = document.getElementById('image-url-input').value.trim();
-        currentIconUrl = url;
-        const previewImg = document.getElementById('slot-preview');
-        const uploadHint = document.getElementById('upload-hint');
-        if (url) {
-            previewImg.src = url; previewImg.style.display = 'block'; uploadHint.style.display = 'none';
-            const name = document.getElementById('new-name').value.trim();
-            if (name) { db.ref(`custom_icons/${name}`).set(url); }
-        } else { previewImg.style.display = 'none'; uploadHint.style.display = 'block'; }
-    }
-    window.handleUrlInput = handleUrlInput;
 
-    function checkSlotDatabase() { 
-        const inputName = document.getElementById('new-name').value.trim(); 
-        const previewImg = document.getElementById('slot-preview'); 
-        const uploadHint = document.getElementById('upload-hint'); 
-        const urlInput = document.getElementById('image-url-input');
-        currentIconUrl = ''; 
-        if (urlInput) urlInput.value = '';
-        if (firebaseCustomIcons[inputName]) { 
-            previewImg.src = firebaseCustomIcons[inputName]; previewImg.style.display = 'block'; uploadHint.style.display = 'none'; currentIconUrl = firebaseCustomIcons[inputName]; 
-            if (urlInput) urlInput.value = currentIconUrl; 
-        } else { previewImg.style.display = 'none'; uploadHint.style.display = 'block'; } 
-    } 
-    window.checkSlotDatabase = checkSlotDatabase;
-
-    function updateInlineSlot(index, field, value) { 
-        if (field === 'buy' || field === 'win') value = Number(value); 
-        db.ref(`slots/${index}/${field}`).set(value).then(() => { 
-            if (field === 'win') { 
-                if (index === slotsArray.length - 1) db.ref('display_mode').set('finish'); 
-                else db.ref('display_mode').set('bonusbuy'); 
-            } 
-        }); 
-    } 
-    window.updateInlineSlot = updateInlineSlot;
-
-    function saveFinanceSettings() { const val = document.getElementById('balance-input').value; const bal = val === "" ? "" : Number(val); const curr = document.getElementById('balance-curr-select').value; db.ref('/').update({ start_balance: bal, start_balance_currency: curr }); } window.saveFinanceSettings = saveFinanceSettings;
-    
-    function saveCurrentWin() { 
-        if (slotsArray.length === 0) return; 
-        const winVal = Number(document.getElementById('current-win').value); 
-        db.ref(`slots/${localActiveIndex}/win`).set(winVal).then(() => { 
-            if (localActiveIndex < slotsArray.length - 1) { 
-                db.ref('display_mode').set('bonusbuy'); 
-                db.ref('active_index').set(localActiveIndex + 1); 
-            } else { 
-                db.ref('display_mode').set('finish'); 
-            } 
-        }); 
-    } 
-    window.saveCurrentWin = saveCurrentWin;
-    
-    function addSlot() { 
-        const name = document.getElementById('new-name').value.trim(); 
-        const buy = document.getElementById('new-buy').value; 
-        if(!name || !buy) return alert("Заполните поля!"); 
-        if (currentIconUrl && !firebaseCustomIcons[name]) { db.ref(`custom_icons/${name}`).set(currentIconUrl); } 
-        slotsArray.push({ name: name, buy: Number(buy), win: 0, currency: selectedNewCurrency }); 
-        db.ref('slots').set(slotsArray); 
-        document.getElementById('new-name').value = ''; document.getElementById('new-buy').value = ''; 
-        const urlInput = document.getElementById('image-url-input');
-        if (urlInput) urlInput.value = '';
-        document.getElementById('slot-preview').style.display = 'none'; document.getElementById('upload-hint').style.display = 'block'; currentIconUrl = ''; 
-    } 
-    window.addSlot = addSlot;
-    
-    function deleteArchiveEvent(event, key) { event.stopPropagation(); if (confirm("Удалить сессию из архива?")) { db.ref('archives/' + key).remove(); } } window.deleteArchiveEvent = deleteArchiveEvent;
-    function deleteSlotEvent(event, index) { event.stopPropagation(); if (confirm("Удалить этот слот?")) { let nIdx = localActiveIndex; if (index === localActiveIndex) { if (localActiveIndex >= slotsArray.length - 1) nIdx = Math.max(0, slotsArray.length - 2); } else if (index < localActiveIndex) nIdx--; slotsArray.splice(index, 1); db.ref('/').update({ slots: slotsArray, active_index: nIdx }); } } window.deleteSlotEvent = deleteSlotEvent;
-    function setNewSlotCurrency(symbol) { selectedNewCurrency = symbol; document.getElementById('curr-usd').classList.remove('active'); document.getElementById('curr-rub').classList.remove('active'); document.getElementById(symbol === '$' ? 'curr-usd' : 'curr-rub').classList.add('active'); } window.setNewSlotCurrency = setNewSlotCurrency;
-    function toggleArchive(id) { const target = document.getElementById(id); target.style.display = target.style.display === 'block' ? 'none' : 'block'; } window.toggleArchive = toggleArchive;
-    function setMode(modeName) { db.ref('display_mode').set(modeName); } window.setMode = setMode;
-    function changeIndex(dir) { let n = Math.max(0, Math.min(slotsArray.length - 1, localActiveIndex + dir)); db.ref('active_index').set(n); } window.changeIndex = changeIndex;
-    function resetAll() { if (slotsArray.length === 0) { db.ref('/').update({ active_index: 0, display_mode: 'hunt', slots: {}, start_balance: "" }); return; } if(confirm("Заархивировать сессию?")) { const now = new Date(); const timeStr = now.toLocaleDateString('uk-UA') + ' ' + now.toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'}); let tSpent = 0, tWin = 0; slotsArray.forEach(s => { tSpent += Number(s.buy || 0); tWin += Number(s.win || 0); }); db.ref('archives').push({ date: timeStr, slots_count: slotsArray.length, total_spent: tSpent, total_win: tWin, slots: slotsArray }).then(() => { db.ref('/').update({ active_index: 0, display_mode: 'hunt', slots: {}, start_balance: "" }); }); } } window.resetAll = resetAll;
-    function changePlayerCount(delta) { let current = [...battlePlayers]; if (delta > 0) { current.push(`Игрок ${current.length + 1}`); } else if (delta < 0 && current.length > 2) { current.pop(); } let updatedRounds = battleRounds.map(r => { if (delta > 0) { r.p.push({name:'', buy:0, win:0}); } else if (delta < 0 && r.p.length > 2) { r.p.pop(); } return r; }); db.ref('battle').update({ players: current, rounds: updatedRounds }); } window.changePlayerCount = changePlayerCount;
-    function updateBattlePlayerName(index, newName) { battlePlayers[index] = newName; db.ref('battle/players').set(battlePlayers); } window.updateBattlePlayerName = updateBattlePlayerName;
-    function updateBattleBalance() { db.ref('battle').update({ start_balance: Number(document.getElementById('battle-balance-input').value), currency: document.getElementById('battle-currency-select').value }); } window.updateBattleBalance = updateBattleBalance;
-    function setBattleMode(mode) { db.ref('battle/display_mode').set(mode); } window.setBattleMode = setBattleMode;
-    
-    function updateInlineBattle(roundIndex, playerIndex, field, value) { 
-        if (field === 'buy' || field === 'win') value = Number(value); 
-        db.ref(`battle/rounds/${roundIndex}/p/${playerIndex}/${field}`).set(value).then(() => { 
-            if (field === 'win') { 
-                if (roundIndex === battleRounds.length - 1) db.ref('battle/display_mode').set('finish'); 
-                else db.ref('battle/display_mode').set('bonusbuy'); 
-            } 
-        }); 
-    } 
-    window.updateInlineBattle = updateInlineBattle;
-
-    function addBattleRound() { let newRound = { p: [] }; battlePlayers.forEach((_, i) => { let elName = document.getElementById(`new-b-p${i}-title`); let elBuy = document.getElementById(`new-b-p${i}-buy`); newRound.p.push({ name: elName.value || 'Слот', buy: Number(elBuy.value || 0), win: 0 }); elName.value = ''; elBuy.value = ''; }); battleRounds.push(newRound); db.ref('battle/rounds').set(battleRounds); } window.addBattleRound = addBattleRound;
-    
-    function saveBattleWin() { 
-        if(!battleRounds[battleActiveIndex]) return; 
-        let updates = {}; 
-        battlePlayers.forEach((_, i) => { 
-            let elWin = document.getElementById(`curr-b-p${i}-win`); 
-            updates[`battle/rounds/${battleActiveIndex}/p/${i}/win`] = Number(elWin.value || 0); 
-        }); 
-        
-        if (battleActiveIndex < battleRounds.length - 1) { 
-            updates['battle/display_mode'] = 'bonusbuy'; 
-            updates['battle/active_index'] = battleActiveIndex + 1; 
-        } else {
-            updates['battle/display_mode'] = 'finish';
-        }
-        db.ref('/').update(updates); 
-    } 
-    window.saveBattleWin = saveBattleWin;
-    
-    function changeBattleIndex(dir) { let n = Math.max(0, Math.min(battleRounds.length - 1, battleActiveIndex + dir)); db.ref('battle/active_index').set(n); } window.changeBattleIndex = changeBattleIndex;
-    function deleteBattleRound(event, index) { event.stopPropagation(); if (confirm("Удалить этот раунд?")) { let nIdx = battleActiveIndex; if (index === battleActiveIndex) { if (battleActiveIndex >= battleRounds.length - 1) nIdx = Math.max(0, battleRounds.length - 2); } else if (index < battleActiveIndex) nIdx--; battleRounds.splice(index, 1); db.ref('battle').update({ rounds: battleRounds, active_index: nIdx }); } } window.deleteBattleRound = deleteBattleRound;
-    function resetBattle() { if(confirm('Точно удалить все раунды битвы?')) { db.ref('battle').update({ rounds: {}, active_index: 0, display_mode: 'hunt', start_balance: "", bonus_x_enabled: false }); } } window.resetBattle = resetBattle;
+    function triggerFileInput(){document.getElementById('image-file-input').click();} window.triggerFileInput=triggerFileInput;
+    function handleFileSelect(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){uploadedIconBase64=e.target.result;document.getElementById('slot-preview').src=uploadedIconBase64;document.getElementById('slot-preview').style.display='block';document.getElementById('upload-hint').style.display='none';const name=document.getElementById('new-name').value.trim();if(name){db.ref(`custom_icons/${name}`).set(uploadedIconBase64);}};reader.readAsDataURL(file);} window.handleFileSelect=handleFileSelect;
+    function checkSlotDatabase(){const inputName=document.getElementById('new-name').value.trim();const previewImg=document.getElementById('slot-preview');const uploadHint=document.getElementById('upload-hint');uploadedIconBase64='';if(firebaseCustomIcons[inputName]){previewImg.src=firebaseCustomIcons[inputName];previewImg.style.display='block';uploadHint.style.display='none';uploadedIconBase64=firebaseCustomIcons[inputName];}else{previewImg.style.display='none';uploadHint.style.display='block';}} window.checkSlotDatabase=checkSlotDatabase;
+    function updateInlineSlot(index,field,value){if(field==='buy'||field==='win')value=Number(value);db.ref(`slots/${index}/${field}`).set(value).then(()=>{if(field==='win')db.ref('display_mode').set('bonusbuy');});} window.updateInlineSlot=updateInlineSlot;
+    function saveFinanceSettings(){const val=document.getElementById('balance-input').value;const bal=val===""?"":Number(val);const curr=document.getElementById('balance-curr-select').value;db.ref('/').update({start_balance:bal,start_balance_currency:curr});} window.saveFinanceSettings=saveFinanceSettings;
+    function saveCurrentWin(){if(slotsArray.length===0)return;const winVal=Number(document.getElementById('current-win').value);db.ref(`slots/${localActiveIndex}/win`).set(winVal).then(()=>{db.ref('display_mode').set('bonusbuy');if(localActiveIndex<slotsArray.length-1){db.ref('active_index').set(localActiveIndex+1);}});} window.saveCurrentWin=saveCurrentWin;
+    function addSlot(){const name=document.getElementById('new-name').value.trim();const buy=document.getElementById('new-buy').value;if(!name||!buy)return alert("Заполните поля!");if(uploadedIconBase64&&!firebaseCustomIcons[name]){db.ref(`custom_icons/${name}`).set(uploadedIconBase64);}slotsArray.push({name:name,buy:Number(buy),win:0,currency:selectedNewCurrency});db.ref('slots').set(slotsArray);document.getElementById('new-name').value='';document.getElementById('new-buy').value='';document.getElementById('slot-preview').style.display='none';document.getElementById('upload-hint').style.display='block';uploadedIconBase64='';} window.addSlot=addSlot;
+    function deleteArchiveEvent(event,key){event.stopPropagation();if(confirm("Удалить сессию из архива?")){db.ref('archives/'+key).remove();}} window.deleteArchiveEvent=deleteArchiveEvent;
+    function deleteSlotEvent(event,index){event.stopPropagation();if(confirm("Удалить этот слот?")){let nIdx=localActiveIndex;if(index===localActiveIndex){if(localActiveIndex>=slotsArray.length-1)nIdx=Math.max(0,slotsArray.length-2);}else if(index<localActiveIndex)nIdx--;slotsArray.splice(index,1);db.ref('/').update({slots:slotsArray,active_index:nIdx});}} window.deleteSlotEvent=deleteSlotEvent;
+    function setNewSlotCurrency(symbol){selectedNewCurrency=symbol;document.getElementById('curr-usd').classList.remove('active');document.getElementById('curr-rub').classList.remove('active');document.getElementById(symbol==='$'?'curr-usd':'curr-rub').classList.add('active');} window.setNewSlotCurrency=setNewSlotCurrency;
+    function toggleArchive(id){const target=document.getElementById(id);target.style.display=target.style.display==='block'?'none':'block';} window.toggleArchive=toggleArchive;
+    function setMode(modeName){db.ref('display_mode').set(modeName);} window.setMode=setMode;
+    function changeIndex(dir){let n=Math.max(0,Math.min(slotsArray.length-1,localActiveIndex+dir));db.ref('active_index').set(n);} window.changeIndex=changeIndex;
+    function resetAll(){if(slotsArray.length===0){db.ref('/').update({active_index:0,display_mode:'hunt',slots:{},start_balance:""});return;}if(confirm("Заархивировать сессию?")){const now=new Date();const timeStr=now.toLocaleDateString('ru-RU')+' '+now.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});let tSpent=0,tWin=0;slotsArray.forEach(s=>{tSpent+=Number(s.buy||0);tWin+=Number(s.win||0);});db.ref('archives').push({date:timeStr,slots_count:slotsArray.length,total_spent:tSpent,total_win:tWin,slots:slotsArray}).then(()=>{db.ref('/').update({active_index:0,display_mode:'hunt',slots:{},start_balance:""});});}} window.resetAll=resetAll;
+    function changePlayerCount(delta){let current=[...battlePlayers];if(delta>0){current.push(`Игрок ${current.length+1}`);}else if(delta<0&&current.length>2){current.pop();}let updatedRounds=battleRounds.map(r=>{if(delta>0){if(!r.p)r.p=[];r.p.push({name:'',buy:0,win:0});}else if(delta<0&&r.p&&r.p.length>2){r.p.pop();}return r;});db.ref('battle').update({players:current,rounds:updatedRounds});} window.changePlayerCount=changePlayerCount;
+    function updateBattlePlayerName(index,newName){battlePlayers[index]=newName;db.ref('battle/players').set(battlePlayers);} window.updateBattlePlayerName=updateBattlePlayerName;
+    function updateBattleBalance(){db.ref('battle').update({start_balance:Number(document.getElementById('battle-balance-input').value),currency:document.getElementById('battle-currency-select').value});} window.updateBattleBalance=updateBattleBalance;
+    function setBattleMode(mode){db.ref('battle/display_mode').set(mode);} window.setBattleMode=setBattleMode;
+    function updateInlineBattle(roundIndex,playerIndex,field,value){if(field==='buy'||field==='win')value=Number(value);db.ref(`battle/rounds/${roundIndex}/p/${playerIndex}/${field}`).set(value).then(()=>{if(field==='win')db.ref('battle/display_mode').set('bonusbuy');});} window.updateInlineBattle=updateInlineBattle;
+    function addBattleRound(){let newRound={p:[]};battlePlayers.forEach((_,i)=>{let elName=document.getElementById(`new-b-p${i}-title`);let elBuy=document.getElementById(`new-b-p${i}-buy`);newRound.p.push({name:elName.value||'Слот',buy:Number(elBuy.value||0),win:0});elName.value='';elBuy.value='';});if(!battleRounds)battleRounds=[];battleRounds.push(newRound);db.ref('battle/rounds').set(battleRounds);} window.addBattleRound=addBattleRound;
+    function saveBattleWin(){if(!battleRounds[battleActiveIndex])return;let updates={};battlePlayers.forEach((_,i)=>{let elWin=document.getElementById(`curr-b-p${i}-win`);updates[`battle/rounds/${battleActiveIndex}/p/${i}/win`]=Number(elWin.value||0);});if(battleActiveIndex<battleRounds.length-1){updates['battle/display_mode']='bonusbuy';updates['battle/active_index']=battleActiveIndex+1;}else{updates['battle/display_mode']='finish';}db.ref('/').update(updates);} window.saveBattleWin=saveBattleWin;
+    function changeBattleIndex(dir){let n=Math.max(0,Math.min(battleRounds.length-1,battleActiveIndex+dir));db.ref('battle/active_index').set(n);} window.changeBattleIndex=changeBattleIndex;
+    function deleteBattleRound(event,index){event.stopPropagation();if(confirm("Удалить этот раунд?")){let nIdx=battleActiveIndex;if(index===battleActiveIndex){if(battleActiveIndex>=battleRounds.length-1)nIdx=Math.max(0,battleRounds.length-2);}else if(index<battleActiveIndex)nIdx--;battleRounds.splice(index,1);db.ref('battle').update({rounds:battleRounds,active_index:nIdx});}} window.deleteBattleRound=deleteBattleRound;
+    function resetBattle(){if(confirm('Точно удалить все раунды битвы?')){db.ref('battle').update({rounds:{},active_index:0,display_mode:'hunt',start_balance:""});}} window.resetBattle=resetBattle;
+    function setBonusXEnabled(enabled){db.ref('battle/bonus_x_enabled').set(enabled);} window.setBonusXEnabled=setBonusXEnabled;
 </script>
 </body>
 </html>
