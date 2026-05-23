@@ -67,6 +67,11 @@
         .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
         input:checked + .slider { background-color: #ffb703; box-shadow: 0 0 8px rgba(255,183,3,0.5); }
         input:checked + .slider:before { transform: translateX(26px); }
+        #main-widget-hide-toggle:checked + .slider { background-color: #e74c3c; box-shadow: 0 0 8px rgba(231,76,60,0.5); }
+        /* Маленькі тумблери у хедері (40×22) */
+        .switch.sm { width: 40px; height: 22px; }
+        .switch.sm .slider:before { height: 16px; width: 16px; left: 3px; bottom: 3px; }
+        .switch.sm input:checked + .slider:before { transform: translateX(18px); }
 
         /* 3 поля вводу у колесі */
         .wheel-fields { display: flex; flex-direction: column; gap: 10px; }
@@ -90,8 +95,24 @@
         </div>
     </div>
     <div id="main-content" style="display: none;">
-        <div style="max-width: 420px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <button onclick="handleLogout()" style="width: auto; background: #555; padding: 6px 12px; font-size: 11px; margin: 0;">Выйти 🚪</button>
+        <div style="max-width: 420px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px;">
+            <button onclick="handleLogout()" style="width: auto; background: #555; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0;">Выйти 🚪</button>
+            <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
+                <div style="display: flex; align-items: center; gap: 7px; background: #25252c; border: 1px solid rgba(255,183,3,0.35); border-radius: 8px; padding: 6px 10px;">
+                    <span style="font-size: 11px; font-weight: 800; color: #ffb703; white-space: nowrap;">🎡 Колесо</span>
+                    <label class="switch sm" style="flex-shrink: 0;">
+                        <input type="checkbox" id="wheel-toggle" onchange="setWheelEnabled(this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div style="display: flex; align-items: center; gap: 7px; background: #25252c; border: 1px solid rgba(231,76,60,0.35); border-radius: 8px; padding: 6px 10px;">
+                    <span style="font-size: 11px; font-weight: 800; color: #e74c3c; white-space: nowrap;">🙈 Виджет</span>
+                    <label class="switch sm" style="flex-shrink: 0;">
+                        <input type="checkbox" id="main-widget-hide-toggle" onchange="setMainWidgetHidden(this.checked)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
         </div>
         <div class="global-mode-switcher">
             <div id="btn-solo" class="global-mode-btn active-solo" onclick="setGlobalMode('solo')">👤 БОНУСБАЙ</div>
@@ -105,14 +126,6 @@
                 <span id="arrow-wheel" class="arrow-indicator">▼</span>
             </div>
             <div id="box-wheel" class="box-content">
-                <!-- Тумблер -->
-                <div class="switch-container">
-                    <span class="switch-label">📺 Показать в OBS</span>
-                    <label class="switch">
-                        <input type="checkbox" id="wheel-toggle" onchange="setWheelEnabled(this.checked)">
-                        <span class="slider"></span>
-                    </label>
-                </div>
                 <!-- 3 поля -->
                 <div class="wheel-fields">
                     <div class="wheel-field-row">
@@ -378,6 +391,10 @@
         db.ref('wheel/enabled').set(enabled);
     } window.setWheelEnabled = setWheelEnabled;
 
+    function setMainWidgetHidden(visible) {
+        db.ref('main_widget_visible').set(!!visible);
+    } window.setMainWidgetHidden = setMainWidgetHidden;
+
     function saveWheelData() {
         const amt = document.getElementById('wheel-amount').value;
         const win = document.getElementById('wheel-winners').value;
@@ -403,6 +420,8 @@
             const wheel = data.wheel || {};
             const tog = document.getElementById('wheel-toggle');
             if(document.activeElement !== tog) tog.checked = !!wheel.enabled;
+            const hideMainTog = document.getElementById('main-widget-hide-toggle');
+            if(document.activeElement !== hideMainTog) hideMainTog.checked = !!data.main_widget_visible;
             if(document.activeElement !== document.getElementById('wheel-amount')) document.getElementById('wheel-amount').value = wheel.amount || '';
             if(document.activeElement !== document.getElementById('wheel-winners')) document.getElementById('wheel-winners').value = wheel.winners || '';
             if(document.activeElement !== document.getElementById('wheel-min-dep')) document.getElementById('wheel-min-dep').value = wheel.min_dep || '';
