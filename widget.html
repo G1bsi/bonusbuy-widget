@@ -316,7 +316,12 @@
     db.ref('/').on('value', function(snapshot) {
         const data = snapshot.val() || {};
         const mode = data.global_mode || 'solo';
-        if (mode === 'solo') {
+        const mainVisible = !!data.main_widget_visible;
+
+        if (!mainVisible) {
+            document.getElementById('solo-container').style.display = 'none';
+            document.getElementById('battle-container').style.display = 'none';
+        } else if (mode === 'solo') {
             document.getElementById('solo-container').style.display = 'flex';
             document.getElementById('battle-container').style.display = 'none';
             renderSoloMode(data);
