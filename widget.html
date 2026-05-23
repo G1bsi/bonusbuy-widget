@@ -59,9 +59,7 @@
         .b-side .multiplier-badge { flex-shrink: 0; font-size: 12.5px; min-width: 45px; padding: 2px 6px; margin: 0; border-radius: 8px; text-align: center; }
         .b-side .slot-amounts { font-size: 13.5px; color: #64748b; font-weight: 700; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 
-        /* ═══════════════════════════════════════
-           WHEEL BANNER — повністю новий дизайн
-        ═══════════════════════════════════════ */
+
         .wheel-banner {
             margin: 14px auto 0 auto;
             width: 580px;
@@ -97,7 +95,7 @@
         }
         @keyframes slideUp { from { transform: translateY(18px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-        /* Велике фонове колесо — займає ліву половину банера */
+
         .wheel-bg {
             position: absolute;
             left: -40px;
@@ -116,7 +114,7 @@
             filter: drop-shadow(0 0 18px rgba(0,210,200,0.25));
         }
 
-        /* Темний оверлей зліва щоб затемнити колесо */
+
         .wheel-bg-overlay {
             position: absolute;
             left: 0; top: 0; bottom: 0;
@@ -126,13 +124,13 @@
             pointer-events: none;
         }
 
-        /* Маленький значок колеса у лівому блоці */
+
         @keyframes spinWheel {
             from { transform: rotate(0deg); }
             to { transform: rotate(360deg); }
         }
 
-        /* Центральний текстовий блок — на весь банер */
+
         .wheel-banner-center {
             position: absolute;
             left: 0; right: 0; top: 0; bottom: 0;
@@ -158,7 +156,7 @@
             flex-shrink: 0;
             transition: color 0.5s, text-shadow 0.5s;
         }
-        
+
 
         @keyframes marquee-loop {
             0%   { transform: translateX(0); }
@@ -242,7 +240,7 @@
             color: #00d2c8;
             text-shadow: 0 0 14px rgba(0,210,200,0.6);
         }
-        /* ── INACTIVE state — placed AFTER gold rules to win cascade ── */
+
         .wheel-banner.inactive {
             background:
                 repeating-linear-gradient(130deg, rgba(200,40,40,0.05) 0px, rgba(200,40,40,0.05) 1px, transparent 1px, transparent 18px),
@@ -310,10 +308,9 @@
     </div>
 </div>
 
-<!-- ═══ WHEEL BANNER ═══ -->
 <div id="wheel-banner" class="wheel-banner">
 
-    <!-- Велике фонове колесо (ліва половина) -->
+
     <div class="wheel-bg">
         <svg viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
             <circle cx="130" cy="130" r="124" fill="none" stroke="rgba(0,210,200,0.9)" stroke-width="3"/>
@@ -347,10 +344,10 @@
         </svg>
     </div>
 
-    <!-- Темний оверлей для затемнення колеса -->
+
     <div class="wheel-bg-overlay"></div>
 
-    <!-- Центральний контент -->
+
     <div class="wheel-banner-center">
         <div class="wb-title" id="wb-title">🎡 СТАТУС КОЛЕСА: АКТИВНО</div>
         <div class="wb-grid">
@@ -381,12 +378,12 @@
         messagingSenderId: "873732272758",
         appId: "1:873732272758:web:b71eb5ac35ea6b6bc26557"
     };
-    firebase.initializeApp(firebaseConfig); 
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    
+
     function formatNumberCompact(num) { num = Number(num); if (isNaN(num) || num === 0) return '0'; let absNum = Math.abs(num); let sign = num < 0 ? '-' : ''; if (absNum >= 1000000) return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк'; if (absNum >= 1000) return sign + parseFloat((absNum / 1000).toFixed(1)) + 'к'; return sign + absNum.toString(); }
     function formatNumberWithCommas(num) { return Number(num).toLocaleString('en-US').replace(/,/g, ' '); }
-    
+
     db.ref('/').on('value', function(snapshot) {
         const data = snapshot.val() || {};
         const mode = data.global_mode || 'solo';
@@ -404,17 +401,16 @@
             document.getElementById('battle-container').style.display = 'flex';
             renderBattleMode(data.battle || {}, data.custom_icons || {});
         }
-        
-        // КОЛЕСО — показуємо завжди (якщо wheel_visible), але з двома станами
+
+
         const wheel = data.wheel || {};
         const banner = document.getElementById('wheel-banner');
-        // wheel.enabled = показати/сховати банер (тумблер у хедері)
-        // wheel.active  = активно/не активно (тумблер у колонці КОЛЕСО)
+
         if (!wheel.enabled) {
             banner.style.display = 'none';
         } else {
             banner.style.display = 'block';
-            const isActive = wheel.active !== false; // default true
+            const isActive = wheel.active !== false;
             if (isActive) {
                 banner.classList.remove('inactive');
                 const amt = Number(wheel.amount || 0);
@@ -433,11 +429,11 @@
             }
         }
     });
-    
+
     function checkMarquee() {
         requestAnimationFrame(function() {
             document.querySelectorAll('.slot-name-marquee, .b-name-marquee').forEach(function(wrap) {
-                // clear any previous duplicate
+
                 const dupe = wrap.querySelector('.marquee-dupe');
                 if (dupe) dupe.remove();
                 const el = wrap.querySelector('.slot-name, .b-name');
@@ -448,18 +444,16 @@
 
                 const textW = el.scrollWidth;
                 const wrapW = wrap.offsetWidth;
-                if (textW <= wrapW + 2) return; // fits — no scroll needed
+                if (textW <= wrapW + 2) return;
 
-                // gap between end of text and start of copy
                 const gap = 4;
                 const totalDist = textW + gap;
-                const speed = 22; // px per second
+                const speed = 22;
                 const dur = totalDist / speed;
 
                 wrap.style.setProperty('--scroll-dist', '-' + totalDist + 'px');
                 wrap.style.setProperty('--marquee-dur', dur + 's');
 
-                // create duplicate that follows seamlessly
                 const clone = el.cloneNode(true);
                 clone.classList.add('marquee-dupe');
                 clone.classList.add('do-marquee');
@@ -487,45 +481,35 @@
         let totalWin = 0; let totalBuy = 0; let openedCount = 0; let remainingBuy = 0; let openedTotalBuy = 0; let openedTotalWin = 0; let maxX = 0;
         slots.forEach(function(s, idx) {
             const buy = Number(s.buy || 0); const win = Number(s.win || 0); totalBuy += buy; totalWin += win;
-            // В режимі hunt "відкрита" = є виграш (win > 0). В bonusbuy/finish — стара логіка
+
             const isOpened = displayMode === 'hunt'
                 ? (win > 0)
                 : (win > 0 || (win === 0 && idx < activeIndex));
             if (isOpened) { openedCount++; openedTotalBuy += buy; openedTotalWin += win; } else { remainingBuy += buy; }
             if (buy > 0 && win > 0 && (win/buy) > maxX) maxX = win/buy;
         });
-        // === COMEBACK логіка ===
-        // openedTotalWin — сума виграшів по відкритих слотах
-        // totalBuy       — загальна сума всіх купів (весь депозит хант/ббай)
-        // openedTotalBuy — сума купів по відкритих слотах
-        // remainingBuy   — залишилось ще не відкрити
 
         let comebackXText;
 
         if (displayMode === 'hunt') {
-            // ХАНТ: депозит = startBalance. Бонуски ловимо, кожна має свій buy.
-            // Потрібний ікс = скільки мають дати НЕВІДКРИТІ бонуски щоб вийти в 0.
-            // "Невідкриті" в ханті = ті де ще немає win (win === 0).
-            // remainingBuy = сума buy слотів без виграшу (вже вираховується правильно).
-            // Депозит = startBalance (не сума купів!).
+
             const deposit = Number(startBalance) || 0;
             if (slots.length === 0 || deposit === 0) {
-                // нічого не додано або депозит не вказано — прочерк
+
                 comebackXText = '—';
             } else if (openedTotalWin >= deposit) {
                 comebackXText = 'ОКУП';
             } else if (remainingBuy === 0) {
-                // всі бонуски мають виграш — але загальний виграш < депозиту
+
                 comebackXText = openedTotalWin >= deposit ? 'ОКУП' : 'НЕ ОКУП';
             } else {
-                // скільки ще треба виграти
+
                 const needWin = deposit - openedTotalWin;
                 const needX = needWin / remainingBuy;
                 comebackXText = needX.toFixed(2) + 'x';
             }
         } else if (displayMode === 'bonusbuy') {
-            // БОНУСБАЙ: депозит = startBalance (як у ханті).
-            // Показуємо потрібний середній ікс по НЕВІДКРИТИХ (де ще немає win).
+
             const deposit = Number(startBalance) || 0;
             if (slots.length === 0 || deposit === 0) {
                 comebackXText = '—';
@@ -539,7 +523,7 @@
                 comebackXText = needX.toFixed(2) + 'x';
             }
         } else {
-            // finish — підсумкова логіка
+
             if (slots.length === 0) {
                 comebackXText = '—';
             } else {
@@ -550,15 +534,15 @@
         const openedAvgX = openedTotalBuy > 0 ? (openedTotalWin / openedTotalBuy) : 0;
         document.getElementById('stat-total').innerText = formatNumberCompact(startBalance) + ' ' + balanceCurr;
         document.getElementById('stat-count').innerText = openedCount + '/' + slots.length;
-        document.getElementById('stat-comeback').innerText = comebackXText; 
-        document.getElementById('stat-avg-opened').innerText = openedAvgX.toFixed(2) + 'x'; 
+        document.getElementById('stat-comeback').innerText = comebackXText;
+        document.getElementById('stat-avg-opened').innerText = openedAvgX.toFixed(2) + 'x';
         const container = document.getElementById('slots-container');
         document.getElementById('solo-container').className = 'tracker-container ' + (slots.length > 0 ? 'has-items ' : '') + 'mode-' + displayMode;
         let slotsToRender = slots.map((s,i)=>Object.assign({},s,{orig:i}));
         let listHTML = '';
         let focusIndex = (displayMode === 'hunt' && slotsToRender.length > 0) ? slotsToRender.length - 1 : activeIndex;
         slotsToRender.forEach(function(slot) {
-            const isActive = slot.orig === focusIndex; 
+            const isActive = slot.orig === focusIndex;
             const slotCur = slot.currency || '₽'; const buy = Number(slot.buy || 0); const win = Number(slot.win || 0);
             let xValText = '—'; let multClass = 'mult-pending';
             if (win > 0 && buy > 0) { xValText = (win / buy).toFixed(2) + 'x'; multClass = (win / buy) >= 1 ? 'mult-win' : 'mult-loss'; } else if (win === 0 && slot.orig < activeIndex) { xValText = '0.00x'; multClass = 'mult-loss'; }
@@ -581,17 +565,17 @@
         });
         if (displayMode === 'bonusbuy' || displayMode === 'hunt') {
             container.innerHTML = listHTML; checkMarquee(); container.style.animation = 'none'; let itemHeight = 100; let totalItems = slotsToRender.length;
-            if (focusIndex >= 2) { let listHeight = (totalItems * itemHeight) - 12; let maxScroll = Math.max(0, listHeight - 488); let targetY = Math.min(maxScroll, (focusIndex - 2) * itemHeight); container.style.transform = `translateY(-${targetY}px)`; } 
+            if (focusIndex >= 2) { let listHeight = (totalItems * itemHeight) - 12; let maxScroll = Math.max(0, listHeight - 488); let targetY = Math.min(maxScroll, (focusIndex - 2) * itemHeight); container.style.transform = `translateY(-${targetY}px)`; }
             else { container.style.transform = `translateY(0px)`; }
         } else if (displayMode === 'finish' && slotsToRender.length > 0) {
             container.style.transform = "none"; container.innerHTML = listHTML.repeat(6); checkMarquee();
             const timeToMove = slotsToRender.length * 3.5; container.style.animation = `infiniteWheel ${timeToMove * 3}s linear infinite`;
         } else { container.style.transform = "none"; container.style.animation = 'none'; container.innerHTML = listHTML; checkMarquee(); }
     }
-    
+
     function renderBattleMode(bData, globalIcons) {
         let players = bData.players || [bData.p1_name || 'Игрок 1', bData.p2_name || 'Игрок 2'];
-        let requiredWidth = Math.max(580, players.length * 280); 
+        let requiredWidth = Math.max(580, players.length * 280);
         document.getElementById('battle-container').style.width = requiredWidth + 'px';
         let rawRounds = bData.rounds ? Object.values(bData.rounds) : [];
         let rounds = rawRounds.map((r, i) => { let rr = (!r.p) ? { p: [r.p1 || {name:'',buy:0,win:0}, r.p2 || {name:'',buy:0,win:0}] } : r; rr.orig = i; return rr; });
