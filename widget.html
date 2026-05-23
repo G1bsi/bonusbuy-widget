@@ -156,7 +156,9 @@
             line-height: 1;
             text-shadow: 0 0 22px rgba(0,210,200,0.5);
             flex-shrink: 0;
+            transition: color 0.5s, text-shadow 0.5s;
         }
+        
         .wb-grid {
             display: flex;
             gap: 8px;
@@ -198,6 +200,37 @@
         .wb-card.wb-gold .wb-val {
             color: #00d2c8;
             text-shadow: 0 0 14px rgba(0,210,200,0.6);
+        }
+        /* ── INACTIVE state — placed AFTER gold rules to win cascade ── */
+        .wheel-banner.inactive {
+            background:
+                repeating-linear-gradient(130deg, rgba(200,40,40,0.05) 0px, rgba(200,40,40,0.05) 1px, transparent 1px, transparent 18px),
+                repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 1px, transparent 1px, transparent 22px),
+                linear-gradient(135deg, #110808 0%, #1a0e0e 50%, #110808 100%) !important;
+            border-color: rgba(210,50,50,0.35) !important;
+            box-shadow: 0 0 0 1px rgba(210,50,50,0.12), 0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(210,50,50,0.2), inset 0 -1px 0 rgba(0,0,0,0.5) !important;
+        }
+        .wheel-banner.inactive .wb-title {
+            color: rgba(230,65,65,1) !important;
+            text-shadow: 0 0 22px rgba(210,40,40,0.65) !important;
+        }
+        .wheel-banner.inactive .wb-card,
+        .wheel-banner.inactive .wb-card.wb-gold {
+            background: rgba(200,40,40,0.06) !important;
+            border-color: rgba(200,50,50,0.25) !important;
+            box-shadow: none !important;
+        }
+        .wheel-banner.inactive .wb-label,
+        .wheel-banner.inactive .wb-card.wb-gold .wb-label {
+            color: rgba(210,90,90,0.75) !important;
+        }
+        .wheel-banner.inactive .wb-val,
+        .wheel-banner.inactive .wb-card.wb-gold .wb-val {
+            color: rgba(215,95,95,1) !important;
+            text-shadow: 0 0 10px rgba(200,40,40,0.4) !important;
+        }
+        .wheel-banner.inactive .wb-link {
+            color: rgba(200,80,80,0.6) !important;
         }
         .wb-link {
             font-size: 13px;
@@ -278,7 +311,7 @@
 
     <!-- Центральний контент -->
     <div class="wheel-banner-center">
-        <div class="wb-title">🎡 СТАТУС КОЛЕСА: АКТИВНО</div>
+        <div class="wb-title" id="wb-title">🎡 СТАТУС КОЛЕСА: АКТИВНО</div>
         <div class="wb-grid">
             <div class="wb-card">
                 <span class="wb-label">МИН. ДЕПОЗИТ</span>
@@ -331,19 +364,32 @@
             renderBattleMode(data.battle || {}, data.custom_icons || {});
         }
         
-        // КОЛЕСО — тільки показ/приховати + вивід значень у $
+        // КОЛЕСО — показуємо завжди (якщо wheel_visible), але з двома станами
         const wheel = data.wheel || {};
         const banner = document.getElementById('wheel-banner');
-        if (wheel.enabled) {
-            banner.style.display = 'block';
-            const amt = Number(wheel.amount || 0);
-            const dep = Number(wheel.min_dep || 0);
-            const win = Number(wheel.winners || 0);
-            document.getElementById('wb-val-amount').innerText = amt > 0 ? (formatNumberWithCommas(amt) + ' $') : '—';
-            document.getElementById('wb-val-dep').innerText   = dep > 0 ? (formatNumberWithCommas(dep) + ' $') : '—';
-            document.getElementById('wb-val-winners').innerText = win > 0 ? win + ' чел.' : '—';
-        } else {
+        // wheel.enabled = показати/сховати банер (тумблер у хедері)
+        // wheel.active  = активно/не активно (тумблер у колонці КОЛЕСО)
+        if (!wheel.enabled) {
             banner.style.display = 'none';
+        } else {
+            banner.style.display = 'block';
+            const isActive = wheel.active !== false; // default true
+            if (isActive) {
+                banner.classList.remove('inactive');
+                const amt = Number(wheel.amount || 0);
+                const dep = Number(wheel.min_dep || 0);
+                const win = Number(wheel.winners || 0);
+                document.getElementById('wb-title').innerText = '🎡 СТАТУС КОЛЕСА: АКТИВНО';
+                document.getElementById('wb-val-amount').innerText = amt > 0 ? (formatNumberWithCommas(amt) + ' $') : '—';
+                document.getElementById('wb-val-dep').innerText   = dep > 0 ? (formatNumberWithCommas(dep) + ' $') : '—';
+                document.getElementById('wb-val-winners').innerText = win > 0 ? win + ' чел.' : '—';
+            } else {
+                banner.classList.add('inactive');
+                document.getElementById('wb-title').innerText = '🎡 СТАТУС КОЛЕСА: НЕ АКТИВНО';
+                document.getElementById('wb-val-amount').innerText = '—';
+                document.getElementById('wb-val-dep').innerText = '—';
+                document.getElementById('wb-val-winners').innerText = '—';
+            }
         }
     });
     
