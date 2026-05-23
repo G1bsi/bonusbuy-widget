@@ -23,10 +23,10 @@
         .crown-overlay { display: none; }
         .mode-finish .crown-overlay { display: block; position: absolute; top: -16px; left: -16px; font-size: 28px; transform: rotate(-28deg); filter: drop-shadow(0 3px 8px rgba(0,0,0,0.9)); z-index: 10; animation: crownPop 0.45s both; }
         @keyframes crownPop { 0% { transform: scale(0) rotate(-60deg); opacity: 0; } 100% { transform: scale(1) rotate(-28deg); opacity: 1; } }
-        .slot-info { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+        .slot-info { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 10px; gap: 1px; }
         .slot-name-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 0; width: 100%; }
-        .slot-name { font-size: 20px; font-weight: 800; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.1; margin: 0; flex: 1; }
-        .slot-amounts { font-size: 20px; color: #8a95a3; font-weight: 600; display: flex; align-items: center; justify-content: flex-start; gap: 6px; margin-top: 6px; white-space: nowrap; }
+        .slot-name { font-size: 22px; font-weight: 800; color: #f1f5f9; white-space: nowrap; overflow: visible; line-height: 1.1; margin: 0; }
+        .slot-amounts { font-size: 20px; color: #8a95a3; font-weight: 600; display: flex; align-items: center; justify-content: flex-start; gap: 6px; margin-top: 0; white-space: nowrap; }
         .arrow-blue { color: #00f2fe; font-weight: bold; margin: 0 4px; filter: drop-shadow(0 0 6px rgba(0,242,254,0.4)); }
         .multiplier-badge { flex-shrink: 0; font-size: 18px; font-weight: 800; padding: 6px 14px; margin: 0; border-radius: 30px; min-width: 75px; text-align: center; align-self: center; }
         .mult-win { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
@@ -39,7 +39,7 @@
         .b-stat-pill { background: rgba(25, 25, 35, 0.8); border: 1px solid rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 16px; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; }
         .battle-header { display: flex; align-items: center; justify-content: space-around; margin-bottom: 20px; background: rgba(18, 18, 24, 0.6); border-radius: 20px; padding: 16px 18px; border: 1px solid rgba(255,255,255,0.02); gap: 15px; }
         .battle-player-block { display: flex; flex-direction: column; position: relative; flex: 1; text-align: center; align-items: center; min-width: 0; }
-        .b-name { font-size: 30px; font-weight: 900; color: #3498db; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; letter-spacing: 0.5px; line-height: 1.1; margin-bottom: 2px; }
+        .b-name { font-size: 30px; font-weight: 900; color: #3498db; white-space: nowrap; overflow: visible; width: auto; letter-spacing: 0.5px; line-height: 1.1; margin-bottom: 2px; }
         .b-meta { font-size: 13px; color: #a4a4af; margin-top: 4px; font-weight: 700; }
         .b-score-box { margin-top: 10px; background: rgba(255,183,3,0.1); border: 1px solid rgba(255,183,3,0.3); color: #ffb703; font-size: 26px; font-weight: 900; padding: 4px 18px; border-radius: 14px; box-shadow: 0 4px 15px rgba(255,183,3,0.15); }
         .battle-row { display: flex; align-items: center; justify-content: space-between; background: rgba(18, 18, 24, 0.85); border-radius: 20px; border: 1px solid rgba(255,255,255,0.02); padding: 0 15px; box-sizing: border-box; flex-shrink: 0; position: relative; overflow: hidden; transition: all 0.3s; height: 88px; }
@@ -53,9 +53,9 @@
         @keyframes nameGlow { 0%,100% { text-shadow: 0 0 12px rgba(255,183,3,0.6), 0 0 28px rgba(255,183,3,0.35); } 50% { text-shadow: 0 0 20px rgba(255,183,3,0.95), 0 0 45px rgba(255,183,3,0.6); } }
         .b-vs-text { font-size: 14px; font-weight: 900; color: rgba(255,255,255,0.2); margin: 0 10px; flex-shrink: 0; z-index: 2; }
         .b-side .slot-icon-wrapper { width: 44px; height: 44px; flex-shrink: 0; margin-right: 12px; }
-        .b-side .slot-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+        .b-side .slot-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 8px; gap: 0px; }
         .b-side .slot-name-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 4px; width: 100%; }
-        .b-side .slot-name { font-size: 13.5px; font-weight: 800; color: #f1f5f9; white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.1; margin: 0; flex: 1; }
+        .b-side .slot-name { font-size: 14.5px; font-weight: 800; color: #f1f5f9; white-space: nowrap; overflow: visible; line-height: 1.1; margin: 0; }
         .b-side .multiplier-badge { flex-shrink: 0; font-size: 12.5px; min-width: 45px; padding: 2px 6px; margin: 0; border-radius: 8px; text-align: center; }
         .b-side .slot-amounts { font-size: 13.5px; color: #64748b; font-weight: 700; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
 
@@ -159,6 +159,47 @@
             transition: color 0.5s, text-shadow 0.5s;
         }
         
+
+        @keyframes marquee-loop {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(var(--scroll-dist)); }
+        }
+        .slot-name-marquee {
+            overflow: hidden;
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding-bottom: 3px;
+            margin-bottom: -3px;
+        }
+        .slot-name-marquee .slot-name {
+            display: inline-block;
+            white-space: nowrap;
+        }
+        .slot-name-marquee .slot-name.do-marquee,
+        .slot-name-marquee .marquee-dupe.do-marquee {
+            animation: marquee-loop var(--marquee-dur, 18s) linear infinite;
+        }
+        .b-name-marquee {
+            overflow: hidden;
+            width: 100%;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding-bottom: 3px;
+            margin-bottom: -3px;
+        }
+        .b-name-marquee .b-name {
+            display: inline-block;
+            white-space: nowrap !important;
+            overflow: visible !important;
+            width: auto !important;
+        }
+        .b-name-marquee .b-name.do-marquee,
+        .b-name-marquee .marquee-dupe.do-marquee {
+            animation: marquee-loop var(--marquee-dur, 18s) linear infinite;
+        }
         .wb-grid {
             display: flex;
             gap: 8px;
@@ -393,6 +434,50 @@
         }
     });
     
+    function checkMarquee() {
+        requestAnimationFrame(function() {
+            document.querySelectorAll('.slot-name-marquee, .b-name-marquee').forEach(function(wrap) {
+                // clear any previous duplicate
+                const dupe = wrap.querySelector('.marquee-dupe');
+                if (dupe) dupe.remove();
+                const el = wrap.querySelector('.slot-name, .b-name');
+                if (!el) return;
+                el.classList.remove('do-marquee');
+                wrap.style.removeProperty('--scroll-dist');
+                wrap.style.removeProperty('--marquee-dur');
+
+                const textW = el.scrollWidth;
+                const wrapW = wrap.offsetWidth;
+                if (textW <= wrapW + 2) return; // fits — no scroll needed
+
+                // gap between end of text and start of copy
+                const gap = 4;
+                const totalDist = textW + gap;
+                const speed = 22; // px per second
+                const dur = totalDist / speed;
+
+                wrap.style.setProperty('--scroll-dist', '-' + totalDist + 'px');
+                wrap.style.setProperty('--marquee-dur', dur + 's');
+
+                // create duplicate that follows seamlessly
+                const clone = el.cloneNode(true);
+                clone.classList.add('marquee-dupe');
+                clone.classList.add('do-marquee');
+                clone.style.position = 'absolute';
+                clone.style.top = '0';
+                clone.style.left = textW + gap + 'px';
+                clone.style.margin = '0';
+                clone.style.lineHeight = window.getComputedStyle(el).lineHeight;
+                clone.style.fontSize = window.getComputedStyle(el).fontSize;
+                clone.style.fontWeight = window.getComputedStyle(el).fontWeight;
+                clone.style.color = window.getComputedStyle(el).color;
+                wrap.style.position = 'relative';
+                wrap.appendChild(clone);
+
+                el.classList.add('do-marquee');
+            });
+        });
+    }
     function renderSoloMode(data) {
         const slots = data.slots ? Object.values(data.slots) : [];
         const activeIndex = data.active_index !== undefined ? data.active_index : 0;
@@ -488,20 +573,20 @@
                 <div class="slot-row" style="${rowExtra}">
                     <div class="slot-icon-wrapper">${iconInner}${isCrown ? '<div class="crown-overlay">👑</div>' : ''}</div>
                     <div class="slot-info">
-                        <div class="slot-name">${slot.name}</div>
+                        <div class="slot-name-marquee" style="--scroll-dist: calc(-1 * (100% - 10px)); --marquee-dur: ${Math.max(12, slot.name.length * 0.55)}s"><span class="slot-name">${slot.name}</span></div>
                         <div class="slot-amounts"><span>${formatNumberWithCommas(buy)} ${slotCur}</span>${winDisplayHTML}</div>
                     </div>
                     <div class="multiplier-badge ${multClass}" style="margin-left:14px;">${xValText}</div>
                 </div>`;
         });
         if (displayMode === 'bonusbuy' || displayMode === 'hunt') {
-            container.innerHTML = listHTML; container.style.animation = 'none'; let itemHeight = 100; let totalItems = slotsToRender.length;
+            container.innerHTML = listHTML; checkMarquee(); container.style.animation = 'none'; let itemHeight = 100; let totalItems = slotsToRender.length;
             if (focusIndex >= 2) { let listHeight = (totalItems * itemHeight) - 12; let maxScroll = Math.max(0, listHeight - 488); let targetY = Math.min(maxScroll, (focusIndex - 2) * itemHeight); container.style.transform = `translateY(-${targetY}px)`; } 
             else { container.style.transform = `translateY(0px)`; }
         } else if (displayMode === 'finish' && slotsToRender.length > 0) {
-            container.style.transform = "none"; container.innerHTML = listHTML.repeat(6);
+            container.style.transform = "none"; container.innerHTML = listHTML.repeat(6); checkMarquee();
             const timeToMove = slotsToRender.length * 3.5; container.style.animation = `infiniteWheel ${timeToMove * 3}s linear infinite`;
-        } else { container.style.transform = "none"; container.style.animation = 'none'; container.innerHTML = listHTML; }
+        } else { container.style.transform = "none"; container.style.animation = 'none'; container.innerHTML = listHTML; checkMarquee(); }
     }
     
     function renderBattleMode(bData, globalIcons) {
@@ -553,7 +638,7 @@
             headerHTML += `<div class="battle-player-block ${isHighestScore ? 'winner-block' : ''}"><div class="b-name-wrap"><span class="b-crown-diagonal">👑</span><span class="b-name">${pName}</span></div><span class="b-meta">Средний: ${avgX.toFixed(2)}x</span><div class="b-score-box">${playersStats[i].score}</div></div>`;
             if (i < players.length - 1) headerHTML += `<div style="font-weight:900; color:#444; font-size: 20px; align-self: center; padding-top: 10px;">VS</div>`;
         });
-        document.getElementById('battle-header').innerHTML = headerHTML;
+        document.getElementById('battle-header').innerHTML = headerHTML; checkMarquee();
         const sharedAvgX = openedTotalBuyAll > 0 ? (openedTotalWinAll / openedTotalBuyAll) : 0;
         document.getElementById('b-stat-shared-depo').innerText = formatNumberCompact(sharedBalance) + ' ' + curr;
         document.getElementById('b-stat-shared-comeback').innerText = sharedAvgX.toFixed(2) + 'x';
@@ -575,19 +660,19 @@
                 let wDisplay = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${formatNumberWithCommas(win)} ${curr}</span>` : '';
                 let icn = globalIcons[p.name] ? `<img class="slot-icon-img" src="${globalIcons[p.name]}" onerror="this.style.display='none'">` : `<div class="slot-icon-text" style="font-size: 14px;">${(p.name || '?').substring(0, 2)}</div>`;
                 let sideClass = 'b-side'; if (isGlobalBestX) sideClass += ' best-x-winner'; else if (isWinner) sideClass += ' winner';
-                playersRowHTML += `<div class="${sideClass}"><div class="slot-icon-wrapper">${icn}</div><div class="slot-info"><div class="slot-name-row"><div class="slot-name">${p.name || 'Слот'}</div><div class="multiplier-badge ${mc}">${tx}${isGlobalBestX ? ' ⭐' : ''}</div></div><div class="slot-amounts"><span>${formatNumberWithCommas(buy)} ${curr}</span>${wDisplay}</div></div></div>`;
+                playersRowHTML += `<div class="${sideClass}"><div class="slot-icon-wrapper">${icn}</div><div class="slot-info"><div class="slot-name-row"><div class="slot-name-marquee" style="--scroll-dist: calc(-1 * (100% - 10px)); --marquee-dur: ${Math.max(12, (p.name||'Слот').length * 0.55)}s"><span class="slot-name">${p.name || 'Слот'}</span></div><div class="multiplier-badge ${mc}">${tx}${isGlobalBestX ? ' ⭐' : ''}</div></div><div class="slot-amounts"><span>${formatNumberWithCommas(buy)} ${curr}</span>${wDisplay}</div></div></div>`;
                 if (i < r.p.length - 1) playersRowHTML += `<div class="b-vs-text">VS</div>`;
             });
             listHTML += `<div class="battle-row" style="transform: scale(${showActiveEffects ? '1.02' : '1'}); ${showActiveEffects ? 'border: 1px solid rgba(124, 58, 237, 0.4); box-shadow: 0 10px 30px rgba(124,58,237,0.15); z-index: 10;' : ''}">${playersRowHTML}</div>`;
         });
         if (displayMode === 'bonusbuy' || displayMode === 'hunt') {
-            container.innerHTML = listHTML; container.style.animation = 'none'; let itemHeight = 100; let totalItems = rounds.length;
+            container.innerHTML = listHTML; checkMarquee(); container.style.animation = 'none'; let itemHeight = 100; let totalItems = rounds.length;
             if (focusIndex >= 2) { let listHeight = (totalItems * itemHeight) - 12; let maxScroll = Math.max(0, listHeight - 488); let targetY = Math.min(maxScroll, (focusIndex - 2) * itemHeight); container.style.transform = `translateY(-${targetY}px)`; }
             else { container.style.transform = `translateY(0px)`; }
         } else if (displayMode === 'finish' && rounds.length > 0) {
-            container.style.transform = "none"; container.innerHTML = listHTML.repeat(6);
+            container.style.transform = "none"; container.innerHTML = listHTML.repeat(6); checkMarquee();
             const timeToMove = rounds.length * 3.5; container.style.animation = `infiniteWheel ${timeToMove * 3}s linear infinite`;
-        } else { container.style.transform = "none"; container.style.animation = 'none'; container.innerHTML = listHTML; }
+        } else { container.style.transform = "none"; container.style.animation = 'none'; container.innerHTML = listHTML; checkMarquee(); }
     }
 </script>
 </body>
