@@ -93,7 +93,9 @@
                 inset 0 1px 0 rgba(0,210,200,0.15),
                 inset 0 -1px 0 rgba(0,0,0,0.5);
         }
-        @keyframes slideUp { from { transform: translateY(18px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideUp { from { transform: translateY(-60px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideDown { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-60px); opacity: 0; } }
+        .wheel-banner.hiding { animation: slideDown 0.45s cubic-bezier(0.4, 0, 1, 1) both; }
 
 
         .wheel-bg {
@@ -243,33 +245,35 @@
 
         .wheel-banner.inactive {
             background:
-                repeating-linear-gradient(130deg, rgba(200,40,40,0.05) 0px, rgba(200,40,40,0.05) 1px, transparent 1px, transparent 18px),
+                repeating-linear-gradient(130deg, rgba(120,120,130,0.04) 0px, rgba(120,120,130,0.04) 1px, transparent 1px, transparent 18px),
                 repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 1px, transparent 1px, transparent 22px),
-                linear-gradient(135deg, #110808 0%, #1a0e0e 50%, #110808 100%) !important;
-            border-color: rgba(210,50,50,0.35) !important;
-            box-shadow: 0 0 0 1px rgba(210,50,50,0.12), 0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(210,50,50,0.2), inset 0 -1px 0 rgba(0,0,0,0.5) !important;
+                linear-gradient(135deg, #0e0e10 0%, #141416 50%, #0e0e10 100%) !important;
+            border-color: rgba(140,140,155,0.28) !important;
+            box-shadow: 0 0 0 1px rgba(140,140,155,0.08), 0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(180,180,195,0.08), inset 0 -1px 0 rgba(0,0,0,0.5) !important;
+            transition: background 0.5s, border-color 0.5s, box-shadow 0.5s;
         }
         .wheel-banner.inactive .wb-title {
-            color: rgba(230,65,65,1) !important;
-            text-shadow: 0 0 22px rgba(210,40,40,0.65) !important;
+            color: rgba(170,170,185,1) !important;
+            text-shadow: none !important;
+            transition: color 0.5s, text-shadow 0.5s;
         }
         .wheel-banner.inactive .wb-card,
         .wheel-banner.inactive .wb-card.wb-gold {
-            background: rgba(200,40,40,0.06) !important;
-            border-color: rgba(200,50,50,0.25) !important;
+            background: rgba(140,140,155,0.05) !important;
+            border-color: rgba(140,140,155,0.18) !important;
             box-shadow: none !important;
         }
         .wheel-banner.inactive .wb-label,
         .wheel-banner.inactive .wb-card.wb-gold .wb-label {
-            color: rgba(210,90,90,0.75) !important;
+            color: rgba(140,140,155,0.7) !important;
         }
         .wheel-banner.inactive .wb-val,
         .wheel-banner.inactive .wb-card.wb-gold .wb-val {
-            color: rgba(215,95,95,1) !important;
-            text-shadow: 0 0 10px rgba(200,40,40,0.4) !important;
+            color: rgba(160,160,175,1) !important;
+            text-shadow: none !important;
         }
         .wheel-banner.inactive .wb-link {
-            color: rgba(200,80,80,0.6) !important;
+            color: rgba(140,140,155,0.55) !important;
         }
         .wb-link {
             font-size: 13px;
@@ -282,6 +286,125 @@
             line-height: 1;
             flex-shrink: 0;
         }
+
+        /* ═══ DRAGON WHEEL ═══ */
+        /* Wrapper sits BELOW the banner, clips overflow so only top arc shows */
+        .dragon-wheel-wrap {
+            margin: 0 auto;
+            width: 580px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow: hidden;
+            height: 0;
+            opacity: 0;
+            transition: height 0.75s cubic-bezier(0.16,1,0.3,1), opacity 0.5s ease;
+            position: relative;
+        }
+        .dragon-wheel-wrap.visible {
+            height: 148px;
+            opacity: 1;
+        }
+        .dragon-wheel-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* starts off-screen ABOVE, slides down into view */
+            transform: translateY(-100%);
+            transition: transform 0.75s cubic-bezier(0.16,1,0.3,1);
+            /* pull inner UP so only bottom ~148px arc peeks out from 340px wheel */
+            margin-top: -202px;
+        }
+        .dragon-wheel-wrap.visible .dragon-wheel-inner {
+            transform: translateY(0);
+        }
+        /* rocket: flies up fast on hide */
+        .dragon-wheel-wrap.hiding .dragon-wheel-inner {
+            transform: translateY(-220%);
+            transition: transform 0.55s cubic-bezier(0.4, 0, 0.6, 1);
+        }
+        .dragon-wheel-stage {
+            position: relative;
+            width: 340px;
+            height: 340px;
+        }
+        .dw-frame {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fff1ba, #e8a317 60%, #b8860b);
+            border: 3px solid #111;
+        }
+        .dw-spin {
+            position: absolute;
+            inset: 8px;
+            border-radius: 50%;
+            border: 3px solid #111;
+            overflow: hidden;
+        }
+        .dw-center {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            width: 52px; height: 52px;
+            background: radial-gradient(circle at 30% 30%, #fff1ba, #e8a317 60%, #b8860b);
+            border-radius: 50%;
+            border: 3px solid #111;
+            z-index: 20;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+        }
+        .dw-center::after {
+            content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            width: 22px; height: 22px;
+            background: radial-gradient(circle at 30% 30%, #ffe066, #d4af37 60%, #996515);
+            border-radius: 50%; border: 1px solid rgba(0,0,0,0.4);
+        }
+        .dw-dots {
+            position: absolute; inset: 0; border-radius: 50%; pointer-events: none; z-index: 25;
+        }
+        .dw-dot {
+            position: absolute; width: 9px; height: 9px;
+            background: radial-gradient(circle at 30% 30%, #fffbd6, #e8a317 50%, #8b6508);
+            border-radius: 50%; border: 1px solid #111;
+            top: 3px; left: 50%; margin-left: -5px;
+            transform-origin: 5px 167px;
+            box-shadow: inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 2px rgba(0,0,0,0.6);
+        }
+        .dragon-timer-display {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 56px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 32px rgba(255,183,3,0.9), 0 4px 18px rgba(0,0,0,0.95);
+            letter-spacing: 2px;
+            text-align: center;
+            position: absolute;
+            /* centered in visible 148px arc: (148 - ~56px font) / 2 ≈ 46px from bottom */
+            bottom: 46px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        @keyframes wheelShake {
+            0%   { transform: translateY(0) rotate(0deg); }
+            15%  { transform: translateY(-6px) rotate(-3deg); }
+            30%  { transform: translateY(4px) rotate(3deg); }
+            45%  { transform: translateY(-5px) rotate(-2deg); }
+            60%  { transform: translateY(3px) rotate(2deg); }
+            75%  { transform: translateY(-3px) rotate(-1deg); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+        @keyframes wheelFlash {
+            0%   { box-shadow: none; }
+            20%  { box-shadow: 0 0 0 6px rgba(255,183,3,0.9), 0 0 40px rgba(255,183,3,0.8), 0 0 80px rgba(255,100,0,0.6); }
+            50%  { box-shadow: 0 0 0 12px rgba(255,50,0,0.7), 0 0 60px rgba(255,50,0,0.9), 0 0 120px rgba(255,0,0,0.5); }
+            80%  { box-shadow: 0 0 0 6px rgba(255,183,3,0.6), 0 0 40px rgba(255,183,3,0.5); }
+            100% { box-shadow: none; }
+        }
+        .dragon-wheel-stage.exploding { animation: wheelShake 0.55s ease-in-out both; }
+        .dw-frame.exploding { animation: wheelFlash 0.55s ease-in-out both; }
     </style>
 </head>
 <body>
@@ -368,6 +491,19 @@
     </div>
 </div>
 
+<!-- DRAGON WHEEL -->
+<div id="dragon-wheel-wrap" class="dragon-wheel-wrap">
+    <div class="dragon-wheel-inner">
+        <div class="dragon-wheel-stage">
+            <div class="dw-frame"></div>
+            <div class="dw-spin" id="dw-spin"></div>
+            <div class="dw-dots" id="dw-dots"></div>
+            <div class="dw-center"></div>
+            <div class="dragon-timer-display" id="dragon-timer-display">0м 00с</div>
+        </div>
+    </div>
+</div>
+
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyC3WVO3p4EwDec5J2PEooIoAkHxIfw6R8w",
@@ -407,10 +543,12 @@
         const banner = document.getElementById('wheel-banner');
 
         if (!wheel.enabled) {
-            banner.style.display = 'none';
+            hideBanner(banner);
+            hideDragonWheel();
         } else {
-            banner.style.display = 'block';
+            showBanner(banner);
             const isActive = wheel.active !== false;
+            const isDragon = wheel.mode === 'dragon';
             if (isActive) {
                 banner.classList.remove('inactive');
                 const amt = Number(wheel.amount || 0);
@@ -420,15 +558,217 @@
                 document.getElementById('wb-val-amount').innerText = amt > 0 ? (formatNumberWithCommas(amt) + ' $') : '—';
                 document.getElementById('wb-val-dep').innerText   = dep > 0 ? (formatNumberWithCommas(dep) + ' $') : '—';
                 document.getElementById('wb-val-winners').innerText = win > 0 ? win + ' чел.' : '—';
+                // Dragon wheel visibility
+                if (isDragon) {
+                    const wrap = document.getElementById('dragon-wheel-wrap');
+                    wrap.classList.remove('hiding');
+                    wrap.classList.add('visible');
+                    startDragonTimer(wheel.dragon_timer || 0);
+                } else {
+                    hideDragonWheel();
+                }
             } else {
                 banner.classList.add('inactive');
                 document.getElementById('wb-title').innerText = '🎡 СТАТУС КОЛЕСА: НЕ АКТИВНО';
                 document.getElementById('wb-val-amount').innerText = '—';
                 document.getElementById('wb-val-dep').innerText = '—';
                 document.getElementById('wb-val-winners').innerText = '—';
+                hideDragonWheel();
             }
         }
     });
+
+    // ═══ DRAGON WHEEL INIT ═══
+    (function initDragonWheel() {
+        const colors = ['#7b2cbf','#f50057','#ff6d00','#ffea00','#76ff03','#00bfa5','#00b0ff','#2979ff'];
+        const segments = colors.length;
+        const degrees = 360 / segments;
+        const spin = document.getElementById('dw-spin');
+        let gradParts = [];
+        colors.forEach((c, i) => { gradParts.push(`${c} ${i*degrees}deg ${(i+1)*degrees}deg`); });
+        spin.style.background = `conic-gradient(${gradParts.join(',')})`;
+        for (let i = 0; i < segments; i++) {
+            const line = document.createElement('div');
+            line.style.cssText = `position:absolute;top:0;left:50%;width:3px;height:50%;background:#111;transform-origin:bottom center;transform:translateX(-50%) rotate(${i*degrees}deg);z-index:10;`;
+            spin.appendChild(line);
+        }
+        // Slow continuous rotation via CSS animation
+        spin.style.animation = 'dragonSpinAnim 18s linear infinite';
+        const styleTag = document.createElement('style');
+        styleTag.textContent = '@keyframes dragonSpinAnim { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }';
+        document.head.appendChild(styleTag);
+        // Dots on frame
+        const dotsEl = document.getElementById('dw-dots');
+        for (let i = 0; i < 16; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'dw-dot';
+            dot.style.transform = `rotate(${i*(360/16)}deg)`;
+            dotsEl.appendChild(dot);
+        }
+    })();
+
+    let dragonTimerInterval = null;
+    let dragonSecondsLeft = 0;
+    let dragonTotalSeconds = 0;
+
+    function formatDragonTime(s) {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        if (m === 0) return String(sec) + 'с';
+        return m + 'м ' + String(sec).padStart(2,'0') + 'с';
+    }
+
+    function stopDragonTimer() {
+        if (dragonTimerInterval) { clearInterval(dragonTimerInterval); dragonTimerInterval = null; }
+    }
+
+    // RAF-based smooth deceleration in last 10 seconds
+    let spinRafId = null;
+    let slowdownStartAngle = 0;   // wheel angle when deceleration began
+    let slowdownStartTime = 0;    // performance.now() when deceleration began
+    const FULL_SPEED_DURATION = 18; // seconds per revolution at full speed
+    const SLOWDOWN_SECONDS = 5;    // last N seconds to decelerate
+    const FULL_SPEED_DEG_PER_MS = 360 / (FULL_SPEED_DURATION * 1000);
+
+    // Track cumulative angle for smooth handoff
+    let currentAngleDeg = 0;
+    let lastRafTime = null;
+
+    // Full-speed CSS animation (runs until last 10s)
+    function setFullSpeedCSS() {
+        const spin = document.getElementById('dw-spin');
+        if (!spin) return;
+        if (spinRafId) { cancelAnimationFrame(spinRafId); spinRafId = null; }
+        spin.style.transition = 'none';
+        spin.style.animation = 'none';
+        void spin.offsetWidth;
+        spin.style.animation = 'dragonSpinAnim ' + FULL_SPEED_DURATION + 's linear infinite';
+    }
+
+    // Switch to RAF-driven deceleration for the last SLOWDOWN_SECONDS
+    // secondsLeft = actual time remaining in seconds (the real budget)
+    function beginSlowdown(secondsLeft) {
+        const spin = document.getElementById('dw-spin');
+        if (!spin) return;
+        if (spinRafId) { cancelAnimationFrame(spinRafId); spinRafId = null; }
+
+        // Capture current angle from CSS animation
+        const computed = window.getComputedStyle(spin);
+        const mat = new DOMMatrix(computed.transform);
+        currentAngleDeg = ((Math.atan2(mat.b, mat.a) * (180 / Math.PI)) % 360 + 360) % 360;
+
+        // Stop CSS animation, take manual control
+        spin.style.animation = 'none';
+        spin.style.transform = 'rotate(' + currentAngleDeg + 'deg)';
+
+        // Use ACTUAL remaining seconds, not the constant
+        const totalSlowMs = secondsLeft * 1000;
+        slowdownStartTime = performance.now();
+        const totalDeg = FULL_SPEED_DEG_PER_MS * totalSlowMs / 3;
+        const startAngle = currentAngleDeg;
+
+        function rafStep(now) {
+            const elapsed = now - slowdownStartTime;
+            const t = Math.min(elapsed / totalSlowMs, 1);
+            const posFrac = 1 - Math.pow(1 - t, 3);
+            spin.style.transform = 'rotate(' + (startAngle + totalDeg * posFrac) + 'deg)';
+            if (t < 1) {
+                spinRafId = requestAnimationFrame(rafStep);
+            } else {
+                spinRafId = null;
+            }
+        }
+        spinRafId = requestAnimationFrame(rafStep);
+    }
+
+    function startDragonTimer(totalSeconds) {
+        // If timer is already running with same total, don't restart
+        if (dragonTimerInterval && dragonTotalSeconds === totalSeconds) return;
+        stopDragonTimer();
+        if (spinRafId) { cancelAnimationFrame(spinRafId); spinRafId = null; }
+        dragonTotalSeconds = Math.max(0, Math.round(totalSeconds));
+        dragonSecondsLeft = dragonTotalSeconds;
+        const display = document.getElementById('dragon-timer-display');
+        display.innerText = formatDragonTime(dragonSecondsLeft);
+        if (dragonSecondsLeft <= 0) return;
+
+        // Start at full speed via CSS animation
+        setFullSpeedCSS();
+
+        // If we're already in the slowdown zone, begin immediately
+        if (dragonSecondsLeft <= SLOWDOWN_SECONDS) {
+            beginSlowdown(dragonSecondsLeft);
+        }
+
+        dragonTimerInterval = setInterval(function() {
+            dragonSecondsLeft--;
+            if (dragonSecondsLeft < 0) dragonSecondsLeft = 0;
+            display.innerText = formatDragonTime(dragonSecondsLeft);
+
+            // Kick off smooth deceleration exactly when we hit the slowdown window
+            if (dragonSecondsLeft === SLOWDOWN_SECONDS) {
+                beginSlowdown(dragonSecondsLeft);
+            }
+
+            if (dragonSecondsLeft <= 0) {
+                stopDragonTimer();
+                if (spinRafId) { cancelAnimationFrame(spinRafId); spinRafId = null; }
+                // EXPLOSION effect: shake + flash
+                const stage = document.querySelector('.dragon-wheel-stage');
+                const frame = document.querySelector('.dw-frame');
+                if (stage) { stage.classList.add('exploding'); setTimeout(function(){ stage.classList.remove('exploding'); }, 600); }
+                if (frame)  { frame.classList.add('exploding');  setTimeout(function(){ frame.classList.remove('exploding');  }, 600); }
+                // Then rocket up
+                setTimeout(function() {
+                    db.ref('wheel/active').set(false);
+                }, 700);
+            }
+        }, 1000);
+    }
+
+    function showBanner(banner) {
+        if (banner.style.display === 'block' && !banner.classList.contains('hiding')) return; // already visible
+        banner.classList.remove('hiding');
+        banner.style.display = 'block';
+        // Re-trigger animation
+        banner.style.animation = 'none';
+        void banner.offsetWidth; // reflow
+        banner.style.animation = '';
+    }
+
+    let bannerHideTimer = null;
+    function hideBanner(banner) {
+        if (banner.style.display === 'none') return; // already hidden
+        if (banner.classList.contains('hiding')) return; // already hiding
+        banner.classList.add('hiding');
+        if (bannerHideTimer) clearTimeout(bannerHideTimer);
+        bannerHideTimer = setTimeout(function() {
+            banner.style.display = 'none';
+            banner.classList.remove('hiding');
+        }, 470);
+    }
+
+    function hideDragonWheel() {
+        const wrap = document.getElementById('dragon-wheel-wrap');
+        if (!wrap.classList.contains('visible')) return; // already hidden
+        // Add hiding class to trigger rocket-up animation
+        wrap.classList.add('hiding');
+        // After animation completes, collapse height and reset spin speed
+        setTimeout(function() {
+            wrap.classList.remove('visible');
+            wrap.classList.remove('hiding');
+            // Stop any RAF slowdown and reset CSS animation
+            if (spinRafId) { cancelAnimationFrame(spinRafId); spinRafId = null; }
+            const spin = document.getElementById('dw-spin');
+            if (spin) {
+                spin.style.transform = '';
+                spin.style.animation = 'none';
+                void spin.offsetWidth;
+                spin.style.animation = 'dragonSpinAnim ' + FULL_SPEED_DURATION + 's linear infinite';
+            }
+        }, 700);
+        stopDragonTimer();
+    }
 
     function checkMarquee() {
         requestAnimationFrame(function() {
