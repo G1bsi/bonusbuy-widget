@@ -850,20 +850,16 @@
             }
         } else if (displayMode === 'bonusbuy') {
 
-            const deposit = Number(startBalance) || 0;
-            if (slots.length === 0 || deposit === 0) {
+            // В режимі bonusbuy — показуємо загальну суму виграшу
+            const curr = balanceCurr;
+            if (slots.length === 0) {
                 comebackXText = '—';
-            } else if (openedTotalWin >= deposit) {
-                comebackXText = 'ОКУП';
-            } else if (remainingBuy === 0) {
-                comebackXText = openedTotalWin >= deposit ? 'ОКУП' : 'НЕ ОКУП';
             } else {
-                const needWin = deposit - openedTotalWin;
-                const needX = needWin / remainingBuy;
-                comebackXText = needX.toFixed(2) + 'x';
+                comebackXText = formatNumberCompact(openedTotalWin) + ' ' + curr;
             }
         } else {
 
+            // finish — окуп чи ні
             if (slots.length === 0) {
                 comebackXText = '—';
             } else {
