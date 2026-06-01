@@ -6,7 +6,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; padding: 15px; font-family: 'Plus Jakarta Sans', sans-serif; color: #fff; background: transparent; overflow: hidden; }
+        body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; color: #fff; background: transparent; overflow: hidden; width: 1920px; height: 1080px; position: relative; }
         .tracker-container { margin: 0 auto; width: 580px; height: auto; min-height: 100px; background: rgba(10, 10, 14, 0.98); backdrop-filter: blur(8px); border-radius: 36px; padding: 24px; box-shadow: 0 35px 85px rgba(0,0,0,0.6), inset 0 1px 3px rgba(255,255,255,0.05); border: 1px solid rgba(255, 255, 255, 0.03); display: flex; flex-direction: column; box-sizing: border-box; transition: width 0.4s ease; }
         .slots-viewport { max-height: 488px; overflow: hidden; position: relative; border-radius: 24px; padding: 15px; margin: -15px; transition: max-height 0.4s ease; }
         .slots-list { display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -406,8 +406,348 @@
         .dragon-wheel-stage.exploding { animation: wheelShake 0.55s ease-in-out both; }
         .dw-frame.exploding { animation: wheelFlash 0.55s ease-in-out both; }
     </style>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet">
+  <style>
+    #dnd-outer-wrap {
+      position:absolute; left:0px; top:0px;
+      width:1297px; height:728px;
+      overflow:hidden; border-radius:16px; z-index:5;
+    }
+    #dnd-scale-wrap {
+      width:1920px; height:1080px;
+      transform:scale(0.67407); transform-origin:top left;
+    }
+    #dnd-root {
+      width:1920px; height:1080px; overflow:hidden;
+      position:relative; font-family:'Inter','Arial',sans-serif; font-weight:600;
+    }
+    
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap');
+    @font-face {
+      font-family: 'PF Adamant Sans Pro';
+      src: url('https://fonts-online.ru/fonts/pf-adamant-sans-pro/pfadamantsanspro-bold.woff2') format('woff2'),
+           url('https://fonts-online.ru/fonts/pf-adamant-sans-pro/pfadamantsanspro-bold.woff') format('woff');
+      font-weight: 700;
+    }
+#dnd-root{ margin:0; padding:0; box-sizing:border-box; }
+#dnd-root{
+      width:1920px; height:1080px; overflow:hidden;
+      background:transparent;
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      user-select:none;
+    }
+    #dnd-root #widget-root { width:1920px; height:1080px; position:relative; border-radius:24px; overflow:hidden; opacity:0; pointer-events:none; transition:opacity 0.8s ease; }
+    #dnd-root #bg {
+      position:absolute; inset:0; width:1920px; height:1080px;
+      background-size:1920px 1080px; background-repeat:no-repeat;
+    }
+
+    /* ── Case layers ── */
+    #dnd-root .case-layer {
+      position:absolute; inset:0; width:1920px; height:1080px;
+      background-size:1920px 1080px; background-repeat:no-repeat;
+      transition:opacity 0.85s ease; pointer-events:none;
+      animation:caseGlow 3s ease-in-out infinite;
+    }
+    #dnd-root .case-layer.opened { opacity:0; animation:none; }
+    @keyframes caseGlow {
+      0%,100%{filter:drop-shadow(0 0 3px rgba(255,200,60,0.18));}
+      50%{filter:drop-shadow(0 0 7px rgba(255,220,80,0.32));}
+    }
+
+    /* ── Podium layers ── */
+    #dnd-root .podium-layer {
+      position:absolute; inset:0; width:1920px; height:1080px;
+      background-size:1920px 1080px; background-repeat:no-repeat;
+      opacity:0; transition:opacity 0.8s ease; pointer-events:none; z-index:30;
+    }
+    #dnd-root .podium-layer.visible { opacity:1; animation:podiumGlow 2.5s ease-in-out infinite; }
+    @keyframes podiumGlow {
+      0%,100%{filter:drop-shadow(0 0 8px rgba(160,80,255,0.35));}
+      50%{filter:drop-shadow(0 0 16px rgba(180,100,255,0.55));}
+    }
+
+    /* ── Podium OPENED layers (shown when reveal pressed) ── */
+    #dnd-root .podium-open-layer {
+      position:absolute; inset:0; width:1920px; height:1080px;
+      background-size:1920px 1080px; background-repeat:no-repeat;
+      opacity:0; transition:opacity 0.7s ease; pointer-events:none; z-index:31;
+    }
+    #dnd-root .podium-open-layer.visible { opacity:1; }
+
+    /* ── Instruction text — Inter, white+stroke ── */
+    #dnd-root #instruction-text {
+      position:absolute; top:20px; left:50%; transform:translateX(-50%);
+      color:#ffffff;
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:52px; letter-spacing:-1px;
+      text-transform:uppercase; white-space:nowrap;
+      z-index:50; text-align:center; width:1300px;
+      -webkit-text-stroke:2px rgba(0,0,0,0.95); paint-order:stroke fill;
+      text-shadow:3px 3px 0 rgba(0,0,0,0.95),-1px -1px 0 rgba(0,0,0,0.95),1px -1px 0 rgba(0,0,0,0.95),-1px 1px 0 rgba(0,0,0,0.95);
+      transition:color 0.4s;
+    }
+    #dnd-root #instruction-text.attention { color:#ffe84d; animation:textBlink 1.4s infinite; }
+    @keyframes textBlink{0%,100%{opacity:1}50%{opacity:0.5}}
+
+    /* ── Value slots ── */
+    #dnd-root .value-slot {
+      position:absolute; width:280px; height:105px;
+      display:flex; align-items:center; justify-content:center;
+      z-index:20; overflow:hidden;
+      transition:transform 0.65s cubic-bezier(0.4,0,0.8,0.6);
+    }
+    #dnd-root .value-slot::before {
+      content:''; position:absolute; inset:0;
+      background-image:var(--рамка-url);
+      background-size:1262px 1123px; background-position:-490px -517px;
+      background-repeat:no-repeat;
+    }
+    #dnd-root .value-slot .val-text {
+      position:relative; z-index:2; color:#e8d090;
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:50px; letter-spacing:-1px;
+      text-shadow:1px 1px 3px rgba(0,0,0,0.9);
+      text-align:center; width:100%; line-height:1;
+    }
+    #dnd-root .value-slot.left-slot.eliminated  { transform:translateX(-310px); }
+    #dnd-root .value-slot.right-slot.eliminated { transform:translateX(310px); }
+    #dnd-root .value-slot.last-remaining .val-text {
+      color:#fff; text-shadow:0 0 10px #fff,0 0 22px rgba(255,255,255,0.4);
+      animation:valGlow 1s infinite;
+    }
+    @keyframes valGlow{0%,100%{opacity:1}50%{opacity:0.5}}
+
+    #dnd-root .slot-left-1{left:0;top:110px;} .slot-left-2{left:0;top:218px;}
+    #dnd-root .slot-left-3{left:0;top:326px;} .slot-left-4{left:0;top:434px;}
+    #dnd-root .slot-left-5{left:0;top:542px;} .slot-left-6{left:0;top:650px;}
+    #dnd-root .slot-left-7{left:0;top:758px;} .slot-left-8{left:0;top:866px;}
+    #dnd-root .slot-right-1{right:0;top:110px;} .slot-right-2{right:0;top:218px;}
+    #dnd-root .slot-right-3{right:0;top:326px;} .slot-right-4{right:0;top:434px;}
+    #dnd-root .slot-right-5{right:0;top:542px;} .slot-right-6{right:0;top:650px;}
+    #dnd-root .slot-right-7{right:0;top:758px;} .slot-right-8{right:0;top:866px;}
+
+    /* ── Banker popup ── */
+    #dnd-root #banker-popup {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%) scale(0);
+      background:linear-gradient(135deg,#08000f,#160024,#08000f);
+      border:4px solid #cc00ff; padding:30px 80px 40px;
+      border-radius:22px; text-align:center;
+      transition:all 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+      z-index:100; opacity:0;
+      box-shadow:0 0 80px rgba(180,0,255,0.55); min-width:700px;
+    }
+    #dnd-root #banker-popup.visible{transform:translate(-50%,-50%) scale(1);opacity:1;}
+    #dnd-root #banker-banner-img{width:100%;max-height:130px;object-fit:contain;display:none;margin-bottom:8px;}
+    #dnd-root #banker-banner-img.loaded{display:block;}
+    #dnd-root #banker-popup h1{
+      color:#e0aaff; font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:58px; letter-spacing:-1px; margin-bottom:8px;
+      text-shadow:0 0 10px rgba(200,100,255,0.4); text-transform:uppercase;
+    }
+    #dnd-root #banker-offer-amount{
+      color:#00ffcc; font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:120px; letter-spacing:-2px;
+      text-shadow:0 0 20px rgba(0,255,200,0.5); line-height:1;
+    }
+    #dnd-root #banker-hint{
+      display:flex; align-items:center; justify-content:center;
+      gap:20px; margin-top:16px;
+      font-family:'Inter','Arial',sans-serif; font-size:32px; font-weight:600;
+    }
+    #dnd-root .hint-deal{color:#4eff91;} .hint-sep{color:#888;font-size:24px;font-weight:400;} .hint-nodeal{color:#ff6b6b;}
+
+    /* ── Deal taken — win fades in center, no overlay ── */
+    #dnd-root #deal-win-popup {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      text-align:center; z-index:200;
+      opacity:0; pointer-events:none;
+      transition:opacity 1.0s ease;
+    }
+    #dnd-root #deal-win-popup.visible{opacity:1;}
+    #dnd-root #deal-win-label{
+      color:#fff; font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:52px; letter-spacing:-1px; text-transform:uppercase;
+      -webkit-text-stroke:2px rgba(0,0,0,0.95); paint-order:stroke fill;
+      text-shadow:3px 3px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000;
+      margin-bottom:10px;
+    }
+    #dnd-root #deal-win-amount{
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:160px; letter-spacing:-3px;
+      background:linear-gradient(180deg,#fff 0%,#ffd700 60%,#c8a030 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      line-height:1; filter:drop-shadow(0 4px 20px rgba(255,215,0,0.5));
+    }
+
+    /* ── Deal taken — bottom strip showing player case value ── */
+    #dnd-root #deal-info-strip {
+      position:absolute; bottom:0; left:0; right:0;
+      transform:translateY(100%);
+      background:linear-gradient(90deg,rgba(6,0,25,0.92),rgba(30,0,70,0.95),rgba(6,0,25,0.92));
+      border-top:3px solid #7744ee; padding:18px 320px;
+      text-align:center; z-index:201;
+      box-shadow:0 -4px 40px rgba(90,40,220,0.5); opacity:0;
+      transition:transform 0.65s cubic-bezier(0.175,0.885,0.32,1.275),opacity 0.5s ease;
+      pointer-events:none;
+    }
+    #dnd-root #deal-info-strip.visible{transform:translateY(0);opacity:1;}
+    #dnd-root #deal-info-strip .strip-text{
+      color:#e8e0ff; font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:30px; letter-spacing:-0.5px;
+      text-shadow:1px 1px 3px rgba(0,0,0,0.95);
+    }
+    #dnd-root #deal-info-strip .strip-hl{color:#ffe066;}
+
+    /* ── Final bottom strip ── */
+    #dnd-root #final-banner {
+      position:absolute; bottom:0; left:0; right:0;
+      transform:translateY(100%);
+      background:linear-gradient(90deg,rgba(6,0,25,0.92),rgba(30,0,70,0.95),rgba(6,0,25,0.92));
+      border-top:3px solid #7744ee; padding:18px 320px;
+      text-align:center; z-index:80;
+      box-shadow:0 -4px 40px rgba(90,40,220,0.5); opacity:0;
+      transition:transform 0.65s cubic-bezier(0.175,0.885,0.32,1.275),opacity 0.5s ease;
+      pointer-events:none;
+    }
+    #dnd-root #final-banner.visible{transform:translateY(0);opacity:1;}
+    #dnd-root #final-banner .final-body{
+      color:#e8e0ff; font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:28px; letter-spacing:-0.5px; line-height:1.4;
+      text-shadow:1px 1px 3px rgba(0,0,0,0.95);
+    }
+    #dnd-root #final-banner .hl{color:#ffe066;}
+
+    /* ── Final choice buttons — pulsing ── */
+    #dnd-root #final-buttons {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%) scale(0);
+      display:flex; gap:40px; z-index:90; opacity:0;
+      transition:all 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+      pointer-events:none;
+    }
+    #dnd-root #final-buttons.visible{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:all;}
+    #dnd-root .choice-btn{
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:52px; letter-spacing:-1px;
+      padding:28px 70px; border:none; border-radius:18px;
+      cursor:pointer; text-transform:uppercase;
+      transition:transform 0.15s,box-shadow 0.15s;
+    }
+    #dnd-root .choice-btn:hover{transform:scale(1.06);}
+    #dnd-root .choice-btn:active{transform:scale(0.97);}
+    #dnd-root #btn-keep{
+      background:linear-gradient(180deg,#2ecc71,#1a8a4a); color:#fff;
+      box-shadow:0 6px 30px rgba(46,204,113,0.5),0 0 60px rgba(46,204,113,0.2);
+      animation:btnPulseGreen 2.5s ease-in-out infinite;
+    }
+    #dnd-root #btn-swap{
+      background:linear-gradient(180deg,#e74c3c,#a01f14); color:#fff;
+      box-shadow:0 6px 30px rgba(231,76,60,0.5),0 0 60px rgba(231,76,60,0.2);
+      animation:btnPulseRed 2.5s ease-in-out infinite;
+    }
+    @keyframes btnPulseGreen{
+      0%,100%{box-shadow:0 6px 30px rgba(46,204,113,0.5),0 0 60px rgba(46,204,113,0.2);}
+      50%{box-shadow:0 6px 50px rgba(46,204,113,0.8),0 0 90px rgba(46,204,113,0.45);}
+    }
+    @keyframes btnPulseRed{
+      0%,100%{box-shadow:0 6px 30px rgba(231,76,60,0.5),0 0 60px rgba(231,76,60,0.2);}
+      50%{box-shadow:0 6px 50px rgba(231,76,60,0.8),0 0 90px rgba(231,76,60,0.45);}
+    }
+
+    /* ── Win reveal — scale+rise from point 960,720 ── */
+    #dnd-root #win-popup {
+      position:absolute;
+      /* Origin point: 960x720 (center of podium) */
+      left:960px; top:720px;
+      transform:translate(-50%,-50%) scale(0);
+      transform-origin:center center;
+      display:flex; flex-direction:column; align-items:center;
+      z-index:9999; opacity:0; pointer-events:none;
+      transition:transform 0.9s cubic-bezier(0.175,0.885,0.32,1.275),
+                 opacity 0.5s ease,
+                 top 0.9s cubic-bezier(0.175,0.885,0.32,1.275);
+    }
+    #dnd-root #win-popup.visible{
+      transform:translate(-50%,-50%) scale(1);
+      top:480px; /* rises to vertical center ~480px from top */
+      opacity:1; pointer-events:all;
+    }
+    #dnd-root #win-label{
+      color:#ffe066; font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:52px; letter-spacing:-1px; text-transform:uppercase;
+      text-shadow:0 2px 12px rgba(0,0,0,0.6), 0 0 30px rgba(255,200,0,0.4);
+      margin-bottom:10px;
+    }
+    #dnd-root #win-amount{
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:170px; letter-spacing:-3px;
+      background:linear-gradient(180deg,#ffffff 0%,#ffe680 50%,#ffd700 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      line-height:1;
+      filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+    }
+
+    /* ── Video corner (transparent bg, 3× scale anchored at bottom-right) ── */
+    #dnd-root #video-corner {
+      position:absolute; bottom:0px; right:0px;
+      width:1920px; height:1080px;
+      z-index:10000; display:none;
+      pointer-events:none;
+    }
+    #dnd-root #video-corner.visible{display:block;}
+    #dnd-root #video-corner video{
+      width:100%; height:100%;
+      object-fit:contain;
+      object-position:bottom right;
+      background:transparent;
+    }
+
+    /* ── Loading screen ── */
+    #dnd-root #loading-screen {
+      position:absolute; inset:0;
+      width:1920px; height:1080px;
+      background:rgba(8,0,20,0.97);
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      z-index:99999;
+      border-radius:24px;
+      opacity:0; pointer-events:none;
+      transition:opacity 0.4s ease;
+    }
+    #dnd-root #loading-screen.visible { opacity:1; pointer-events:all; }
+    #dnd-root #loading-screen.hiding  { opacity:0; }
+    #dnd-root #loading-title {
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:180px; letter-spacing:-8px;
+      color:#ffffff;
+      text-shadow: 0 0 60px rgba(200,150,255,0.6), 0 0 120px rgba(160,80,255,0.3);
+      margin-bottom:60px; line-height:1;
+    }
+    #dnd-root #loading-bar-wrap {
+      width:600px; height:8px;
+      background:rgba(255,255,255,0.12);
+      border-radius:999px; overflow:hidden;
+    }
+    #dnd-root #loading-bar {
+      height:100%; width:0%;
+      background:linear-gradient(90deg,#8855ff,#cc88ff,#8855ff);
+      background-size:200% 100%;
+      border-radius:999px;
+      animation:loadingBarMove 0.4s linear forwards, loadingShimmer 1s linear infinite;
+    }
+    @keyframes loadingBarMove { from{width:0%} to{width:100%} }
+    @keyframes loadingShimmer {
+      0%{background-position:0% 0%} 100%{background-position:200% 0%}
+    }
+  
+  </style>
 </head>
 <body>
+<div id="tracker-wrap" style="position:absolute; left:0px; top:0px; width:364px; transform-origin:top left;">
 <div id="solo-container" class="tracker-container" style="display: none;">
     <div class="stats-grid">
         <div class="stat-card"><span class="stat-icon">💰</span><span id="stat-total" class="stat-val">0</span></div>
@@ -504,6 +844,8 @@
     </div>
 </div>
 
+</div><!-- /tracker-wrap -->
+
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyC3WVO3p4EwDec5J2PEooIoAkHxIfw6R8w",
@@ -519,6 +861,34 @@
 
     function formatNumberCompact(num) { num = Number(num); if (isNaN(num) || num === 0) return '0'; let absNum = Math.abs(num); let sign = num < 0 ? '-' : ''; if (absNum >= 1000000) return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк'; if (absNum >= 1000) return sign + parseFloat((absNum / 1000).toFixed(1)) + 'к'; return sign + absNum.toString(); }
     function formatNumberWithCommas(num) { return Number(num).toLocaleString('en-US').replace(/,/g, ' '); }
+
+    // ── Layout positions from Firebase ──
+    db.ref('widgets/layout').on('value', function(lay) {
+      if (!lay) return;
+      const d = lay.val();
+      if (!d) return;
+      const tw = document.getElementById('tracker-wrap');
+      const dw = document.getElementById('dnd-outer-wrap');
+      if (tw && d.widget) {
+        tw.style.left   = d.widget.x + 'px';
+        tw.style.top    = d.widget.y + 'px';
+        // Scale: widget.w is the desired display width, original tracker width = 580px (natural)
+        // We scale so that the tracker fills widget.w horizontally
+        var wScale = d.widget.w / 580;
+        tw.style.transform = 'scale(' + wScale + ')';
+        // height is auto so we don't need to set it
+      }
+      if (dw && d.dnd) {
+        // DnD position is in absolute 1920x1080 coords — independent of tracker
+        dw.style.left   = d.dnd.x + 'px';
+        dw.style.top    = d.dnd.y + 'px';
+        dw.style.width  = d.dnd.w + 'px';
+        dw.style.height = d.dnd.h + 'px';
+        var sc = d.dnd.h / 1080;
+        var sw = document.getElementById('dnd-scale-wrap');
+        if (sw) sw.style.transform = 'scale(' + sc + ')';
+      }
+    });
 
     db.ref('/').on('value', function(snapshot) {
         const data = snapshot.val() || {};
@@ -995,5 +1365,396 @@
         } else { container.style.transform = "none"; container.style.animation = 'none'; container.innerHTML = listHTML; checkMarquee(); }
     }
 </script>
+
+  <div id="dnd-outer-wrap">
+    <div id="dnd-scale-wrap">
+      <div id="dnd-root">
+        <div id="widget-root">
+  <div id="bg"></div>
+  <div id="instruction-text">ОЖИДАНИЕ ИГРЫ...</div>
+
+  <!-- Shelf cases -->
+  <div class="case-layer" id="cl-1"></div><div class="case-layer" id="cl-2"></div>
+  <div class="case-layer" id="cl-3"></div><div class="case-layer" id="cl-4"></div>
+  <div class="case-layer" id="cl-5"></div><div class="case-layer" id="cl-6"></div>
+  <div class="case-layer" id="cl-7"></div><div class="case-layer" id="cl-8"></div>
+  <div class="case-layer" id="cl-9"></div><div class="case-layer" id="cl-10"></div>
+  <div class="case-layer" id="cl-11"></div><div class="case-layer" id="cl-12"></div>
+  <div class="case-layer" id="cl-13"></div><div class="case-layer" id="cl-14"></div>
+  <div class="case-layer" id="cl-15"></div><div class="case-layer" id="cl-16"></div>
+
+  <!-- Podium closed -->
+  <div class="podium-layer" id="pl-1"></div><div class="podium-layer" id="pl-2"></div>
+  <div class="podium-layer" id="pl-3"></div><div class="podium-layer" id="pl-4"></div>
+  <div class="podium-layer" id="pl-5"></div><div class="podium-layer" id="pl-6"></div>
+  <div class="podium-layer" id="pl-7"></div><div class="podium-layer" id="pl-8"></div>
+  <div class="podium-layer" id="pl-9"></div><div class="podium-layer" id="pl-10"></div>
+  <div class="podium-layer" id="pl-11"></div><div class="podium-layer" id="pl-12"></div>
+  <div class="podium-layer" id="pl-13"></div><div class="podium-layer" id="pl-14"></div>
+  <div class="podium-layer" id="pl-15"></div><div class="podium-layer" id="pl-16"></div>
+
+  <!-- Podium opened (po1–po16) -->
+  <div class="podium-open-layer" id="po-1"></div><div class="podium-open-layer" id="po-2"></div>
+  <div class="podium-open-layer" id="po-3"></div><div class="podium-open-layer" id="po-4"></div>
+  <div class="podium-open-layer" id="po-5"></div><div class="podium-open-layer" id="po-6"></div>
+  <div class="podium-open-layer" id="po-7"></div><div class="podium-open-layer" id="po-8"></div>
+  <div class="podium-open-layer" id="po-9"></div><div class="podium-open-layer" id="po-10"></div>
+  <div class="podium-open-layer" id="po-11"></div><div class="podium-open-layer" id="po-12"></div>
+  <div class="podium-open-layer" id="po-13"></div><div class="podium-open-layer" id="po-14"></div>
+  <div class="podium-open-layer" id="po-15"></div><div class="podium-open-layer" id="po-16"></div>
+
+  <!-- Value slots left (ids and text updated dynamically from Firebase) -->
+  <div class="value-slot slot-left-1 left-slot" id="vslot-1"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-2 left-slot" id="vslot-2"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-3 left-slot" id="vslot-3"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-4 left-slot" id="vslot-4"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-5 left-slot" id="vslot-5"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-6 left-slot" id="vslot-6"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-7 left-slot" id="vslot-7"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-8 left-slot" id="vslot-8"><span class="val-text">—</span></div>
+  <!-- Value slots right -->
+  <div class="value-slot slot-right-1 right-slot" id="vslot-9"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-2 right-slot" id="vslot-10"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-3 right-slot" id="vslot-11"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-4 right-slot" id="vslot-12"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-5 right-slot" id="vslot-13"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-6 right-slot" id="vslot-14"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-7 right-slot" id="vslot-15"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-8 right-slot" id="vslot-16"><span class="val-text">—</span></div>
+
+  <!-- Banker popup -->
+  <div id="banker-popup">
+    <img id="banker-banner-img" src="" alt="">
+    <h1>☎ КОСТИЗИ ПРЕДЛАГАЕТ</h1>
+    <div id="banker-offer-amount">0 ₽</div>
+    <div id="banker-hint">
+      <span class="hint-deal">💰 ЗАБРАТЬ ДЕНЬГИ</span>
+      <span class="hint-sep">или</span>
+      <span class="hint-nodeal">🎲 ИГРАТЬ ДАЛЬШЕ</span>
+    </div>
+  </div>
+
+  <!-- Deal taken win (fade, center, no overlay) -->
+  <div id="deal-win-popup">
+    <div id="deal-win-label">💰 СДЕЛКА!</div>
+    <div id="deal-win-amount">0 ₽</div>
+  </div>
+  <!-- Deal info strip: what was in player's case -->
+  <div id="deal-info-strip">
+    <div class="strip-text">В твоём кейсе было: <span class="strip-hl" id="deal-case-val">—</span></div>
+  </div>
+
+  <!-- Final bottom strip -->
+  <div id="final-banner">
+    <div class="final-body">
+      Остался <span class="hl">1 КЕЙС НА ПОЛКЕ</span> и <span class="hl">ТВОЙ КЕЙС</span> на подиуме.
+      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> — или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
+    </div>
+  </div>
+
+  <!-- Final choice buttons -->
+  <div id="final-buttons">
+    <button class="choice-btn" id="btn-keep">✅ ОСТАВИТЬ</button>
+    <button class="choice-btn" id="btn-swap">🔄 ПОМЕНЯТЬ</button>
+  </div>
+
+  <!-- Final win (scale+rise from 960,720) -->
+  <div id="win-popup">
+    <div id="win-label">🎉 ТВОЙ ВЫИГРЫШ!</div>
+    <div id="win-amount">0 ₽</div>
+  </div>
+
+  <!-- Video corner -->
+  <div id="video-corner">
+    <video id="video-el" playsinline></video>
+  </div>
+  <!-- Loading screen -->
+  <div id="loading-screen">
+    <div id="loading-title">KSTZ</div>
+    <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+  </div>
+</div>
+      </div>
+    </div>
+  </div>
+
+
+  <script type="module">
+    
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1Lde9n2SroxE024-5Jned8ItOEuYQGLI",
+    authDomain: "dornod-74e98.firebaseapp.com",
+    databaseURL: "https://dornod-74e98-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "dornod-74e98",
+    storageBucket: "dornod-74e98.firebasestorage.app",
+    messagingSenderId: "941512359529",
+    appId: "1:941512359529:web:bac6084dba4d9c66192cf8"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  const gameRef   = ref(db, 'widgets/deal_or_no_deal');
+  const assetsRef = ref(db, 'widgets/assets');
+  const TOTAL = 16;
+  const fmt = n => n.toLocaleString('ru-RU') + ' ₽';
+  function caseWord(n){if(n===1)return 'КЕЙС';if(n>=2&&n<=4)return 'КЕЙСА';return 'КЕЙСОВ';}
+
+  let assets = {};
+  let prevPlayerCase = null;
+  let prevGameState  = null;
+
+  function applyAssets(a) {
+    if (!a) return;
+    assets = a;
+    if (a['фон'])   document.getElementById('bg').style.backgroundImage=`url('${a['фон']}')`;
+    if (a['рамка']) document.documentElement.style.setProperty('--рамка-url',`url('${a['рамка']}')`);
+    if (a['banker-banner']){
+      const img=document.getElementById('banker-banner-img');
+      img.src=a['banker-banner']; img.onload=()=>img.classList.add('loaded');
+    }
+    for(let i=1;i<=TOTAL;i++){
+      const cl=document.getElementById(`cl-${i}`);
+      if(cl&&a[String(i)]) cl.style.backgroundImage=`url('${a[String(i)]}')`;
+      const pl=document.getElementById(`pl-${i}`);
+      if(pl&&a[`p${i}`]) pl.style.backgroundImage=`url('${a[`p${i}`]}')`;
+      const po=document.getElementById(`po-${i}`);
+      if(po&&a[`po${i}`]) po.style.backgroundImage=`url('${a[`po${i}`]}')`;
+    }
+  }
+  onValue(assetsRef, s=>applyAssets(s.val()));
+
+  // Video player
+  const videoCorner = document.getElementById('video-corner');
+  const videoEl     = document.getElementById('video-el');
+  let   videoPlayed = { decision:false, result:false };
+
+  function playVideo(urlKey, onEndCallback) {
+    const url = assets[urlKey];
+    if (!url) { if(onEndCallback) onEndCallback(); return; }
+    videoEl.src = url;
+    videoCorner.classList.add('visible');
+    videoEl.load();
+    videoEl.play().catch(()=>{});
+    videoEl.onended = () => {
+      videoCorner.classList.remove('visible');
+      videoEl.src='';
+      if(onEndCallback) onEndCallback();
+    };
+  }
+
+  // Auto-reveal after decision video ends
+  function autoRevealCase() {
+    // Read current state from Firebase and trigger reveal
+    import("https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js").then(({get})=>{
+      get(gameRef).then(snap=>{
+        const d=snap.val();
+        if(!d) return;
+        const win=d.pendingWin||0;
+        update(gameRef,{gameState:'finished',winAmount:win,pendingWin:null,dealTaken:false});
+      });
+    });
+  }
+
+  onValue(gameRef, snapshot => {
+    const d = snapshot.val();
+    if (!d) return;
+    // Fade in/out logic (no display:none — use opacity)
+    const root = document.getElementById('widget-root');
+    const wasVisible = root.style.opacity === '1';
+    const nowVisible = d.isVisible;
+
+    if(nowVisible && !wasVisible) {
+      root.style.pointerEvents = 'none';
+      root.style.opacity = '1';
+      // Show loading for 3s then enable interaction
+      const ls = document.getElementById('loading-screen');
+      const lb = document.getElementById('loading-bar');
+      ls.classList.add('visible');
+      lb.style.animation = 'none'; void lb.offsetHeight;
+      lb.style.animation = 'loadingBarMove 3s linear forwards, loadingShimmer 1s linear infinite';
+      setTimeout(()=>{
+        ls.classList.add('hiding');
+        setTimeout(()=>{
+          ls.classList.remove('visible','hiding');
+          root.style.pointerEvents = 'all';
+        }, 400);
+      }, 3000);
+    } else if(!nowVisible && wasVisible) {
+      // Fade out smoothly
+      root.style.opacity = '0';
+      root.style.pointerEvents = 'none';
+    }
+
+    document.querySelectorAll('.value-slot').forEach(el=>el.classList.remove('eliminated','last-remaining'));
+
+    // ── Refresh value slot labels from gameValues (saved in Firebase) ──
+    const gv = d.gameValues; // sorted array of 16 values
+    if (gv && Array.isArray(gv)) {
+      for (let i = 0; i < 16; i++) {
+        const slot = document.getElementById(`vslot-${i+1}`);
+        if (slot) {
+          slot.dataset.val = gv[i];
+          slot.querySelector('.val-text').textContent = fmt(gv[i]);
+        }
+      }
+    }
+
+    let openedCount=0, remainingCount=0;
+    let playerCaseValue=0;
+
+    if(d.cases){
+      for(let i=1;i<=TOTAL;i++){
+        const cd=d.cases[i];
+        const cl=document.getElementById(`cl-${i}`);
+        if(d.playerCase===i){
+          cl.classList.add('opened');
+          remainingCount++;
+          playerCaseValue=cd.value;
+        } else {
+          if(cd&&cd.isOpen){
+            cl.classList.add('opened'); openedCount++;
+            const ve=document.querySelector(`.value-slot[data-val='${cd.value}']`);
+            if(ve) ve.classList.add('eliminated');
+          } else {
+            cl.classList.remove('opened'); remainingCount++;
+          }
+        }
+      }
+      if(remainingCount<=3&&d.gameState!=='finished'){
+        document.querySelectorAll('.value-slot:not(.eliminated)').forEach(el=>el.classList.add('last-remaining'));
+      }
+    }
+
+    // ── Podium ──
+    const isSwapped = d.swapped===true && d.swappedTo;
+    const isFinalDone = d.gameState==='final_reveal'||d.gameState==='finished';
+
+    if(!d.playerCase){
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p=>p.classList.remove('visible'));
+      prevPlayerCase=null;
+    } else if(isSwapped){
+      const orig=d.playerCase, sw=d.swappedTo;
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p=>p.classList.remove('visible'));
+
+      // If reveal done: show opened version of swapped case on podium
+      if(d.gameState==='finished'){
+        const po=document.getElementById(`po-${sw}`);
+        if(po&&po.style.backgroundImage&&po.style.backgroundImage!=='none') po.classList.add('visible');
+        else { const pl=document.getElementById(`pl-${sw}`); if(pl) pl.classList.add('visible'); }
+      } else {
+        const pl=document.getElementById(`pl-${sw}`); if(pl) pl.classList.add('visible');
+      }
+      const origCl=document.getElementById(`cl-${orig}`); if(origCl) origCl.classList.remove('opened');
+      const swCl=document.getElementById(`cl-${sw}`); if(swCl) swCl.classList.add('opened');
+
+    } else if(d.gameState==='finished'&&!isSwapped&&d.playerCase){
+      // Reveal: show opened version of player's case
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p=>p.classList.remove('visible'));
+      const po=document.getElementById(`po-${d.playerCase}`);
+      if(po&&po.style.backgroundImage&&po.style.backgroundImage!=='none') po.classList.add('visible');
+      else { const pl=document.getElementById(`pl-${d.playerCase}`); if(pl) pl.classList.add('visible'); }
+    } else {
+      if(prevPlayerCase!==d.playerCase){
+        document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p=>p.classList.remove('visible'));
+        const pl=document.getElementById(`pl-${d.playerCase}`); if(pl) pl.classList.add('visible');
+        prevPlayerCase=d.playerCase;
+      }
+    }
+
+    // ── Instruction ──
+    const it=document.getElementById('instruction-text');
+    it.classList.remove('attention');
+    if(d.gameState==='choose_player_case') it.innerText='ВЫБЕРИ СВОЙ КЕЙС';
+    else if(d.gameState==='playing'){
+      const next=[6,12,14].find(t=>t>openedCount);
+      if(next){
+        const left=next-openedCount;
+        const rs=(next===6&&openedCount===0)||(next===12&&openedCount===6)||(next===14&&openedCount===12);
+        it.innerText=`${rs?'ОТКРОЙ':'ОТКРОЙ ЕЩЕ'} ${left} ${caseWord(left)}`;
+      }
+    } else if(d.gameState==='banker_offer'){it.innerText='ВЫБОР ЗА ТОБОЙ!';it.classList.add('attention');}
+    else if(d.gameState==='final_swap'||d.gameState==='final_reveal'){
+      if(isSwapped) it.innerText='ОБМЕН! ОТКРОЙ КЕЙС НА ПОЛКЕ!';
+      else if(d.gameState==='final_reveal') it.innerText='КЕЙС НА ПОДИУМЕ — ОТКРОЙ ЕГО!';
+      else it.innerText='ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?';
+      it.classList.add('attention');
+    } else if(d.gameState==='finished'){it.innerText=isSwapped?'ОБМЕН СОВЕРШЕН!':'ИГРА ОКОНЧЕНА!';}
+    else it.innerText='ОЖИДАНИЕ ИГРЫ...';
+
+    // ── Final strip & buttons ──
+    // Hide strip once choice is made (pendingWin is set)
+    const showFinal=(d.gameState==='final_swap'||d.gameState==='final_reveal')&&!d.pendingWin;
+    document.getElementById('final-banner').classList.toggle('visible',showFinal);
+    // Buttons: only during final_swap before any choice
+    const showBtns=d.gameState==='final_swap'&&!isSwapped&&!d.pendingWin;
+    document.getElementById('final-buttons').classList.toggle('visible',showBtns);
+
+    // ── Banker popup ──
+    if(d.showBanker){
+      document.getElementById('banker-offer-amount').innerText=fmt(d.bankerOffer);
+      document.getElementById('banker-popup').classList.add('visible');
+    } else document.getElementById('banker-popup').classList.remove('visible');
+
+    // ── Deal taken win (mid-game banker accept) ──
+    const isDeal = d.gameState==='finished' && d.dealTaken===true;
+    if(isDeal){
+      document.getElementById('deal-win-amount').innerText=fmt(d.winAmount);
+      document.getElementById('deal-win-popup').classList.add('visible');
+      // Show what was in player's case
+      if(playerCaseValue){
+        document.getElementById('deal-case-val').innerText=fmt(playerCaseValue);
+        document.getElementById('deal-info-strip').classList.add('visible');
+      }
+    } else {
+      document.getElementById('deal-win-popup').classList.remove('visible');
+      document.getElementById('deal-info-strip').classList.remove('visible');
+    }
+
+    // ── Final win (scale+rise from podium) ──
+    const isFinalWin=d.gameState==='finished'&&d.dealTaken!==true;
+    if(isFinalWin){
+      document.getElementById('win-amount').innerText=fmt(d.winAmount);
+      document.getElementById('win-popup').classList.add('visible');
+    } else document.getElementById('win-popup').classList.remove('visible');
+
+    // ── Videos ──
+    // decision video: play once when final_swap starts
+    if(d.gameState==='final_swap' && prevGameState!=='final_swap'){
+      videoPlayed.decision=false; videoPlayed.result=false;
+    }
+    if((d.gameState==='final_reveal'||d.gameState==='final_swap')&&d.pendingWin&&!videoPlayed.decision){
+      videoPlayed.decision=true;
+      playVideo('vid-decision', autoRevealCase);
+    }
+    // result video after finished (final only)
+    if(d.gameState==='finished'&&d.dealTaken!==true&&!videoPlayed.result){
+      videoPlayed.result=true;
+      const winVal = d.winAmount||0;
+      // Find the other final case value to compare
+      // The two remaining values at final were: playerCase + one shelf case
+      // We can get both from d.cases
+      let finalVals = [];
+      if(d.cases && d.playerCase){
+        // Player case value
+        finalVals.push(d.cases[d.playerCase].value);
+        // The other case (swappedTo or the last non-open non-player case)
+        const otherIdx = d.swappedTo || Object.keys(d.cases).find(k=>
+          parseInt(k)!==d.playerCase && !d.cases[k].isOpen
+        );
+        if(otherIdx && d.cases[otherIdx]) finalVals.push(d.cases[otherIdx].value);
+      }
+      const maxFinal = finalVals.length>0 ? Math.max(...finalVals) : winVal+1;
+      // High = player won the bigger sum, Low = player won the smaller sum
+      playVideo(winVal >= maxFinal ? 'vid-win-high' : 'vid-win-low');
+    }
+
+    prevGameState=d.gameState;
+  });
+
+  </script>
+
 </body>
 </html>
