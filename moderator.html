@@ -107,6 +107,8 @@
         <div style="max-width: 420px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px;">
             <button onclick="handleLogout()" style="width: auto; background: #555; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0;">Выйти 🚪</button>
             <button onclick="openIconsModal()" style="width: auto; background: #2c2c36; border: 1px solid #555; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0; color: #ccc; border-radius: 5px; cursor: pointer; font-weight: bold;">🖼️ Иконки слотов</button>
+            <button onclick="openDnDMod()" style="width: auto; background: #6610f2; border: 1px solid #9b59b6; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0; color: #fff; border-radius: 5px; cursor: pointer; font-weight: bold;">🎰 DnD Модерка</button>
+            <button onclick="openLayoutEditor()" style="width: auto; background: #16a085; border: 1px solid #1abc9c; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0; color: #fff; border-radius: 5px; cursor: pointer; font-weight: bold;">📐 Позиции</button>
             <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
                 <div style="display: flex; align-items: center; gap: 7px; background: #25252c; border: 1px solid rgba(255,183,3,0.35); border-radius: 8px; padding: 6px 10px;">
                     <span style="font-size: 11px; font-weight: 800; color: #ffb703; white-space: nowrap;">🎡 Колесо</span>
@@ -809,5 +811,263 @@
         }).join('');
     } window.renderIconsGrid = renderIconsGrid;
 </script>
+
+    <!-- DnD Moderator Modal -->
+    <div id="dnd-mod-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center;">
+      <div style="background:#1c1c21; border:2px solid #6610f2; border-radius:12px; width:92vw; max-width:900px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 0 40px rgba(100,50,255,0.4);">
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 20px; border-bottom:1px solid #333; background:#25252c; flex-shrink:0;">
+          <h3 style="margin:0; color:#9b59b6; font-size:16px;">🎰 DnD Deal or No Deal — Модерка</h3>
+          <button onclick="closeDnDMod()" style="width:auto; padding:6px 14px; background:#555; border-radius:6px; margin:0; font-size:13px;">✕ Закрыть</button>
+        </div>
+        <iframe id="dnd-mod-iframe" src="" style="flex:1; border:none; min-height:600px;"></iframe>
+      </div>
+    </div>
+
+    <script>
+      function openDnDMod() {
+        const modal = document.getElementById('dnd-mod-modal');
+        const iframe = document.getElementById('dnd-mod-iframe');
+        modal.style.display = 'flex';
+        // Load DnD mod page — same directory
+        if (!iframe.src || iframe.src === window.location.href) {
+          iframe.src = 'dnd-mod-v4.html';
+        }
+      }
+      function closeDnDMod() {
+        document.getElementById('dnd-mod-modal').style.display = 'none';
+      }
+      // Close on backdrop click
+      document.getElementById('dnd-mod-modal').addEventListener('click', function(e) {
+        if(e.target === this) closeDnDMod();
+      });
+    </script>
+
+
+    <!-- ── Layout Editor Modal ── -->
+    <div id="layout-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.92);z-index:11000;flex-direction:column;align-items:center;justify-content:center;">
+      <div style="background:#1c1c21;border:2px solid #1abc9c;border-radius:12px;width:97vw;max-width:1200px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 60px rgba(26,188,156,0.3);max-height:96vh;">
+
+        <!-- Header -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid #333;background:#25252c;flex-shrink:0;gap:8px;flex-wrap:wrap;">
+          <h3 style="margin:0;color:#1abc9c;font-size:14px;">📐 Редактор позицій — 1920×1080</h3>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <!-- BG url -->
+            <input id="le-bg-url" type="text" placeholder="URL фону (скрін з стріма)..." style="background:#1a1a2e;border:1px solid #444;border-radius:4px;color:#fff;padding:5px 8px;font-size:11px;width:220px;">
+            <button onclick="applyLEBg()" style="width:auto;padding:5px 10px;background:#2980b9;border-radius:5px;margin:0;font-size:11px;">🖼 Фон</button>
+            <button onclick="clearLEBg()" style="width:auto;padding:5px 8px;background:#444;border-radius:5px;margin:0;font-size:11px;">✕</button>
+            <div style="width:1px;height:20px;background:#444;margin:0 4px;"></div>
+            <button onclick="resetLayoutPositions()" style="width:auto;padding:5px 10px;background:#e67e22;border-radius:5px;margin:0;font-size:11px;">↺ Скинути</button>
+            <button onclick="saveLayoutPositions()" style="width:auto;padding:5px 10px;background:#27ae60;border-radius:5px;margin:0;font-size:11px;">💾 Зберегти</button>
+            <button onclick="closeLayoutEditor()" style="width:auto;padding:5px 10px;background:#555;border-radius:5px;margin:0;font-size:11px;">✕ Закрити</button>
+          </div>
+        </div>
+
+        <!-- Canvas -->
+        <div style="flex:1;padding:12px;background:#141418;overflow:hidden;min-height:0;">
+          <div id="layout-canvas-wrap" style="position:relative;width:100%;padding-bottom:56.25%;border-radius:8px;border:1px solid #444;overflow:hidden;background:#0a0a10;">
+            <!-- BG image -->
+            <div id="le-bg" style="position:absolute;inset:0;background-size:cover;background-position:center;opacity:0.55;pointer-events:none;z-index:0;"></div>
+            <!-- Grid -->
+            <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px);background-size:5.208% 5.556%;pointer-events:none;z-index:1;"></div>
+
+            <!-- Widget block -->
+            <div id="le-widget" style="position:absolute;border:2px solid #3498db;border-radius:6px;z-index:10;user-select:none;box-shadow:0 0 0 1px rgba(52,152,219,0.3);">
+              <div id="le-widget-move" style="position:absolute;inset:0;background:rgba(52,152,219,0.15);cursor:move;display:flex;align-items:center;justify-content:center;">
+                <div style="text-align:center;pointer-events:none;">
+                  <div style="font-size:11px;font-weight:800;color:#3498db;text-shadow:0 1px 3px #000;">📊 ВИДЖЕТ</div>
+                  <div style="font-size:9px;color:#7fb3d3;">Bonus Buy + Battle + Wheel</div>
+                  <div id="le-widget-coords" style="font-size:9px;color:#5dade2;margin-top:2px;"></div>
+                </div>
+              </div>
+              <!-- Resize handles -->
+              <div class="le-handle le-se" data-block="widget" data-dir="se" style="position:absolute;right:-5px;bottom:-5px;width:12px;height:12px;background:#3498db;border-radius:2px;cursor:se-resize;z-index:11;"></div>
+              <div class="le-handle le-e"  data-block="widget" data-dir="e"  style="position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:10px;height:20px;background:#3498db;border-radius:2px;cursor:e-resize;z-index:11;opacity:0.7;"></div>
+              <div class="le-handle le-s"  data-block="widget" data-dir="s"  style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:20px;height:10px;background:#3498db;border-radius:2px;cursor:s-resize;z-index:11;opacity:0.7;"></div>
+            </div>
+
+            <!-- DnD block -->
+            <div id="le-dnd" style="position:absolute;border:2px solid #9b59b6;border-radius:6px;z-index:10;user-select:none;box-shadow:0 0 0 1px rgba(155,89,182,0.3);">
+              <div id="le-dnd-move" style="position:absolute;inset:0;background:rgba(155,89,182,0.15);cursor:move;display:flex;align-items:center;justify-content:center;">
+                <div style="text-align:center;pointer-events:none;">
+                  <div style="font-size:11px;font-weight:800;color:#9b59b6;text-shadow:0 1px 3px #000;">🎰 DnD ІГРА</div>
+                  <div id="le-dnd-coords" style="font-size:9px;color:#bb8fce;margin-top:2px;"></div>
+                </div>
+              </div>
+              <div class="le-handle le-se" data-block="dnd" data-dir="se" style="position:absolute;right:-5px;bottom:-5px;width:12px;height:12px;background:#9b59b6;border-radius:2px;cursor:se-resize;z-index:11;"></div>
+              <div class="le-handle le-e"  data-block="dnd" data-dir="e"  style="position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:10px;height:20px;background:#9b59b6;border-radius:2px;cursor:e-resize;z-index:11;opacity:0.7;"></div>
+              <div class="le-handle le-s"  data-block="dnd" data-dir="s"  style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:20px;height:10px;background:#9b59b6;border-radius:2px;cursor:s-resize;z-index:11;opacity:0.7;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Info bar -->
+        <div style="padding:8px 16px;border-top:1px solid #333;background:#1c1c21;display:flex;gap:16px;flex-wrap:wrap;align-items:center;flex-shrink:0;">
+          <div style="font-size:12px;color:#aaa;">
+            <span style="color:#3498db;font-weight:bold;">📊</span>
+            <span id="le-w-tl" style="color:#fff;font-weight:bold;">—</span> →
+            <span id="le-w-br" style="color:#fff;font-weight:bold;">—</span>
+            <span style="color:#666;"> w:</span><span id="le-w-size" style="color:#aaa;">—</span>
+          </div>
+          <div style="font-size:12px;color:#aaa;">
+            <span style="color:#9b59b6;font-weight:bold;">🎰</span>
+            <span id="le-d-tl" style="color:#fff;font-weight:bold;">—</span> →
+            <span id="le-d-br" style="color:#fff;font-weight:bold;">—</span>
+            <span style="color:#666;"> w:</span><span id="le-d-size" style="color:#aaa;">—</span>
+          </div>
+          <div style="font-size:11px;color:#555;margin-left:auto;">Перетягуй за центр (переміщення) або кути/краї (розмір)</div>
+        </div>
+
+      </div>
+    </div>
+
+    <script>
+    const CANVAS_W = 1920, CANVAS_H = 1080;
+
+    const defaultPositions = {
+      widget: { x:0, y:0, w:580, h:506 },
+      dnd:    { x:0, y:0, w:1297, h:728 }
+    };
+
+    let lePositions = {};
+    let leDragListeners = {};
+
+    function pct(v, max) { return (v/max*100).toFixed(4)+'%'; }
+
+    function renderLEBlocks() {
+      ['widget','dnd'].forEach(key => {
+        const pos = lePositions[key];
+        const el  = document.getElementById('le-'+key);
+        el.style.left   = pct(pos.x, CANVAS_W);
+        el.style.top    = pct(pos.y, CANVAS_H);
+        el.style.width  = pct(pos.w, CANVAS_W);
+        el.style.height = pct(pos.h, CANVAS_H);
+
+        const cEl = document.getElementById('le-'+key+'-coords');
+        if(cEl) cEl.textContent = `${pos.x},${pos.y}  ${pos.w}×${pos.h}`;
+
+        if(key==='widget') {
+          document.getElementById('le-w-tl').textContent   = `(${pos.x}, ${pos.y})`;
+          document.getElementById('le-w-br').textContent   = `(${pos.x+pos.w}, ${pos.y+pos.h})`;
+          document.getElementById('le-w-size').textContent = `${pos.w}×${pos.h}`;
+        } else {
+          document.getElementById('le-d-tl').textContent   = `(${pos.x}, ${pos.y})`;
+          document.getElementById('le-d-br').textContent   = `(${pos.x+pos.w}, ${pos.y+pos.h})`;
+          document.getElementById('le-d-size').textContent = `${pos.w}×${pos.h}`;
+        }
+      });
+    }
+
+    function getCanvasRect() {
+      return document.getElementById('layout-canvas-wrap').getBoundingClientRect();
+    }
+
+    function canvasPxToCoord(px, py) {
+      const r = getCanvasRect();
+      return {
+        x: Math.round(px / r.width  * CANVAS_W),
+        y: Math.round(py / r.height * CANVAS_H)
+      };
+    }
+
+    function initBlock(key) {
+      const moveEl  = document.getElementById('le-'+key+'-move');
+      const handles = document.querySelectorAll(`.le-handle[data-block="${key}"]`);
+
+      // Remove old listeners by cloning
+      const newMove = moveEl.cloneNode(true);
+      moveEl.parentNode.replaceChild(newMove, moveEl);
+      handles.forEach(h => {
+        const nh = h.cloneNode(true);
+        h.parentNode.replaceChild(nh, h);
+      });
+
+      // Move
+      document.getElementById('le-'+key+'-move').addEventListener('mousedown', e => {
+        e.preventDefault(); e.stopPropagation();
+        const r = getCanvasRect();
+        const sx = e.clientX, sy = e.clientY;
+        const ox = lePositions[key].x, oy = lePositions[key].y;
+        const onM = e2 => {
+          const dx = Math.round((e2.clientX-sx)/r.width*CANVAS_W);
+          const dy = Math.round((e2.clientY-sy)/r.height*CANVAS_H);
+          lePositions[key].x = Math.max(0, Math.min(CANVAS_W-lePositions[key].w, ox+dx));
+          lePositions[key].y = Math.max(0, Math.min(CANVAS_H-lePositions[key].h, oy+dy));
+          renderLEBlocks();
+        };
+        const onU = () => { document.removeEventListener('mousemove',onM); document.removeEventListener('mouseup',onU); };
+        document.addEventListener('mousemove',onM); document.addEventListener('mouseup',onU);
+      });
+
+      // Resize handles
+      document.querySelectorAll(`.le-handle[data-block="${key}"]`).forEach(h => {
+        h.addEventListener('mousedown', e => {
+          e.preventDefault(); e.stopPropagation();
+          const dir = h.dataset.dir;
+          const r = getCanvasRect();
+          const sx = e.clientX, sy = e.clientY;
+          const ow = lePositions[key].w, oh = lePositions[key].h;
+          const onM = e2 => {
+            const dx = Math.round((e2.clientX-sx)/r.width*CANVAS_W);
+            const dy = Math.round((e2.clientY-sy)/r.height*CANVAS_H);
+            if(dir==='se'||dir==='e') lePositions[key].w = Math.max(80, ow+dx);
+            if(dir==='se'||dir==='s') lePositions[key].h = Math.max(50, oh+dy);
+            // Clamp
+            lePositions[key].w = Math.min(CANVAS_W-lePositions[key].x, lePositions[key].w);
+            lePositions[key].h = Math.min(CANVAS_H-lePositions[key].y, lePositions[key].h);
+            renderLEBlocks();
+          };
+          const onU = () => { document.removeEventListener('mousemove',onM); document.removeEventListener('mouseup',onU); };
+          document.addEventListener('mousemove',onM); document.addEventListener('mouseup',onU);
+        });
+      });
+    }
+
+    function applyLEBg() {
+      const url = document.getElementById('le-bg-url').value.trim();
+      if(url) document.getElementById('le-bg').style.backgroundImage = `url('${url}')`;
+    }
+    function clearLEBg() {
+      document.getElementById('le-bg').style.backgroundImage = '';
+      document.getElementById('le-bg-url').value = '';
+    }
+
+    function openLayoutEditor() {
+      const saved = localStorage.getItem('kstz_layout');
+      if(saved) { try { lePositions = JSON.parse(saved); } catch { lePositions = JSON.parse(JSON.stringify(defaultPositions)); } }
+      else lePositions = JSON.parse(JSON.stringify(defaultPositions));
+
+      // Restore saved bg url
+      const savedBg = localStorage.getItem('kstz_layout_bg');
+      if(savedBg) { document.getElementById('le-bg-url').value = savedBg; document.getElementById('le-bg').style.backgroundImage = `url('${savedBg}')`; }
+
+      document.getElementById('layout-modal').style.display = 'flex';
+      initBlock('widget');
+      initBlock('dnd');
+      setTimeout(renderLEBlocks, 50);
+    }
+
+    function closeLayoutEditor() { document.getElementById('layout-modal').style.display = 'none'; }
+
+    function resetLayoutPositions() {
+      lePositions = JSON.parse(JSON.stringify(defaultPositions));
+      renderLEBlocks();
+    }
+
+    function saveLayoutPositions() {
+      localStorage.setItem('kstz_layout', JSON.stringify(lePositions));
+      const bgUrl = document.getElementById('le-bg-url').value.trim();
+      if(bgUrl) localStorage.setItem('kstz_layout_bg', bgUrl);
+
+      if(typeof db !== 'undefined') {
+        db.ref('widgets/layout').set(lePositions).then(() => {
+          const btn = document.querySelector('[onclick="saveLayoutPositions()"]');
+          const orig = btn.textContent;
+          btn.textContent = '✅ Збережено!';
+          setTimeout(() => { btn.textContent = orig; }, 1500);
+        });
+      }
+    }
+    </script>
+
 </body>
 </html>
