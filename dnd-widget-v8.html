@@ -630,8 +630,8 @@
       }
     } else if(d.gameState==='banker_offer'){it.innerText='ВЫБОР ЗА ТОБОЙ!';it.classList.add('attention');}
     else if(d.gameState==='final_swap'||d.gameState==='final_reveal'){
-      if(isSwapped) it.innerText='ОБМЕН! ОТКРОЙ КЕЙС НА ПОЛКЕ!';
-      else if(d.gameState==='final_reveal') it.innerText='КЕЙС НА ПОДИУМЕ — ОТКРОЙ ЕГО!';
+      if(isSwapped) it.innerText='ДА БУДЕТ СВЕТ!';
+      else if(d.gameState==='final_reveal') it.innerText='ДА БУДЕТ СВЕТ!';
       else it.innerText='ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?';
       it.classList.add('attention');
     } else if(d.gameState==='finished'){it.innerText=isSwapped?'ОБМЕН СОВЕРШЕН!':'ИГРА ОКОНЧЕНА!';}
