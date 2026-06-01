@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>DnD Панель Управления</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #1e1e24; color: #fff; padding: 20px; }
+    h2 { margin-top:0; font-size:18px; color:#ffcc00; }
+    h3 { margin:0 0 10px 0; font-size:15px; color:#00ffcc; }
+    .panel { background:#2b2b36; padding:20px; border-radius:10px; margin-bottom:16px; box-shadow:0 4px 6px rgba(0,0,0,0.3); }
+    button { background:#007bff; color:#fff; border:none; padding:10px 15px; border-radius:5px; cursor:pointer; font-weight:bold; transition:0.2s; }
+    button:hover { opacity:0.8; }
+    button:disabled { background:#444; cursor:not-allowed; opacity:0.5; }
+    .btn-danger  { background:#dc3545; }
+    .btn-success { background:#28a745; }
+    .btn-warning { background:#ffcc00; color:#000; }
+    .btn-info    { background:#17a2b8; }
+    .btn-purple  { background:#6610f2; }
+    .btn-huge    { font-size:20px; padding:15px 30px; width:100%; margin-bottom:10px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(80px,1fr)); gap:10px; margin-top:15px; }
+    .case-btn { padding:15px 5px; font-size:18px; background:#44475a; color:#fff; border:1px solid #555; border-radius:5px; display:flex; flex-direction:column; align-items:center; gap:5px; }
+    .case-btn.opened { background:#222; color:#777; text-decoration:line-through; cursor:not-allowed; border-color:#222; }
+    .case-btn.player-case { background:#ffcc00; color:#000; border:2px solid #fff; font-weight:bold; }
+    .case-val { font-size:12px; color:#00ffcc; }
+    .controls { display:flex; gap:15px; align-items:center; flex-wrap:wrap; }
+    .status-text { margin-bottom:15px; font-size:16px; font-weight:bold; color:#00ffcc; }
+    #bankerDecision, #swapDecision { display:none; margin-top:15px; border-top:2px dashed #555; padding-top:15px; }
+
+    /* ── URL Asset Panel ── */
+    .asset-section { margin-bottom:14px; }
+    .url-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:8px; }
+    .url-row { display:flex; flex-direction:column; gap:3px; }
+    .url-row label { font-size:12px; color:#ffcc00; font-weight:bold; }
+    .url-row input[type=text] {
+      background:#1a1a2e; border:1px solid #444; border-radius:4px;
+      color:#fff; padding:5px 8px; font-size:12px; width:100%;
+      transition:border-color 0.2s;
+    }
+    .url-row input[type=text]:focus { outline:none; border-color:#00ffcc; }
+    .url-row input[type=text].ok  { border-color:#28a745; }
+    .url-row input[type=text].err { border-color:#dc3545; }
+    .url-row .url-preview { width:36px; height:24px; object-fit:cover; border-radius:3px; display:none; vertical-align:middle; margin-left:4px; }
+    .url-actions { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:12px; }
+    .url-progress { font-size:13px; color:#aaa; margin-left:auto; }
+    .hint { font-size:12px; color:#888; margin-top:8px; line-height:1.5; }
+    .hint span { color:#ffcc00; }
+    .tab-bar { display:flex; gap:0; margin-bottom:12px; }
+    .tab { background:#1a1a2e; border:1px solid #333; padding:8px 18px; cursor:pointer; font-size:13px; border-radius:4px 4px 0 0; color:#aaa; transition:0.2s; }
+    .tab.active { background:#2b2b36; color:#00ffcc; border-bottom-color:#2b2b36; }
+    .tab-content { display:none; }
+    .tab-content.active { display:block; }
+    .save-to-db-btn { background:#e67e22; }
+    .btn-reveal { background:#9b59b6; }
+    #revealSection { display:none; margin-top:15px; border-top:2px dashed #9b59b6; padding-top:15px; }
+    .reveal-info { font-size:14px; color:#aaa; margin-bottom:10px; }
+    /* Prize settings */
+    .prize-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+    .prize-row label { color:#ffcc00; font-size:13px; min-width:160px; }
+    .prize-input { background:#1a1a2e; border:1px solid #444; border-radius:4px; color:#fff; padding:6px 10px; font-size:15px; width:130px; }
+    .prize-input:focus { outline:none; border-color:#00ffcc; }
+    .prize-values-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:6px; margin-top:10px; }
+    .prize-val-box { background:#1a1a2e; border:1px solid #444; border-radius:4px; color:#e8d090; font-size:13px; padding:5px 6px; text-align:center; font-weight:600; }
+    .slider-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:8px; }
+    .slider-row label { color:#ffcc00; font-size:13px; }
+    #chanceSlider { width:320px; accent-color:#8855ff; }
+    #chanceLabel { color:#fff; font-size:14px; min-width:160px; }
+  </style>
+</head>
+<body>
+
+  <!-- Game Controls -->
+  <div class="panel controls">
+    <button id="toggleVisibleBtn" class="btn-danger">Показать в OBS: ВЫКЛ</button>
+    <button id="newGameBtn" class="btn-success">Запустить новую игру</button>
+    <button id="forceBankerBtn" class="btn-info" style="margin-left:auto">☎️ Вызвать Банкира</button>
+  </div>
+
+  <!-- Prize Settings -->
+  <div class="panel">
+    <h2>🎰 Настройка призов</h2>
+    <div class="prize-row">
+      <label>Мин. сумма (₽):</label>
+      <input type="number" class="prize-input" id="prizeMin" value="2000" min="1" step="100">
+      <label>Макс. сумма (₽):</label>
+      <input type="number" class="prize-input" id="prizeMax" value="50000" min="1" step="100">
+      <button id="calcPrizesBtn" class="btn-info" style="padding:7px 16px">⚡ Рассчитать</button>
+    </div>
+    <div class="slider-row">
+      <label>Шанс большого выигрыша:</label>
+      <span style="color:#aaa;font-size:12px">низкий</span>
+      <input type="range" id="chanceSlider" min="0" max="100" value="50">
+      <span style="color:#aaa;font-size:12px">высокий</span>
+      <span id="chanceLabel">50% — сбалансировано</span>
+    </div>
+    <div class="prize-values-grid" id="prizeValuesGrid"></div>
+    <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
+      <button id="applyPrizesBtn" class="btn-success" style="padding:8px 18px">✅ Применить призы к новой игре</button>
+      <span style="font-size:12px;color:#888;align-self:center">Призы применяются при следующей "Новой игре"</span>
+    </div>
+  </div>
+
+  <div class="panel" id="actionPanel">
+    <h2>📞 Действия</h2>
+    <div id="bankerDecision">
+      <h3 style="color:#ff0044;text-align:center">БАНКИР ЖДЕТ РЕШЕНИЯ</h3>
+      <button id="dealBtn" class="btn-success btn-huge">✅ ЗАБРАТЬ ДЕНЬГИ (DEAL)</button>
+      <button id="noDealBtn" class="btn-danger btn-huge">❌ ИГРАТЬ ДАЛЬШЕ (NO DEAL)</button>
+    </div>
+    <div id="swapDecision">
+      <h3 style="color:#00ffcc;text-align:center">ФИНАЛ: ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?</h3>
+      <button id="keepBtn" class="btn-success btn-huge">💼 ОСТАВИТЬ СВОЙ КЕЙС</button>
+      <button id="swapBtn" class="btn-warning btn-huge">🔄 ПОМЕНЯТЬСЯ КЕЙСАМИ</button>
+      <div id="revealSection">
+        <div class="reveal-info" id="revealInfo">—</div>
+        <button id="revealCaseBtn" class="btn-reveal btn-huge">🔓 ОТКРЫТЬ КЕЙС НА ЭКРАНЕ</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Игровое поле (16 Кейсов)</h2>
+    <div id="status" class="status-text">Ожидание старта...</div>
+    <div class="grid" id="casesGrid"></div>
+  </div>
+
+  <!-- Asset URL Manager -->
+  <div class="panel">
+    <h2>🖼️ Изображения виджета (URL из облака)</h2>
+    <p class="hint" style="margin-bottom:12px">
+      Вставь ссылки на изображения из Google Drive, Dropbox, Imgur и т.д.<br>
+      <span>Google Drive:</span> ссылка вида <code style="color:#aaa">https://drive.google.com/uc?id=FILE_ID</code> (через «Получить ссылку» → «Прямая ссылка»)<br>
+      <span>Imgur / любой хостинг:</span> прямая ссылка на .png/.jpg
+    </p>
+
+    <div class="tab-bar">
+      <div class="tab active" data-tab="scene">🎬 Сцена</div>
+      <div class="tab" data-tab="cases">💼 Полка (1–16)</div>
+      <div class="tab" data-tab="podium">🏆 Подиум закрыт</div>
+      <div class="tab" data-tab="podium-open">📂 Подиум открыт</div>
+      <div class="tab" data-tab="videos">🎬 Видео</div>
+    </div>
+
+    <div class="tab-content active" id="tab-scene">
+      <div class="url-grid" id="urlsScene"></div>
+    </div>
+    <div class="tab-content" id="tab-cases">
+      <div class="url-grid" id="urlsCases"></div>
+    </div>
+    <div class="tab-content" id="tab-podium">
+      <p class="hint" style="margin-bottom:10px">Кейсы на подиуме (закрытые). Формат 1920×1080 PNG.</p>
+      <div class="url-grid" id="urlsPodium"></div>
+    </div>
+    <div class="tab-content" id="tab-podium-open">
+      <p class="hint" style="margin-bottom:10px">Кейсы в открытом виде на подиуме — появляются когда модератор нажимает «Открыть кейс». Формат 1920×1080 PNG. Ключи: po1–po16.</p>
+      <div class="url-grid" id="urlsPodiumOpen"></div>
+    </div>
+    <div class="tab-content" id="tab-videos">
+      <p class="hint" style="margin-bottom:10px">
+        Три видео (MOV/MP4, прямая ссылка) в правом нижнем углу.<br>
+        <span>vid-decision</span> — появляется после нажатия ОСТАВИТЬ или ПОМЕНЯТЬ<br>
+        <span>vid-win-high</span> — если выигрыш ≥ порога (большая из двух сумм)<br>
+        <span>vid-win-low</span> — если выигрыш < порога (меньшая из двух сумм)
+      </p>
+      <div class="url-grid" id="urlsVideos"></div>
+      <div style="margin-top:10px;padding:10px;background:#1a1a2e;border-radius:6px;font-size:13px;color:#aaa;line-height:1.6;">
+        💡 <b style="color:#ffcc00;">Как работает:</b> сравниваются 2 финальные суммы — большей соответствует vid-win-high, меньшей — vid-win-low.<br>
+        Максимальный размер файла: <b style="color:#fff;">8 МБ</b>. Для больших файлов используй прямую URL-ссылку.
+      </div>
+    </div>
+
+    <div class="url-actions">
+      <button id="saveAssetsBtn" class="save-to-db-btn">💾 Сохранить URLs в Firebase</button>
+      <button id="previewAllBtn" class="btn-info">👁 Проверить все ссылки</button>
+      <span class="url-progress" id="urlProgress">—</span>
+    </div>
+    <div class="hint" style="margin-top:10px">
+      После нажатия <span>«Сохранить URLs в Firebase»</span> виджет в OBS автоматически загрузит картинки по ссылкам — никаких файлов рядом не нужно.
+    </div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1Lde9n2SroxE024-5Jned8ItOEuYQGLI",
+    authDomain: "dornod-74e98.firebaseapp.com",
+    databaseURL: "https://dornod-74e98-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "dornod-74e98",
+    storageBucket: "dornod-74e98.firebasestorage.app",
+    messagingSenderId: "941512359529",
+    appId: "1:941512359529:web:bac6084dba4d9c66192cf8"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+  const gameRef   = ref(db, 'widgets/deal_or_no_deal');
+  const assetsRef = ref(db, 'widgets/assets');
+
+  const VALUES = [2000,3000,4000,5000,7000,9000,12000,15000,18000,22000,26000,30000,35000,40000,45000,50000];
+  const TOTAL_CASES = 16;
+  let currentState = {};
+
+  // ── Tabs ──
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(`tab-${tab.dataset.tab}`).classList.add('active');
+    });
+  });
+
+  // ── URL inputs builder ──
+  const SCENE_KEYS  = ['фон','рамка','banker-banner'];
+  const CASE_KEYS   = Array.from({length:16},(_,i)=>String(i+1));
+  const PODIUM_KEYS = Array.from({length:16},(_,i)=>`p${i+1}`);
+  const LABEL_MAP   = { 'фон':'Фон (1920×1080)','рамка':'Рамка суммы', 'banker-banner':'Банер Костизи (зображення над сумою)' };
+
+  function buildUrlRows(keys, containerId) {
+    const container = document.getElementById(containerId);
+    keys.forEach(key => {
+      const label = LABEL_MAP[key] || (key.startsWith('p') ? `Подиум ${key.slice(1)}` : `Кейс ${key}`);
+      const div = document.createElement('div');
+      div.className = 'url-row';
+      div.innerHTML = `
+        <label>${label}</label>
+        <div style="display:flex;align-items:center;gap:4px">
+          <input type="text" id="url-${key}" placeholder="https://..." autocomplete="off">
+          <img class="url-preview" id="prev-${key}" alt="">
+        </div>`;
+      container.appendChild(div);
+    });
+  }
+
+  const PODIUM_OPEN_KEYS = Array.from({length:16},(_,i)=>`po${i+1}`);
+  const VIDEO_KEYS = ['vid-decision','vid-win-high','vid-win-low'];
+  const VIDEO_LABEL = {'vid-decision':'Видео 1 — После выбора (оставить/поменять)','vid-win-high':'Видео 2 — Высокий выигрыш','vid-win-low':'Видео 3 — Низкий выигрыш'};
+
+  buildUrlRows(SCENE_KEYS,  'urlsScene');
+  buildUrlRows(CASE_KEYS,   'urlsCases');
+  buildUrlRows(PODIUM_KEYS, 'urlsPodium');
+  buildUrlRows(PODIUM_OPEN_KEYS, 'urlsPodiumOpen');
+
+  // Video rows — file upload (base64) OR URL
+  const videoContainer = document.getElementById('urlsVideos');
+  VIDEO_KEYS.forEach(key => {
+    const div = document.createElement('div');
+    div.className = 'url-row';
+    div.style.cssText = 'grid-column:1/-1;';
+    div.innerHTML = `
+      <label style="font-size:13px;color:#ffcc00;font-weight:bold;">${VIDEO_LABEL[key]||key}</label>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;">
+        <input type="text" id="url-${key}" placeholder="URL (.webm/.mov/.mp4) или загрузи файл →" autocomplete="off" style="flex:1;min-width:280px;">
+        <label style="background:#6610f2;color:#fff;padding:7px 14px;border-radius:5px;cursor:pointer;font-size:13px;font-weight:bold;white-space:nowrap;">
+          📁 Загрузить видео
+          <input type="file" accept="video/*,.mov,.webm,.mp4" style="display:none" data-vidkey="${key}" class="vid-file-input">
+        </label>
+        <span id="vid-status-${key}" style="font-size:12px;color:#aaa;">—</span>
+      </div>`;
+    videoContainer.appendChild(div);
+  });
+
+  // Handle video file uploads → base64 → stored as URL
+  document.querySelectorAll('.vid-file-input').forEach(input => {
+    input.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const key = input.dataset.vidkey;
+      const statusEl = document.getElementById(`vid-status-${key}`);
+      const urlInp = document.getElementById(`url-${key}`);
+      statusEl.textContent = '⏳ Конвертирую...';
+      statusEl.style.color = '#ffcc00';
+      
+      // Convert to base64 data URL
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        const dataUrl = ev.target.result;
+        urlInp.value = `[BASE64:${file.name}]`; // display placeholder
+        urlInp.classList.add('ok');
+        // Save directly to Firebase assets
+        try {
+          const { set: fbSet } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js");
+          const { ref: fbRef } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js");
+          // Store video as base64 in assets
+          // Note: Firebase Realtime DB has 10MB per node limit
+          // For large videos use URL instead
+          const sizeKB = Math.round(dataUrl.length / 1024);
+          if (sizeKB > 8000) {
+            statusEl.textContent = `⚠ Файл ${sizeKB}KB > 8MB — используй URL`;
+            statusEl.style.color = '#ff6b6b';
+            urlInp.value = '';
+            return;
+          }
+          await set(ref(db, 'widgets/assets/' + key), dataUrl);
+          statusEl.textContent = `✓ ${file.name} (${sizeKB}KB) — сохранено`;
+          statusEl.style.color = '#28a745';
+        } catch(err) {
+          statusEl.textContent = `✗ Ошибка: ${err.message}`;
+          statusEl.style.color = '#ff6b6b';
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
+  // Load saved URLs from Firebase
+  onValue(assetsRef, snap => {
+    const data = snap.val();
+    if (!data) return;
+    [...SCENE_KEYS,...CASE_KEYS,...PODIUM_KEYS,...PODIUM_OPEN_KEYS,...VIDEO_KEYS].forEach(key => {
+      const inp = document.getElementById(`url-${key}`);
+      if (inp && data[key]) {
+        inp.value = data[key];
+        inp.classList.add('ok');
+        showPreview(key, data[key]);
+      }
+    });
+    updateProgress();
+  });
+
+  function showPreview(key, url) {
+    const img = document.getElementById(`prev-${key}`);
+    if (!img || !url) return;
+    img.style.display = 'inline-block';
+    img.src = url;
+    img.onerror = () => { img.style.display='none'; };
+  }
+
+  // Preview all
+  document.getElementById('previewAllBtn').onclick = () => {
+    [...SCENE_KEYS,...CASE_KEYS,...PODIUM_KEYS,...PODIUM_OPEN_KEYS,...VIDEO_KEYS].forEach(key => {
+      const inp = document.getElementById(`url-${key}`);
+      if (!inp || !inp.value.trim()) return;
+      const url = inp.value.trim();
+      // Quick image test
+      const tst = new Image();
+      tst.onload  = () => { inp.classList.remove('err'); inp.classList.add('ok'); showPreview(key,url); };
+      tst.onerror = () => { inp.classList.remove('ok'); inp.classList.add('err'); };
+      tst.src = url;
+    });
+    updateProgress();
+  };
+
+  function updateProgress() {
+    const allKeys = [...SCENE_KEYS,...CASE_KEYS,...PODIUM_KEYS];
+    const filled = allKeys.filter(k => {
+      const inp = document.getElementById(`url-${k}`);
+      return inp && inp.value.trim();
+    }).length;
+    document.getElementById('urlProgress').textContent = `${filled} / ${allKeys.length} заполнено`;
+  }
+
+  // Save to Firebase
+  document.getElementById('saveAssetsBtn').onclick = async () => {
+    const btn = document.getElementById('saveAssetsBtn');
+    btn.textContent = '⏳ Сохраняю...'; btn.disabled = true;
+    const assets = {};
+    [...SCENE_KEYS,...CASE_KEYS,...PODIUM_KEYS,...PODIUM_OPEN_KEYS,...VIDEO_KEYS].forEach(key => {
+      const inp = document.getElementById(`url-${key}`);
+      if (!inp) return;
+      const val = inp.value.trim();
+      // Skip base64 placeholders (already saved directly by upload handler)
+      if (val && !val.startsWith('[BASE64')) assets[key] = val;
+    });
+    try {
+      await set(assetsRef, assets);
+      btn.textContent = '✅ Сохранено!';
+      setTimeout(() => { btn.textContent = '💾 Сохранить URLs в Firebase'; btn.disabled = false; }, 2000);
+    } catch(e) {
+      btn.textContent = '❌ Ошибка: ' + e.message;
+      btn.disabled = false;
+    }
+  };
+
+  // ── Prize calculator ──
+  let customValues = null; // null = use default VALUES
+
+  function chanceLabel(v) {
+    if(v<=20) return `${v}% — почти всегда мало`;
+    if(v<=40) return `${v}% — чаще меньше`;
+    if(v<=60) return `${v}% — сбалансировано`;
+    if(v<=80) return `${v}% — чаще больше`;
+    return `${v}% — почти всегда много`;
+  }
+
+  document.getElementById('chanceSlider').oninput = function() {
+    document.getElementById('chanceLabel').textContent = chanceLabel(parseInt(this.value));
+  };
+
+  document.getElementById('calcPrizesBtn').onclick = () => {
+    const minV = parseInt(document.getElementById('prizeMin').value) || 2000;
+    const maxV = parseInt(document.getElementById('prizeMax').value) || 50000;
+    const chance = parseInt(document.getElementById('chanceSlider').value); // 0-100
+    if(maxV <= minV) { alert('Макс должна быть больше мин'); return; }
+
+    // Split into two halves: left column (8 small) and right column (8 large)
+    // midpoint splits the range, skewed by chance slider
+    // chance=50 → mid = (min+max)/2
+    // chance>50 → mid moves toward max (more values in upper half)
+    // chance<50 → mid moves toward min (more values in lower half)
+    const skewFactor = (chance - 50) / 100; // -0.5..+0.5
+    const range = maxV - minV;
+    const mid = Math.round((minV + range * (0.5 + skewFactor * 0.4)) / 500) * 500;
+
+    // Left 8: small values from minV to mid, with smaller steps (tighter clustering)
+    // Use square root curve so steps are smaller near min, bigger near mid
+    const leftVals = [];
+    for(let i = 0; i < 8; i++) {
+      const t = i / 7; // 0..1
+      // sqrt curve: smaller steps at start, larger near end
+      const curved = Math.pow(t, 0.7);
+      const v = Math.round((minV + (mid - minV) * curved) / 500) * 500;
+      leftVals.push(v);
+    }
+
+    // Right 8: large values from mid to maxV, with larger steps
+    // Use power curve so steps grow bigger toward max
+    const rightVals = [];
+    for(let i = 0; i < 8; i++) {
+      const t = i / 7; // 0..1
+      // power > 1 curve: steps get bigger near end
+      const curved = Math.pow(t, 1.3);
+      const v = Math.round((mid + (maxV - mid) * curved) / 500) * 500;
+      rightVals.push(v);
+    }
+
+    // Merge, deduplicate, ensure 16 unique sorted values
+    let all = [...leftVals, ...rightVals].sort((a,b)=>a-b);
+    all = [...new Set(all)];
+    // If duplicates removed some, fill gaps
+    while(all.length < 16) {
+      // Find largest gap and add midpoint
+      let bestGap = 0, bestIdx = 0;
+      for(let i=0;i<all.length-1;i++){
+        const g = all[i+1]-all[i];
+        if(g > bestGap){ bestGap=g; bestIdx=i; }
+      }
+      const newVal = Math.round((all[bestIdx]+all[bestIdx+1])/2/500)*500;
+      all.splice(bestIdx+1,0,newVal);
+      all = [...new Set(all)].sort((a,b)=>a-b);
+    }
+    customValues = all.slice(0,16);
+
+    // Render preview grid (2 columns: left 8 | right 8)
+    const grid = document.getElementById('prizeValuesGrid');
+    grid.innerHTML = '<div style="grid-column:1/-1;font-size:11px;color:#888;margin-bottom:4px;">Ліва колонка (малі) → Права колонка (великі)</div>' +
+      customValues.map((v,i)=>`<div class="prize-val-box" style="${i<8?'border-color:#3498db':'border-color:#9b59b6'}">${v.toLocaleString('ru-RU')} ₽</div>`).join('');
+  };
+
+  document.getElementById('applyPrizesBtn').onclick = async () => {
+    if(!customValues){ alert('Сначала нажми «Рассчитать»'); return; }
+    // Save gameValues to Firebase so widget reads them immediately
+    try {
+      await update(gameRef, { gameValues: customValues });
+      document.getElementById('applyPrizesBtn').textContent = `✅ Активно: ${customValues[0].toLocaleString()}₽ — ${customValues[15].toLocaleString()}₽`;
+      document.getElementById('applyPrizesBtn').style.background = '#27ae60';
+    } catch(e) {
+      alert('Ошибка сохранения: ' + e.message);
+    }
+  };
+
+  // ── Game logic ──
+  const fmt = n => n.toLocaleString('ru-RU') + ' ₽';
+  function shuffle(arr) {
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    return a;
+  }
+
+  onValue(gameRef, snap => {
+    const d = snap.val(); if(!d) return;
+    currentState = d;
+    renderCases(); updateUI();
+  });
+
+  function updateUI() {
+    const d = currentState;
+    document.getElementById('toggleVisibleBtn').textContent = d.isVisible ? 'Показать в OBS: ВКЛ' : 'Показать в OBS: ВЫКЛ';
+    document.getElementById('toggleVisibleBtn').className = d.isVisible ? 'btn-success' : 'btn-danger';
+    document.getElementById('bankerDecision').style.display = 'none';
+    document.getElementById('swapDecision').style.display   = 'none';
+    const st = document.getElementById('status');
+    if (d.gameState==='choose_player_case') st.textContent='ШАГ 1: Выберите кейс игрока';
+    else if(d.gameState==='playing')        st.textContent='ШАГ 2: Открывайте кейсы';
+    else if(d.gameState==='banker_offer')  { st.textContent=`БАНКИР: ${fmt(d.bankerOffer)}`; document.getElementById('bankerDecision').style.display='block'; }
+    else if(d.gameState==='final_swap')    { st.textContent='ФИНАЛ: Ждем решения!'; document.getElementById('swapDecision').style.display='block'; }
+    else if(d.gameState==='final_reveal')  { st.textContent='ФИНАЛ: Ждем открытия кейса!'; document.getElementById('swapDecision').style.display='block'; document.getElementById('revealSection').style.display='block'; document.getElementById('keepBtn').disabled=true; document.getElementById('swapBtn').disabled=true; }
+    else if(d.gameState==='finished')       st.textContent=`ИГРА ОКОНЧЕНА. ВЫИГРЫШ: ${fmt(d.winAmount)}`;
+  }
+
+  function renderCases() {
+    const grid = document.getElementById('casesGrid');
+    grid.innerHTML='';
+    if(!currentState.cases) return;
+    for(let i=1;i<=TOTAL_CASES;i++){
+      const btn=document.createElement('button');
+      btn.className='case-btn';
+      const cd=currentState.cases[i];
+      let content=`<span>💼 ${i}</span>`;
+      if(cd.isOpen){ btn.classList.add('opened'); content+=`<span class="case-val">${fmt(cd.value)}</span>`; }
+      if(currentState.playerCase===i){ btn.classList.add('player-case'); content=`★ ${i} ★`; }
+      btn.innerHTML=content;
+      btn.onclick=()=>handleCaseClick(i,cd.isOpen);
+      grid.appendChild(btn);
+    }
+  }
+
+  document.getElementById('forceBankerBtn').onclick = () => {
+    if(currentState.gameState!=='playing'||!currentState.playerCase) return;
+    let rem=[];
+    for(let i=1;i<=TOTAL_CASES;i++) if(!currentState.cases[i].isOpen) rem.push(currentState.cases[i].value);
+    triggerBanker(rem);
+  };
+
+  function triggerBanker(rem) {
+    const ev=rem.reduce((a,b)=>a+b,0)/rem.length;
+    let m=0.15+((TOTAL_CASES-rem.length)*0.04); if(m>0.80)m=0.80;
+    const offer=Math.round(ev*m*(1+(Math.random()*0.1-0.05))/100)*100;
+    update(gameRef,{bankerOffer:offer,showBanker:true,gameState:'banker_offer'});
+  }
+
+  async function handleCaseClick(n,isOpen){
+    if(isOpen||['banker_offer','final_swap','finished'].includes(currentState.gameState)) return;
+    if(currentState.gameState==='choose_player_case'){
+      update(gameRef,{playerCase:n,gameState:'playing'}); return;
+    }
+    let opened=0,rem=[];
+    for(let i=1;i<=TOTAL_CASES;i++){
+      if(i===n||currentState.cases[i].isOpen){ if(i!==currentState.playerCase)opened++; }
+      else if(i!==currentState.playerCase) rem.push(currentState.cases[i].value);
+    }
+    rem.push(currentState.cases[currentState.playerCase].value);
+    const upd={[`cases/${n}/isOpen`]:true};
+    if(opened===14){ upd.gameState='final_swap'; }
+    else if(opened===6||opened===12){
+      const ev=rem.reduce((a,b)=>a+b,0)/rem.length;
+      let m=0.15+((TOTAL_CASES-rem.length)*0.04); if(m>0.80)m=0.80;
+      upd.bankerOffer=Math.round(ev*m*(1+(Math.random()*0.1-0.05))/100)*100;
+      upd.showBanker=true; upd.gameState='banker_offer';
+    }
+    update(gameRef,upd);
+  }
+
+  document.getElementById('dealBtn').onclick  = ()=>update(gameRef,{gameState:'finished',showBanker:false,winAmount:currentState.bankerOffer,dealTaken:true});
+  document.getElementById('noDealBtn').onclick = ()=>update(gameRef,{gameState:'playing',showBanker:false});
+
+  // KEEP: hide choice buttons immediately, then show reveal section
+  document.getElementById('keepBtn').onclick = () => {
+    const myVal = currentState.cases[currentState.playerCase].value;
+    // Immediately hide buttons on widget via pendingWin flag
+    update(gameRef, { pendingWin: myVal, pendingSwapped: false, gameState: 'final_reveal' });
+    document.getElementById('revealInfo').textContent = `Кейс игрока: ${fmt(myVal)} — нажми "Открыть кейс" когда готов`;
+    document.getElementById('revealSection').style.display = 'block';
+    document.getElementById('keepBtn').disabled = true;
+    document.getElementById('swapBtn').disabled = true;
+  };
+
+  // SWAP: IMMEDIATELY switch cases on widget, THEN wait for "открыть кейс"
+  document.getElementById('swapBtn').onclick = () => {
+    let otherCase = 0, otherVal = 0;
+    for (let i = 1; i <= TOTAL_CASES; i++) {
+      if (!currentState.cases[i].isOpen && i !== currentState.playerCase) {
+        otherCase = i; otherVal = currentState.cases[i].value; break;
+      }
+    }
+    // swapped:true fires IMMEDIATELY — widget swaps cases right now
+    update(gameRef, {
+      swapped: true,
+      swappedTo: otherCase,
+      pendingWin: otherVal,
+      gameState: 'final_reveal'
+    });
+    document.getElementById('revealInfo').textContent = `Обмен! Кейс #${otherCase}: ${fmt(otherVal)} — нажми "Открыть кейс" когда готов`;
+    document.getElementById('revealSection').style.display = 'block';
+    document.getElementById('keepBtn').disabled = true;
+    document.getElementById('swapBtn').disabled = true;
+  };
+
+  // REVEAL — show win amount on widget
+  document.getElementById('revealCaseBtn').onclick = () => {
+    const win = currentState.pendingWin || 0;
+    update(gameRef, { gameState: 'finished', winAmount: win, pendingWin: null, dealTaken: false });
+    document.getElementById('revealSection').style.display = 'none';
+    document.getElementById('keepBtn').disabled = false;
+    document.getElementById('swapBtn').disabled = false;
+  };
+  document.getElementById('newGameBtn').onclick = ()=>{
+    if(!confirm('Точно начать новую игру?')) return;
+    const sv=shuffle(customValues||VALUES),nc={};
+    for(let i=1;i<=TOTAL_CASES;i++) nc[i]={value:sv[i-1],isOpen:false};
+    const gv = customValues || [2000,3000,4000,5000,7000,9000,12000,15000,18000,22000,26000,30000,35000,40000,45000,50000];
+    set(gameRef,{isVisible:currentState.isVisible||false,gameState:'choose_player_case',playerCase:null,bankerOffer:0,showBanker:false,cases:nc,winAmount:0,swapped:false,swappedTo:null,dealTaken:false,pendingWin:null,gameValues:gv});
+  };
+  document.getElementById('toggleVisibleBtn').onclick = () => {
+    const turnOn = !currentState.isVisible;
+    if(turnOn) {
+      // Start fresh when enabling visibility
+      if(!confirm('Включить в OBS? Это запустит новую игру с нуля.')) return;
+      const gv2 = customValues || VALUES;
+      const sv = shuffle(gv2), nc={};
+      for(let i=1;i<=16;i++) nc[i]={value:sv[i-1],isOpen:false};
+      update(gameRef,{
+        isVisible:true, gameState:'choose_player_case',
+        playerCase:null, bankerOffer:0, showBanker:false,
+        cases:nc, winAmount:0, swapped:false, swappedTo:null,
+        dealTaken:false, pendingWin:null, gameValues:[...gv2].sort((a,b)=>a-b)
+      });
+    } else {
+      update(gameRef,{isVisible:false});
+    }
+  };
+
+  // threshold auto-calculated from case values
+</script>
+</body>
+</html>
