@@ -6,7 +6,7 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap" rel="stylesheet">
     <style>
-        body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; color: #fff; background: transparent; overflow: hidden; width: 1920px; height: 1080px; position: relative; }
+        body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; color: #fff; background: transparent; overflow: hidden; width:1920px;height:1080px;position:relative; }
         .tracker-container { margin: 0 auto; width: 580px; height: auto; min-height: 100px; background: rgba(10, 10, 14, 0.98); backdrop-filter: blur(8px); border-radius: 36px; padding: 24px; box-shadow: 0 35px 85px rgba(0,0,0,0.6), inset 0 1px 3px rgba(255,255,255,0.05); border: 1px solid rgba(255, 255, 255, 0.03); display: flex; flex-direction: column; box-sizing: border-box; transition: width 0.4s ease; }
         .slots-viewport { max-height: 488px; overflow: hidden; position: relative; border-radius: 24px; padding: 15px; margin: -15px; transition: max-height 0.4s ease; }
         .slots-list { display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
@@ -409,19 +409,9 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet">
   <style>
-    #dnd-outer-wrap {
-      position:absolute; left:0px; top:0px;
-      width:1297px; height:728px;
-      overflow:hidden; border-radius:16px; z-index:5;
-    }
-    #dnd-scale-wrap {
-      width:1920px; height:1080px;
-      transform:scale(0.67407); transform-origin:top left;
-    }
-    #dnd-root {
-      width:1920px; height:1080px; overflow:hidden;
-      position:relative; font-family:'Inter','Arial',sans-serif; font-weight:600;
-    }
+    #dnd-outer-wrap{position:absolute;left:0;top:0;width:1297px;height:728px;overflow:hidden;border-radius:16px;z-index:5;}
+    #dnd-scale-wrap{width:1920px;height:1080px;transform:scale(0.67407);transform-origin:top left;}
+    #dnd-root{width:1920px;height:1080px;overflow:hidden;position:relative;font-family:'Inter','Arial',sans-serif;font-weight:600;}
     
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap');
     @font-face {
@@ -747,7 +737,7 @@
   </style>
 </head>
 <body>
-<div id="tracker-wrap" style="position:absolute; left:0px; top:0px; transform-origin:top left;"><div id="solo-container" class="tracker-container" style="display: none;">
+<div id="tracker-wrap" style="position:absolute;left:0;top:0;transform-origin:top left;"><div id="solo-container" class="tracker-container" style="display: none;">
     <div class="stats-grid">
         <div class="stat-card"><span class="stat-icon">💰</span><span id="stat-total" class="stat-val">0</span></div>
         <div class="stat-card"><span class="stat-icon">⭐</span><span id="stat-count" class="stat-val">0/0</span></div>
@@ -861,28 +851,11 @@
     function formatNumberWithCommas(num) { return Number(num).toLocaleString('en-US').replace(/,/g, ' '); }
 
     db.ref('widgets/layout').on('value', function(lay) {
-      if (!lay) return;
-      const d = lay.val();
-      if (!d) return;
-      const tw = document.getElementById('tracker-wrap');
-      const dw = document.getElementById('dnd-outer-wrap');
-      if (tw && d.widget) {
-        tw.style.left      = d.widget.x + 'px';
-        tw.style.top       = d.widget.y + 'px';
-        var wScale         = d.widget.w / 580;
-        tw.style.transform = 'scale(' + wScale + ')';
-      }
-      if (dw && d.dnd) {
-        dw.style.left   = d.dnd.x + 'px';
-        dw.style.top    = d.dnd.y + 'px';
-        dw.style.width  = d.dnd.w + 'px';
-        dw.style.height = d.dnd.h + 'px';
-        var sc = d.dnd.h / 1080;
-        var sw = document.getElementById('dnd-scale-wrap');
-        if (sw) sw.style.transform = 'scale(' + sc + ')';
-      }
+      if(!lay) return; const d=lay.val(); if(!d) return;
+      const tw=document.getElementById('tracker-wrap'), dw=document.getElementById('dnd-outer-wrap');
+      if(tw&&d.widget){tw.style.left=d.widget.x+'px';tw.style.top=d.widget.y+'px';tw.style.transform='scale('+(d.widget.w/580)+')';}
+      if(dw&&d.dnd){dw.style.left=d.dnd.x+'px';dw.style.top=d.dnd.y+'px';dw.style.width=d.dnd.w+'px';dw.style.height=d.dnd.h+'px';const sw=document.getElementById('dnd-scale-wrap');if(sw)sw.style.transform='scale('+(d.dnd.h/1080)+')';}
     });
-
     db.ref('/').on('value', function(snapshot) {
         const data = snapshot.val() || {};
         const mode = data.global_mode || 'solo';
@@ -1437,8 +1410,8 @@
   <!-- Final bottom strip -->
   <div id="final-banner">
     <div class="final-body">
-      Остался <span class="hl">1 КЕЙС НА ПОЛКЕ</span> и <span class="hl">ТВОЙ КЕЙС</span> на подиуме.
-      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> — или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
+      Осталось <span class="hl">2</span> кейса.
+      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
     </div>
   </div>
 
@@ -1460,8 +1433,13 @@
   </div>
   <!-- Loading screen -->
   <div id="loading-screen">
-    <div id="loading-title">KSTZ</div>
-    <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+    <!-- Video mode (if loading-video asset set) -->
+    <video id="loading-video-el" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;display:none;" playsinline muted></video>
+    <!-- Default KSTZ text mode -->
+    <div id="loading-text-wrap" style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;">
+      <div id="loading-title">KSTZ</div>
+      <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+    </div>
   </div>
 </div></div></div></div>
 
@@ -1485,212 +1463,266 @@
   const assetsRef = ref(db, 'widgets/assets');
   const TOTAL = 16;
   const fmt = n => n.toLocaleString('ru-RU') + ' ₽';
-  function caseWord(n){if(n===1)return 'КЕЙС';if(n>=2&&n<=4)return 'КЕЙСА';return 'КЕЙСОВ';}
+  function caseWord(n){ return n===1?'КЕЙС':n<=4?'КЕЙСА':'КЕЙСОВ'; }
 
-  let assets = {};
+  // ── State ──
+  let assets        = {};
   let prevPlayerCase = null;
+  let prevShowBanker = false;
   let prevGameState  = null;
 
+  // ── Volume state (loaded from localStorage) ──
+  let volVideo = parseFloat(localStorage.getItem('dnd_vol_video') ?? '0.85');
+  let volMusic = parseFloat(localStorage.getItem('dnd_vol_music') ?? '0.60');
+  let volSfx   = parseFloat(localStorage.getItem('dnd_vol_sfx')   ?? '0.80');
+  // Track all active sfx audio elements to update volume live
+  const activeSfx = new Set();
+
+  // ── Media refs ──
+  const videoCorner = document.getElementById('video-corner');
+  const videoEl     = document.getElementById('video-el');
+  let   bgAudioEl   = null;
+  let   videoPlayed = { start:false, pick:false, deal:false, result:false };
+
+  // ── Apply assets ──
   function applyAssets(a) {
     if (!a) return;
     assets = a;
-    if (a['фон'])   document.getElementById('bg').style.backgroundImage=`url('${a['фон']}')`;
-    if (a['рамка']) document.documentElement.style.setProperty('--рамка-url',`url('${a['рамка']}')`);
-    if (a['banker-banner']){
-      const img=document.getElementById('banker-banner-img');
-      img.src=a['banker-banner']; img.onload=()=>img.classList.add('loaded');
+    if (a['фон'])   document.getElementById('bg').style.backgroundImage = `url('${a['фон']}')`;
+    if (a['рамка']) document.documentElement.style.setProperty('--рамка-url', `url('${a['рамка']}')`);
+    if (a['banker-banner']) {
+      const img = document.getElementById('banker-banner-img');
+      img.src = a['banker-banner'];
+      img.onload = () => img.classList.add('loaded');
     }
-    for(let i=1;i<=TOTAL;i++){
-      const cl=document.getElementById(`cl-${i}`);
-      if(cl&&a[String(i)]) cl.style.backgroundImage=`url('${a[String(i)]}')`;
-      const pl=document.getElementById(`pl-${i}`);
-      if(pl&&a[`p${i}`]) pl.style.backgroundImage=`url('${a[`p${i}`]}')`;
-      const po=document.getElementById(`po-${i}`);
-      if(po&&a[`po${i}`]) po.style.backgroundImage=`url('${a[`po${i}`]}')`;
+    for (let i = 1; i <= TOTAL; i++) {
+      const cl = document.getElementById(`cl-${i}`);
+      if (cl && a[String(i)]) cl.style.backgroundImage = `url('${a[String(i)]}')`;
+      const pl = document.getElementById(`pl-${i}`);
+      if (pl && a[`p${i}`]) pl.style.backgroundImage = `url('${a[`p${i}`]}')`;
+      const po = document.getElementById(`po-${i}`);
+      if (po && a[`po${i}`]) po.style.backgroundImage = `url('${a[`po${i}`]}')`;
     }
   }
-  onValue(assetsRef, s=>applyAssets(s.val()));
+  onValue(assetsRef, s => applyAssets(s.val()));
 
-  // Video player
-  const videoCorner = document.getElementById('video-corner');
-  const videoEl     = document.getElementById('video-el');
-  let   videoPlayed = { decision:false, result:false };
+  // ── Volume sync from Firebase — applies instantly to all active audio ──
+  onValue(ref(db, 'widgets/dnd_volumes'), snap => {
+    const v = snap.val();
+    if (!v) return;
+    if (v.video !== undefined) { volVideo = v.video; localStorage.setItem('dnd_vol_video', volVideo); }
+    if (v.music !== undefined) { volMusic = v.music; localStorage.setItem('dnd_vol_music', volMusic); }
+    if (v.sfx   !== undefined) { volSfx   = v.sfx;   localStorage.setItem('dnd_vol_sfx',   volSfx);   }
+    // Apply to currently playing elements immediately
+    if (bgAudioEl) bgAudioEl.volume = volMusic;
+    videoEl.volume = volVideo;
+    activeSfx.forEach(a => { if (!a.paused) a.volume = volSfx; });
+    // Clean up finished sfx
+    activeSfx.forEach(a => { if (a.ended || a.paused) activeSfx.delete(a); });
+  });
 
-  function playVideo(urlKey, onEndCallback) {
-    const url = assets[urlKey];
-    if (!url) { if(onEndCallback) onEndCallback(); return; }
-    videoEl.src = url;
+  // ── Media helpers ──
+  function pickRandom(baseKey, maxCount) {
+    const avail = [];
+    for (let i = 1; i <= maxCount; i++) {
+      const u = assets[`${baseKey}-${i}`];
+      if (u) avail.push(u);
+    }
+    return avail.length ? avail[Math.floor(Math.random() * avail.length)] : null;
+  }
+
+  function playVideo(url, onEnded) {
+    if (!url) { if (onEnded) onEnded(); return; }
+    videoEl.src    = url;
+    videoEl.volume = volVideo;
     videoCorner.classList.add('visible');
     videoEl.load();
-    videoEl.play().catch(()=>{});
+    videoEl.play().catch(() => {});
     videoEl.onended = () => {
       videoCorner.classList.remove('visible');
-      videoEl.src='';
-      if(onEndCallback) onEndCallback();
+      videoEl.src = '';
+      if (onEnded) onEnded();
     };
   }
 
-  // Auto-reveal after decision video ends
-  function autoRevealCase() {
-    // Read current state from Firebase and trigger reveal
-    import("https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js").then(({get})=>{
-      get(gameRef).then(snap=>{
-        const d=snap.val();
-        if(!d) return;
-        const win=d.pendingWin||0;
-        update(gameRef,{gameState:'finished',winAmount:win,pendingWin:null,dealTaken:false});
-      });
-    });
+  function triggerVideo(slot, maxCount, onEnded) {
+    playVideo(pickRandom(slot, maxCount), onEnded);
   }
 
+  function playAudio(key, loop = false) {
+    const url = assets[key];
+    if (!url) return null;
+    const a  = new Audio(url);
+    a.loop   = loop;
+    a.volume = loop ? volMusic : volSfx;
+    a.play().catch(() => {});
+    if (!loop) {
+      activeSfx.add(a);
+      a.onended = () => activeSfx.delete(a);
+    }
+    return a;
+  }
+
+  function stopBgAudio() {
+    if (bgAudioEl) { bgAudioEl.pause(); bgAudioEl.src = ''; bgAudioEl = null; }
+  }
+
+  // ── Loading screen ──
+  function hideLoadingScreen() {
+    const ls  = document.getElementById('loading-screen');
+    const lve = document.getElementById('loading-video-el');
+    if (!ls.classList.contains('visible')) return;
+    ls.classList.add('hiding');
+    setTimeout(() => {
+      ls.classList.remove('visible', 'hiding');
+      lve.pause(); lve.src = ''; lve.style.display = 'none';
+      document.getElementById('loading-text-wrap').style.display = 'flex';
+      document.getElementById('widget-root').style.pointerEvents = 'all';
+    }, 400);
+  }
+
+  // ── Main game listener ──
   onValue(gameRef, snapshot => {
     const d = snapshot.val();
     if (!d) return;
-    // Fade in/out logic (no display:none — use opacity)
-    const root = document.getElementById('widget-root');
+
+    const root       = document.getElementById('widget-root');
     const wasVisible = root.style.opacity === '1';
     const nowVisible = d.isVisible;
 
-    if(nowVisible && !wasVisible) {
-      root.style.pointerEvents = 'none';
+    // Fade in/out
+    if (nowVisible && !wasVisible) {
       root.style.opacity = '1';
-      // Show loading for 3s then enable interaction
-      const ls = document.getElementById('loading-screen');
-      const lb = document.getElementById('loading-bar');
+      root.style.pointerEvents = 'none';
+      const ls  = document.getElementById('loading-screen');
+      const lb  = document.getElementById('loading-bar');
+      const lve = document.getElementById('loading-video-el');
+      const ltw = document.getElementById('loading-text-wrap');
       ls.classList.add('visible');
-      lb.style.animation = 'none'; void lb.offsetHeight;
-      lb.style.animation = 'loadingBarMove 3s linear forwards, loadingShimmer 1s linear infinite';
-      setTimeout(()=>{
-        ls.classList.add('hiding');
-        setTimeout(()=>{
-          ls.classList.remove('visible','hiding');
-          root.style.pointerEvents = 'all';
-        }, 400);
-      }, 3000);
-    } else if(!nowVisible && wasVisible) {
-      // Fade out smoothly
+      const loadUrl = assets['loading-video'];
+      if (loadUrl) {
+        lve.src = loadUrl; lve.style.display = 'block'; ltw.style.display = 'none';
+        lve.load(); lve.play().catch(() => {});
+        lve.onended = hideLoadingScreen;
+        setTimeout(hideLoadingScreen, 8000); // fallback
+      } else {
+        lve.style.display = 'none'; ltw.style.display = 'flex';
+        lb.style.animation = 'none'; void lb.offsetHeight;
+        lb.style.animation = 'loadingBarMove 3s linear forwards, loadingShimmer 1s linear infinite';
+        setTimeout(hideLoadingScreen, 3000);
+      }
+    } else if (!nowVisible && wasVisible) {
       root.style.opacity = '0';
       root.style.pointerEvents = 'none';
     }
 
-    document.querySelectorAll('.value-slot').forEach(el=>el.classList.remove('eliminated','last-remaining'));
+    // ── Snapshot prev values for comparison (before any updates) ──
+    const prevPlayerCaseSnap = prevPlayerCase;
+    const prevShowBankerSnap = prevShowBanker;
+    const prevGameStateSnap  = prevGameState;
 
-    // ── Refresh value slot labels from gameValues (saved in Firebase) ──
-    const gv = d.gameValues; // sorted array of 16 values
-    if (gv && Array.isArray(gv)) {
-      for (let i = 0; i < 16; i++) {
+    // Reset slots
+    document.querySelectorAll('.value-slot').forEach(el => el.classList.remove('eliminated', 'last-remaining'));
+
+    // Refresh value slot labels
+    if (d.gameValues && Array.isArray(d.gameValues)) {
+      d.gameValues.forEach((v, i) => {
         const slot = document.getElementById(`vslot-${i+1}`);
-        if (slot) {
-          slot.dataset.val = gv[i];
-          slot.querySelector('.val-text').textContent = fmt(gv[i]);
-        }
-      }
+        if (slot) { slot.dataset.val = v; slot.querySelector('.val-text').textContent = fmt(v); }
+      });
     }
 
-    let openedCount=0, remainingCount=0;
-    let playerCaseValue=0;
+    let openedCount = 0, remainingCount = 0;
+    let playerCaseValue = 0;
 
-    if(d.cases){
-      for(let i=1;i<=TOTAL;i++){
-        const cd=d.cases[i];
-        const cl=document.getElementById(`cl-${i}`);
-        if(d.playerCase===i){
+    if (d.cases) {
+      for (let i = 1; i <= TOTAL; i++) {
+        const cd = d.cases[i];
+        const cl = document.getElementById(`cl-${i}`);
+        if (d.playerCase === i) {
           cl.classList.add('opened');
           remainingCount++;
-          playerCaseValue=cd.value;
+          playerCaseValue = cd.value;
+        } else if (cd && cd.isOpen) {
+          cl.classList.add('opened');
+          openedCount++;
+          const ve = document.querySelector(`.value-slot[data-val="${cd.value}"]`);
+          if (ve) ve.classList.add('eliminated');
         } else {
-          if(cd&&cd.isOpen){
-            cl.classList.add('opened'); openedCount++;
-            const ve=document.querySelector(`.value-slot[data-val='${cd.value}']`);
-            if(ve) ve.classList.add('eliminated');
-          } else {
-            cl.classList.remove('opened'); remainingCount++;
-          }
+          cl.classList.remove('opened');
+          remainingCount++;
         }
       }
-      if(remainingCount<=3&&d.gameState!=='finished'){
-        document.querySelectorAll('.value-slot:not(.eliminated)').forEach(el=>el.classList.add('last-remaining'));
+      if (remainingCount <= 3 && d.gameState !== 'finished') {
+        document.querySelectorAll('.value-slot:not(.eliminated)').forEach(el => el.classList.add('last-remaining'));
       }
     }
 
-    // ── Podium ──
-    const isSwapped = d.swapped===true && d.swappedTo;
-    const isFinalDone = d.gameState==='final_reveal'||d.gameState==='finished';
+    // ── Podium logic ──
+    const isSwapped = d.swapped === true && d.swappedTo;
 
-    if(!d.playerCase){
-      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p=>p.classList.remove('visible'));
-      prevPlayerCase=null;
-    } else if(isSwapped){
-      const orig=d.playerCase, sw=d.swappedTo;
-      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p=>p.classList.remove('visible'));
-
-      // If reveal done: show opened version of swapped case on podium
-      if(d.gameState==='finished'){
-        const po=document.getElementById(`po-${sw}`);
-        if(po&&po.style.backgroundImage&&po.style.backgroundImage!=='none') po.classList.add('visible');
-        else { const pl=document.getElementById(`pl-${sw}`); if(pl) pl.classList.add('visible'); }
+    if (!d.playerCase) {
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
+      prevPlayerCase = null;
+    } else if (isSwapped) {
+      const orig = d.playerCase, sw = d.swappedTo;
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
+      if (d.gameState === 'finished') {
+        const po = document.getElementById(`po-${sw}`);
+        if (po && po.style.backgroundImage && po.style.backgroundImage !== 'none') po.classList.add('visible');
+        else { const pl = document.getElementById(`pl-${sw}`); if (pl) pl.classList.add('visible'); }
       } else {
-        const pl=document.getElementById(`pl-${sw}`); if(pl) pl.classList.add('visible');
+        const pl = document.getElementById(`pl-${sw}`); if (pl) pl.classList.add('visible');
       }
-      const origCl=document.getElementById(`cl-${orig}`); if(origCl) origCl.classList.remove('opened');
-      const swCl=document.getElementById(`cl-${sw}`); if(swCl) swCl.classList.add('opened');
-
-    } else if(d.gameState==='finished'&&!isSwapped&&d.playerCase){
-      // Reveal: show opened version of player's case
-      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p=>p.classList.remove('visible'));
-      const po=document.getElementById(`po-${d.playerCase}`);
-      if(po&&po.style.backgroundImage&&po.style.backgroundImage!=='none') po.classList.add('visible');
-      else { const pl=document.getElementById(`pl-${d.playerCase}`); if(pl) pl.classList.add('visible'); }
-    } else {
-      if(prevPlayerCase!==d.playerCase){
-        document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p=>p.classList.remove('visible'));
-        const pl=document.getElementById(`pl-${d.playerCase}`); if(pl) pl.classList.add('visible');
-        prevPlayerCase=d.playerCase;
-      }
+      const origCl = document.getElementById(`cl-${orig}`); if (origCl) origCl.classList.remove('opened');
+      const swCl   = document.getElementById(`cl-${sw}`);   if (swCl)   swCl.classList.add('opened');
+    } else if (d.gameState === 'finished' && !isSwapped && d.playerCase) {
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
+      const po = document.getElementById(`po-${d.playerCase}`);
+      if (po && po.style.backgroundImage && po.style.backgroundImage !== 'none') po.classList.add('visible');
+      else { const pl = document.getElementById(`pl-${d.playerCase}`); if (pl) pl.classList.add('visible'); }
+    } else if (prevPlayerCase !== d.playerCase) {
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
+      const pl = document.getElementById(`pl-${d.playerCase}`); if (pl) pl.classList.add('visible');
+      prevPlayerCase = d.playerCase;
     }
 
     // ── Instruction ──
-    const it=document.getElementById('instruction-text');
+    const it = document.getElementById('instruction-text');
     it.classList.remove('attention');
-    if(d.gameState==='choose_player_case') it.innerText='ВЫБЕРИ СВОЙ КЕЙС';
-    else if(d.gameState==='playing'){
-      const next=[6,12,14].find(t=>t>openedCount);
-      if(next){
-        const left=next-openedCount;
-        const rs=(next===6&&openedCount===0)||(next===12&&openedCount===6)||(next===14&&openedCount===12);
-        it.innerText=`${rs?'ОТКРОЙ':'ОТКРОЙ ЕЩЕ'} ${left} ${caseWord(left)}`;
+    const gs = d.gameState;
+    if      (gs === 'choose_player_case') it.innerText = 'ВЫБЕРИ СВОЙ КЕЙС';
+    else if (gs === 'playing') {
+      const next = [6,12,14].find(t => t > openedCount);
+      if (next) {
+        const left = next - openedCount;
+        const rs   = (next===6&&openedCount===0)||(next===12&&openedCount===6)||(next===14&&openedCount===12);
+        it.innerText = `${rs?'ОТКРОЙ':'ОТКРОЙ ЕЩЕ'} ${left} ${caseWord(left)}`;
       }
-    } else if(d.gameState==='banker_offer'){it.innerText='ВЫБОР ЗА ТОБОЙ!';it.classList.add('attention');}
-    else if(d.gameState==='final_swap'||d.gameState==='final_reveal'){
-      if(isSwapped) it.innerText='ОБМЕН! ОТКРОЙ КЕЙС НА ПОЛКЕ!';
-      else if(d.gameState==='final_reveal') it.innerText='КЕЙС НА ПОДИУМЕ — ОТКРОЙ ЕГО!';
-      else it.innerText='ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?';
-      it.classList.add('attention');
-    } else if(d.gameState==='finished'){it.innerText=isSwapped?'ОБМЕН СОВЕРШЕН!':'ИГРА ОКОНЧЕНА!';}
-    else it.innerText='ОЖИДАНИЕ ИГРЫ...';
+    }
+    else if (gs === 'banker_offer')  { it.innerText = 'ВЫБОР ЗА ТОБОЙ!'; it.classList.add('attention'); }
+    else if (gs === 'final_swap')    { it.innerText = 'ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?'; it.classList.add('attention'); }
+    else if (gs === 'finished')      { it.innerText = isSwapped ? 'ДА БУДЕТ СВЕТ!' : 'ИГРА ОКОНЧЕНА!'; }
+    else                               it.innerText = 'ОЖИДАНИЕ ИГРЫ...';
 
-    // ── Final strip & buttons ──
-    // Show strip during final_swap only (before choice)
-    const showFinal = d.gameState === 'final_swap' && !isSwapped;
+    // ── Final strip + buttons ──
+    const showFinal = gs === 'final_swap' && !isSwapped;
     document.getElementById('final-banner').classList.toggle('visible', showFinal);
-    // Buttons: only during final_swap, hide once swapped or finished
-    const showBtns = d.gameState === 'final_swap' && !isSwapped;
-    document.getElementById('final-buttons').classList.toggle('visible', showBtns);
+    document.getElementById('final-buttons').classList.toggle('visible', showFinal);
 
     // ── Banker popup ──
-    if(d.showBanker){
-      document.getElementById('banker-offer-amount').innerText=fmt(d.bankerOffer);
+    if (d.showBanker) {
+      document.getElementById('banker-offer-amount').innerText = fmt(d.bankerOffer);
       document.getElementById('banker-popup').classList.add('visible');
     } else document.getElementById('banker-popup').classList.remove('visible');
 
-    // ── Deal taken win (mid-game banker accept) ──
-    const isDeal = d.gameState==='finished' && d.dealTaken===true;
-    if(isDeal){
-      document.getElementById('deal-win-amount').innerText=fmt(d.winAmount);
+    // ── Deal win (mid-game) ──
+    const isDeal = gs === 'finished' && d.dealTaken === true;
+    if (isDeal) {
+      document.getElementById('deal-win-amount').innerText = fmt(d.winAmount);
       document.getElementById('deal-win-popup').classList.add('visible');
-      // Show what was in player's case
-      if(playerCaseValue){
-        document.getElementById('deal-case-val').innerText=fmt(playerCaseValue);
+      if (playerCaseValue) {
+        document.getElementById('deal-case-val').innerText = fmt(playerCaseValue);
         document.getElementById('deal-info-strip').classList.add('visible');
       }
     } else {
@@ -1698,47 +1730,74 @@
       document.getElementById('deal-info-strip').classList.remove('visible');
     }
 
-    // ── Final win (scale+rise from podium) ──
-    const isFinalWin=d.gameState==='finished'&&d.dealTaken!==true;
-    if(isFinalWin){
-      document.getElementById('win-amount').innerText=fmt(d.winAmount);
-      document.getElementById('win-popup').classList.add('visible');
-    } else document.getElementById('win-popup').classList.remove('visible');
+    // ── Final win popup (shown after reaction video) ──
+    if (gs !== 'finished' || d.dealTaken === true) {
+      document.getElementById('win-popup').classList.remove('visible');
+    }
+    // win-popup shown by media engine below
 
-    // ── Videos ──
-    // decision video: play once when final_swap starts
-    if(d.gameState==='final_swap' && prevGameState!=='final_swap'){
-      videoPlayed.decision=false; videoPlayed.result=false;
+    // ══ Media triggers ══
+    if (gs === 'choose_player_case' && prevGameStateSnap !== 'choose_player_case') {
+      videoPlayed = { start:false, pick:false, deal:false, result:false };
+      document.getElementById('win-popup').classList.remove('visible');
+      stopBgAudio();
+      bgAudioEl = playAudio('aud-bg', true);
+      if (!videoPlayed.start) { videoPlayed.start = true; triggerVideo('vid-start', 2); }
     }
-    // Decision video: play once when game finishes (final, not deal)
-    // The video plays, then autoRevealCase is no longer needed (game already finished)
-    if(d.gameState==='finished' && d.dealTaken!==true && !videoPlayed.decision){
-      videoPlayed.decision=true;
-      playVideo('vid-decision');
+
+    if (d.playerCase && !prevPlayerCaseSnap && !videoPlayed.pick) {
+      videoPlayed.pick = true;
+      triggerVideo('vid-pick', 2);
+      playAudio('aud-pick');
     }
-    // result video after finished (final only)
-    if(d.gameState==='finished'&&d.dealTaken!==true&&!videoPlayed.result){
-      videoPlayed.result=true;
-      const winVal = d.winAmount||0;
-      // Find the other final case value to compare
-      // The two remaining values at final were: playerCase + one shelf case
-      // We can get both from d.cases
+
+    if (gs === 'playing' && prevGameStateSnap === 'playing') {
+      playAudio('aud-open');
+    }
+
+    if (d.showBanker && !prevShowBankerSnap) {
+      playAudio('aud-banker');
+    }
+
+    if (gs === 'finished' && d.dealTaken === true && !videoPlayed.deal) {
+      videoPlayed.deal = true;
+      stopBgAudio();
+      triggerVideo('vid-deal', 2);
+      playAudio('aud-deal');
+    }
+
+    if (gs === 'finished' && d.dealTaken !== true && !videoPlayed.result) {
+      videoPlayed.result = true;
+      stopBgAudio();
+      playAudio('aud-final');
+
       let finalVals = [];
-      if(d.cases && d.playerCase){
-        // Player case value
+      if (d.cases && d.playerCase) {
         finalVals.push(d.cases[d.playerCase].value);
-        // The other case (swappedTo or the last non-open non-player case)
-        const otherIdx = d.swappedTo || Object.keys(d.cases).find(k=>
-          parseInt(k)!==d.playerCase && !d.cases[k].isOpen
+        const otherIdx = d.swappedTo || Object.keys(d.cases).find(k =>
+          parseInt(k) !== d.playerCase && !d.cases[k].isOpen
         );
-        if(otherIdx && d.cases[otherIdx]) finalVals.push(d.cases[otherIdx].value);
+        if (otherIdx && d.cases[otherIdx]) finalVals.push(d.cases[otherIdx].value);
       }
-      const maxFinal = finalVals.length>0 ? Math.max(...finalVals) : winVal+1;
-      // High = player won the bigger sum, Low = player won the smaller sum
-      playVideo(winVal >= maxFinal ? 'vid-win-high' : 'vid-win-low');
+      const maxFinal = finalVals.length > 0 ? Math.max(...finalVals) : (d.winAmount||0)+1;
+      const isHigh   = (d.winAmount||0) >= maxFinal;
+      const resultSlot = isHigh ? 'vid-win-high' : 'vid-win-low';
+
+      // Step 1: reaction video → Step 2: show win + result video
+      const revealWin = () => {
+        document.getElementById('win-amount').innerText = fmt(d.winAmount);
+        document.getElementById('win-popup').classList.add('visible');
+        triggerVideo(resultSlot, 3);
+        playAudio(isHigh ? 'aud-win-big' : 'aud-win-small');
+      };
+
+      const reactionUrl = pickRandom('vid-final-reaction', 2);
+      if (reactionUrl) playVideo(reactionUrl, revealWin);
+      else revealWin();
     }
 
-    prevGameState=d.gameState;
+    prevShowBanker = d.showBanker;
+    prevGameState  = gs;
   });
 </script>
 </body>
