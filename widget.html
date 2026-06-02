@@ -747,8 +747,7 @@
   </style>
 </head>
 <body>
-<div id="tracker-wrap" style="position:absolute; left:0px; top:0px; width:364px; transform-origin:top left;">
-<div id="solo-container" class="tracker-container" style="display: none;">
+<div id="tracker-wrap" style="position:absolute; left:0px; top:0px; transform-origin:top left;"><div id="solo-container" class="tracker-container" style="display: none;">
     <div class="stats-grid">
         <div class="stat-card"><span class="stat-icon">💰</span><span id="stat-total" class="stat-val">0</span></div>
         <div class="stat-card"><span class="stat-icon">⭐</span><span id="stat-count" class="stat-val">0/0</span></div>
@@ -845,7 +844,6 @@
 </div>
 
 </div><!-- /tracker-wrap -->
-
 <script>
     const firebaseConfig = {
         apiKey: "AIzaSyC3WVO3p4EwDec5J2PEooIoAkHxIfw6R8w",
@@ -862,7 +860,6 @@
     function formatNumberCompact(num) { num = Number(num); if (isNaN(num) || num === 0) return '0'; let absNum = Math.abs(num); let sign = num < 0 ? '-' : ''; if (absNum >= 1000000) return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк'; if (absNum >= 1000) return sign + parseFloat((absNum / 1000).toFixed(1)) + 'к'; return sign + absNum.toString(); }
     function formatNumberWithCommas(num) { return Number(num).toLocaleString('en-US').replace(/,/g, ' '); }
 
-    // ── Layout positions from Firebase ──
     db.ref('widgets/layout').on('value', function(lay) {
       if (!lay) return;
       const d = lay.val();
@@ -870,16 +867,12 @@
       const tw = document.getElementById('tracker-wrap');
       const dw = document.getElementById('dnd-outer-wrap');
       if (tw && d.widget) {
-        tw.style.left   = d.widget.x + 'px';
-        tw.style.top    = d.widget.y + 'px';
-        // Scale: widget.w is the desired display width, original tracker width = 580px (natural)
-        // We scale so that the tracker fills widget.w horizontally
-        var wScale = d.widget.w / 580;
+        tw.style.left      = d.widget.x + 'px';
+        tw.style.top       = d.widget.y + 'px';
+        var wScale         = d.widget.w / 580;
         tw.style.transform = 'scale(' + wScale + ')';
-        // height is auto so we don't need to set it
       }
       if (dw && d.dnd) {
-        // DnD position is in absolute 1920x1080 coords — independent of tracker
         dw.style.left   = d.dnd.x + 'px';
         dw.style.top    = d.dnd.y + 'px';
         dw.style.width  = d.dnd.w + 'px';
@@ -1366,10 +1359,7 @@
     }
 </script>
 
-  <div id="dnd-outer-wrap">
-    <div id="dnd-scale-wrap">
-      <div id="dnd-root">
-        <div id="widget-root">
+  <div id="dnd-outer-wrap"><div id="dnd-scale-wrap"><div id="dnd-root"><div id="widget-root">
   <div id="bg"></div>
   <div id="instruction-text">ОЖИДАНИЕ ИГРЫ...</div>
 
@@ -1473,14 +1463,9 @@
     <div id="loading-title">KSTZ</div>
     <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
   </div>
-</div>
-      </div>
-    </div>
-  </div>
-
+</div></div></div></div>
 
   <script type="module">
-    
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
   import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
 
@@ -1685,12 +1670,12 @@
     else it.innerText='ОЖИДАНИЕ ИГРЫ...';
 
     // ── Final strip & buttons ──
-    // Hide strip once choice is made (pendingWin is set)
-    const showFinal=(d.gameState==='final_swap'||d.gameState==='final_reveal')&&!d.pendingWin;
-    document.getElementById('final-banner').classList.toggle('visible',showFinal);
-    // Buttons: only during final_swap before any choice
-    const showBtns=d.gameState==='final_swap'&&!isSwapped&&!d.pendingWin;
-    document.getElementById('final-buttons').classList.toggle('visible',showBtns);
+    // Show strip during final_swap only (before choice)
+    const showFinal = d.gameState === 'final_swap' && !isSwapped;
+    document.getElementById('final-banner').classList.toggle('visible', showFinal);
+    // Buttons: only during final_swap, hide once swapped or finished
+    const showBtns = d.gameState === 'final_swap' && !isSwapped;
+    document.getElementById('final-buttons').classList.toggle('visible', showBtns);
 
     // ── Banker popup ──
     if(d.showBanker){
@@ -1725,9 +1710,11 @@
     if(d.gameState==='final_swap' && prevGameState!=='final_swap'){
       videoPlayed.decision=false; videoPlayed.result=false;
     }
-    if((d.gameState==='final_reveal'||d.gameState==='final_swap')&&d.pendingWin&&!videoPlayed.decision){
+    // Decision video: play once when game finishes (final, not deal)
+    // The video plays, then autoRevealCase is no longer needed (game already finished)
+    if(d.gameState==='finished' && d.dealTaken!==true && !videoPlayed.decision){
       videoPlayed.decision=true;
-      playVideo('vid-decision', autoRevealCase);
+      playVideo('vid-decision');
     }
     // result video after finished (final only)
     if(d.gameState==='finished'&&d.dealTaken!==true&&!videoPlayed.result){
@@ -1753,8 +1740,6 @@
 
     prevGameState=d.gameState;
   });
-
-  </script>
-
+</script>
 </body>
 </html>
