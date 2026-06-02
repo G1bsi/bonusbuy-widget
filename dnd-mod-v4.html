@@ -67,6 +67,12 @@
     .vol-row label { font-size:13px; color:#aaa; min-width:140px; }
     .vol-slider { width:200px; accent-color:#00ffcc; }
     .vol-val { font-size:13px; color:#00ffcc; min-width:36px; text-align:right; font-weight:bold; }
+    /* Collapsible panels — same style as moderator */
+    .panel-header { cursor:pointer; display:flex; justify-content:space-between; align-items:center; user-select:none; }
+    .panel-header h2 { margin:0; }
+    .panel-toggle { font-size:11px; color:#8a8a93; font-weight:bold; }
+    .panel-body { margin-top:12px; }
+    .panel.collapsed .panel-body { display:none; }
   </style>
 </head>
 <body>
@@ -80,7 +86,11 @@
 
   <!-- Prize Settings -->
   <div class="panel">
-    <h2>🎰 Настройка призов</h2>
+    <div class="panel-header" onclick="toggleMod('panelPrize_body','arrow-prize')">
+      <h2>🎰 Настройка призов</h2>
+      <span id="arrow-prize" class="panel-toggle">▼</span>
+    </div>
+    <div id="panelPrize_body" class="panel-body">
     <div class="prize-row">
       <label>Мин. сумма (₽):</label>
       <input type="number" class="prize-input" id="prizeMin" value="2000" min="1" step="100">
@@ -107,30 +117,15 @@
     <div style="margin-top:10px;font-size:12px;color:#666;">
       ✅ Призы применяются <b style="color:#00ffcc">автоматически</b> — просто меняй значения и они сохранятся
     </div>
-  </div>
-
-  <!-- Volume Controls -->
-  <div class="panel">
-    <h2>🔊 Гучність</h2>
-    <div class="vol-row">
-      <label>🎬 Відео</label>
-      <input type="range" class="vol-slider" id="volVideo" min="0" max="1" step="0.05" value="0.85">
-      <span class="vol-val" id="volVideoVal">85%</span>
-    </div>
-    <div class="vol-row">
-      <label>🎵 Фонова музика</label>
-      <input type="range" class="vol-slider" id="volMusic" min="0" max="1" step="0.05" value="0.6">
-      <span class="vol-val" id="volMusicVal">60%</span>
-    </div>
-    <div class="vol-row">
-      <label>💥 Звукові ефекти</label>
-      <input type="range" class="vol-slider" id="volSfx" min="0" max="1" step="0.05" value="0.8">
-      <span class="vol-val" id="volSfxVal">80%</span>
-    </div>
-  </div>
+    </div><!-- /panelPrize_body -->
+  </div><!-- /panel prize -->
 
   <div class="panel" id="actionPanel">
-    <h2>📞 Действия</h2>
+    <div class="panel-header" onclick="toggleMod('panelActions_body','arrow-actions')">
+      <h2>📞 Действия</h2>
+      <span id="arrow-actions" class="panel-toggle">▼</span>
+    </div>
+    <div id="panelActions_body" class="panel-body">
     <div id="bankerDecision">
       <h3 style="color:#ff0044;text-align:center">БАНКИР ЖДЕТ РЕШЕНИЯ</h3>
       <button id="dealBtn" class="btn-success btn-huge">✅ ЗАБРАТЬ ДЕНЬГИ (DEAL)</button>
@@ -140,18 +135,28 @@
       <h3 style="color:#00ffcc;text-align:center">ФИНАЛ: ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?</h3>
       <button id="keepBtn" class="btn-success btn-huge">💼 ОСТАВИТЬ СВОЙ КЕЙС</button>
       <button id="swapBtn" class="btn-warning btn-huge">🔄 ПОМЕНЯТЬСЯ КЕЙСАМИ</button>
-    </div>
-  </div>
+    </div><!-- /swapDecision -->
+    </div><!-- /panelActions_body -->
+  </div><!-- /panel actions -->
 
   <div class="panel">
-    <h2>Игровое поле (16 Кейсов)</h2>
+    <div class="panel-header" onclick="toggleMod('panelField_body','arrow-field')">
+      <h2>Игровое поле (16 Кейсов)</h2>
+      <span id="arrow-field" class="panel-toggle">▼</span>
+    </div>
+    <div id="panelField_body" class="panel-body">
     <div id="status" class="status-text">Ожидание старта...</div>
     <div class="grid" id="casesGrid"></div>
-  </div>
+    </div><!-- /panelField_body -->
+  </div><!-- /panel field -->
 
   <!-- Asset URL Manager -->
   <div class="panel">
-    <h2>🖼️ Изображения виджета (URL из облака)</h2>
+    <div class="panel-header" onclick="toggleMod('panelAssets_body','arrow-assets')">
+      <h2>🖼️ Изображения виджета (URL из облака)</h2>
+      <span id="arrow-assets" class="panel-toggle">▼</span>
+    </div>
+    <div id="panelAssets_body" class="panel-body">
     <p class="hint" style="margin-bottom:12px">
       Вставь ссылки на изображения из Google Drive, Dropbox, Imgur и т.д.<br>
       <span>Google Drive:</span> ссылка вида <code style="color:#aaa">https://drive.google.com/uc?id=FILE_ID</code> (через «Получить ссылку» → «Прямая ссылка»)<br>
@@ -230,7 +235,8 @@
     <div class="hint" style="margin-top:10px">
       После нажатия <span>«Сохранить URLs в Firebase»</span> виджет в OBS автоматически загрузит картинки по ссылкам — никаких файлов рядом не нужно.
     </div>
-  </div>
+    </div><!-- /panelAssets_body -->
+  </div><!-- /panel assets -->
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
@@ -822,5 +828,58 @@
 
   // threshold auto-calculated from case values
 </script>
+
+  <!-- Volume Controls -->
+  <div class="panel">
+    <div class="panel-header" onclick="toggleMod('vol_body','arrow-vol')">
+      <h2>🔊 Гучність</h2>
+      <span id="arrow-vol" class="panel-toggle">▼</span>
+    </div>
+    <div id="vol_body" class="panel-body">
+    <div class="vol-row">
+      <label>🎬 Відео</label>
+      <input type="range" class="vol-slider" id="volVideo" min="0" max="1" step="0.05" value="0.85">
+      <span class="vol-val" id="volVideoVal">85%</span>
+    </div>
+    <div class="vol-row">
+      <label>🎵 Фонова музика</label>
+      <input type="range" class="vol-slider" id="volMusic" min="0" max="1" step="0.05" value="0.6">
+      <span class="vol-val" id="volMusicVal">60%</span>
+    </div>
+    <div class="vol-row">
+      <label>💥 Звукові ефекти</label>
+      <input type="range" class="vol-slider" id="volSfx" min="0" max="1" step="0.05" value="0.8">
+      <span class="vol-val" id="volSfxVal">80%</span>
+    </div>
+  </div>
+
+<script>
+// ── Collapsible panels ──
+function toggleMod(bodyId, arrowId) {
+  const body  = document.getElementById(bodyId);
+  const arrow = document.getElementById(arrowId);
+  if (!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display  = isHidden ? '' : 'none';
+  if (arrow) arrow.innerText = isHidden ? '▼' : '▲';
+}
+
+// Start all panels collapsed except Actions
+document.addEventListener('DOMContentLoaded', function() {
+  const collapseIds = [
+    ['panelPrize_body',   'arrow-prize'],
+    ['panelField_body',   'arrow-field'],
+    ['panelAssets_body',  'arrow-assets'],
+    ['vol_body',          'arrow-vol'],
+  ];
+  collapseIds.forEach(([id, arrow]) => {
+    const el = document.getElementById(id);
+    const ar = document.getElementById(arrow);
+    if (el) el.style.display = 'none';
+    if (ar) ar.innerText = '▲';
+  });
+});
+</script>
+
 </body>
 </html>

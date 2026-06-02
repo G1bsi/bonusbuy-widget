@@ -324,6 +324,26 @@
     @keyframes loadingShimmer {
       0%{background-position:0% 0%} 100%{background-position:200% 0%}
     }
+
+    /* ── Ghost value float on case open ── */
+    .ghost-value {
+      position: absolute;
+      font-family: 'Inter','Arial',sans-serif;
+      font-weight: 600;
+      font-size: 32px;
+      color: #ffe066;
+      text-shadow: 0 0 12px rgba(255,220,0,0.8), 2px 2px 0 rgba(0,0,0,0.9);
+      pointer-events: none;
+      z-index: 200;
+      white-space: nowrap;
+      animation: ghostFloat 2.2s ease-out forwards;
+      transform-origin: center bottom;
+    }
+    @keyframes ghostFloat {
+      0%   { opacity: 1; transform: translateY(0)   scale(1);    }
+      30%  { opacity: 1; transform: translateY(-40px) scale(1.1); }
+      100% { opacity: 0; transform: translateY(-130px) scale(0.7); }
+    }
   </style>
 </head>
 <body>
@@ -480,6 +500,34 @@
   let   videoPlayed = { start:false, pick:false, deal:false, result:false };
 
   // ── Apply assets ──
+
+  // Case positions in 1920x1080 widget space (given by user)
+  const CASE_POS = {
+    1:  {x:500,  y:250},  2: {x:730,  y:243},  3: {x:960,  y:243},
+    4:  {x:1195, y:250},  5: {x:1428, y:250},  6: {x:504,  y:416},
+    7:  {x:743,  y:420},  8: {x:982,  y:420},  9: {x:1213, y:410},
+    10: {x:1443, y:410}, 11: {x:443,  y:557}, 12: {x:650,  y:572},
+    13: {x:865,  y:569}, 14: {x:1075, y:569}, 15: {x:1288, y:567},
+    16: {x:1490, y:580},
+  };
+
+  // Show ghost value float at case position
+  function showGhostValue(caseNum, value) {
+    const pos = CASE_POS[caseNum];
+    if (!pos) return;
+    const root = document.getElementById('widget-root');
+    const ghost = document.createElement('div');
+    ghost.className = 'ghost-value';
+    // Position: convert from 1920x1080 to actual root coords
+    // widget-root IS 1920x1080, so use directly
+    ghost.style.left = (pos.x - 60) + 'px';
+    ghost.style.top  = (pos.y - 30) + 'px';
+    ghost.textContent = value.toLocaleString('ru-RU') + ' ₽';
+    root.appendChild(ghost);
+    // Remove after animation
+    setTimeout(() => ghost.remove(), 2300);
+  }
+
   function applyAssets(a) {
     if (!a) return;
     assets = a;
@@ -647,7 +695,12 @@
           remainingCount++;
           playerCaseValue = cd.value;
         } else if (cd && cd.isOpen) {
+          const wasAlreadyOpen = cl.classList.contains('opened');
           cl.classList.add('opened');
+          if (!wasAlreadyOpen) {
+            // Freshly opened this render — show ghost value float
+            showGhostValue(i, cd.value);
+          }
           openedCount++;
           const ve = document.querySelector(`.value-slot[data-val="${cd.value}"]`);
           if (ve) ve.classList.add('eliminated');
@@ -761,7 +814,7 @@
       playAudio('aud-pick');
     }
 
-    if (gs === 'playing' && prevGameStateSnap === 'playing') {
+    if (gs === 'playing' && prevGameStateSnap === 'playing' && openedCount > prevOpenedCount) {
       playAudio('aud-open');
     }
 
@@ -806,8 +859,9 @@
       else revealWin();
     }
 
-    prevShowBanker = d.showBanker;
-    prevGameState  = gs;
+    prevShowBanker  = d.showBanker;
+    prevGameState   = gs;
+    prevOpenedCount = openedCount;
   });
 </script>
 </body>

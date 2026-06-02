@@ -1,0 +1,1872 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; color: #fff; background: transparent; overflow: hidden; width:1920px;height:1080px;position:relative; }
+        .tracker-container { margin: 0 auto; width: 580px; height: auto; min-height: 100px; background: rgba(10, 10, 14, 0.98); backdrop-filter: blur(8px); border-radius: 36px; padding: 24px; box-shadow: 0 35px 85px rgba(0,0,0,0.6), inset 0 1px 3px rgba(255,255,255,0.05); border: 1px solid rgba(255, 255, 255, 0.03); display: flex; flex-direction: column; box-sizing: border-box; transition: width 0.4s ease; }
+        .slots-viewport { max-height: 488px; overflow: hidden; position: relative; border-radius: 24px; padding: 15px; margin: -15px; transition: max-height 0.4s ease; }
+        .slots-list { display: flex; flex-direction: column; gap: 12px; width: 100%; box-sizing: border-box; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @keyframes infiniteWheel { 0% { transform: translateY(0); } 100% { transform: translateY(-50%); } }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 0; transition: margin-bottom 0.3s ease; }
+        .tracker-container.has-items .stats-grid { margin-bottom: 24px; }
+        .stat-card { background: rgba(25, 25, 35, 0.8); border-radius: 18px; padding: 14px 6px; text-align: center; border: 1px solid rgba(255,255,255,0.02); }
+        .stat-icon { font-size: 22px; margin-bottom: 6px; display: block; }
+        .stat-val { font-size: 18px; font-weight: 800; color: #e2e8f0; }
+        .slot-row { display: flex; align-items: center; padding: 18px 22px; background: rgba(18, 18, 24, 0.85); border-radius: 24px; border: 1px solid rgba(255,255,255,0.01); box-sizing: border-box; height: 88px; transition: all 0.4s; flex-shrink: 0; }
+        .slot-icon-wrapper { position: relative; width: 55px; height: 55px; margin-right: 20px; flex-shrink: 0; }
+        .slot-icon-img { width: 100%; height: 100%; border-radius: 14px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
+        .slot-icon-text { width: 100%; height: 100%; border-radius: 14px; background: linear-gradient(135deg, #1a1a24, #111116); color: #ffb703; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+        .crown-overlay { display: none; }
+        .mode-finish .crown-overlay { display: block; position: absolute; top: -16px; left: -16px; font-size: 28px; transform: rotate(-28deg); filter: drop-shadow(0 3px 8px rgba(0,0,0,0.9)); z-index: 10; animation: crownPop 0.45s both; }
+        @keyframes crownPop { 0% { transform: scale(0) rotate(-60deg); opacity: 0; } 100% { transform: scale(1) rotate(-28deg); opacity: 1; } }
+        .slot-info { flex-grow: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 10px; gap: 1px; }
+        .slot-name-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 0; width: 100%; }
+        .slot-name { font-size: 22px; font-weight: 800; color: #f1f5f9; white-space: nowrap; overflow: visible; line-height: 1.1; margin: 0; }
+        .slot-amounts { font-size: 20px; color: #8a95a3; font-weight: 600; display: flex; align-items: center; justify-content: flex-start; gap: 6px; margin-top: 0; white-space: nowrap; }
+        .arrow-blue { color: #00f2fe; font-weight: bold; margin: 0 4px; filter: drop-shadow(0 0 6px rgba(0,242,254,0.4)); }
+        .multiplier-badge { flex-shrink: 0; font-size: 18px; font-weight: 800; padding: 6px 14px; margin: 0; border-radius: 30px; min-width: 75px; text-align: center; align-self: center; }
+        .mult-win { background: rgba(16, 185, 129, 0.12); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.2); }
+        .mult-loss { background: rgba(239, 68, 68, 0.12); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .mult-pending { background: rgba(15, 15, 20, 0.95); color: #4a5568; border: 1px solid rgba(255,255,255,0.04); min-width: 55px; }
+        .best-x-badge { flex-shrink: 0; font-size: 15px; font-weight: 900; padding: 5px 12px; border-radius: 30px; text-align: center; background: rgba(255,183,3,0.15); color: #ffb703; border: 1px solid rgba(255,183,3,0.45); margin-left: 8px; white-space: nowrap; }
+        .b-side.best-x-winner { background: rgba(255,183,3,0.13); border: 1px solid rgba(255,183,3,0.45); box-shadow: inset 0 0 18px rgba(255,183,3,0.08); }
+        .b-side.best-x-winner .slot-name { color: #ffb703; }
+        .battle-shared-stats { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .b-stat-pill { background: rgba(25, 25, 35, 0.8); border: 1px solid rgba(255,255,255,0.05); padding: 8px 16px; border-radius: 16px; font-size: 16px; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .battle-header { display: flex; align-items: center; justify-content: space-around; margin-bottom: 20px; background: rgba(18, 18, 24, 0.6); border-radius: 20px; padding: 16px 18px; border: 1px solid rgba(255,255,255,0.02); gap: 15px; }
+        .battle-player-block { display: flex; flex-direction: column; position: relative; flex: 1; text-align: center; align-items: center; min-width: 0; }
+        .b-name { font-size: 30px; font-weight: 900; color: #3498db; white-space: nowrap; overflow: visible; width: auto; letter-spacing: 0.5px; line-height: 1.1; margin-bottom: 2px; }
+        .b-meta { font-size: 13px; color: #a4a4af; margin-top: 4px; font-weight: 700; }
+        .b-score-box { margin-top: 10px; background: rgba(255,183,3,0.1); border: 1px solid rgba(255,183,3,0.3); color: #ffb703; font-size: 26px; font-weight: 900; padding: 4px 18px; border-radius: 14px; box-shadow: 0 4px 15px rgba(255,183,3,0.15); }
+        .battle-row { display: flex; align-items: center; justify-content: space-between; background: rgba(18, 18, 24, 0.85); border-radius: 20px; border: 1px solid rgba(255,255,255,0.02); padding: 0 15px; box-sizing: border-box; flex-shrink: 0; position: relative; overflow: hidden; transition: all 0.3s; height: 88px; }
+        .b-side { flex: 1; display: flex; align-items: center; min-width: 0; position: relative; z-index: 2; padding: 8px; border-radius: 16px; transition: 0.3s; }
+        .b-side.winner { background: rgba(46, 204, 113, 0.12); border: 1px solid rgba(46,204,113,0.35); box-shadow: inset 0 0 15px rgba(46,204,113,0.1); }
+        .b-name-wrap { position: relative; display: inline-block; max-width: 100%; }
+        .b-crown-diagonal { display: none; position: absolute; top: -14px; left: -10px; font-size: 22px; transform: rotate(-30deg); filter: drop-shadow(0 2px 6px rgba(0,0,0,0.9)); z-index: 5; animation: crownPopName 0.5s both; pointer-events: none; }
+        @keyframes crownPopName { 0% { transform: scale(0) rotate(-70deg); opacity: 0; } 100% { transform: scale(1) rotate(-30deg); opacity: 1; } }
+        .winner-block .b-crown-diagonal { display: block; }
+        .winner-block .b-name { color: #ffb703 !important; text-shadow: 0 0 12px rgba(255,183,3,0.6), 0 0 28px rgba(255,183,3,0.35); animation: nameGlow 1.8s ease-in-out infinite; }
+        @keyframes nameGlow { 0%,100% { text-shadow: 0 0 12px rgba(255,183,3,0.6), 0 0 28px rgba(255,183,3,0.35); } 50% { text-shadow: 0 0 20px rgba(255,183,3,0.95), 0 0 45px rgba(255,183,3,0.6); } }
+        .b-vs-text { font-size: 14px; font-weight: 900; color: rgba(255,255,255,0.2); margin: 0 10px; flex-shrink: 0; z-index: 2; }
+        .b-side .slot-icon-wrapper { width: 44px; height: 44px; flex-shrink: 0; margin-right: 12px; }
+        .b-side .slot-info { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; padding-bottom: 8px; gap: 0px; }
+        .b-side .slot-name-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; margin-bottom: 4px; width: 100%; }
+        .b-side .slot-name { font-size: 14.5px; font-weight: 800; color: #f1f5f9; white-space: nowrap; overflow: visible; line-height: 1.1; margin: 0; }
+        .b-side .multiplier-badge { flex-shrink: 0; font-size: 12.5px; min-width: 45px; padding: 2px 6px; margin: 0; border-radius: 8px; text-align: center; }
+        .b-side .slot-amounts { font-size: 13.5px; color: #64748b; font-weight: 700; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+
+
+        .wheel-banner {
+            margin: 14px auto 0 auto;
+            width: 580px;
+            height: 140px;
+            box-sizing: border-box;
+            display: none;
+            position: relative;
+            border-radius: 28px;
+            overflow: hidden;
+            animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+            background:
+                repeating-linear-gradient(
+                    130deg,
+                    rgba(0,210,200,0.03) 0px,
+                    rgba(0,210,200,0.03) 1px,
+                    transparent 1px,
+                    transparent 18px
+                ),
+                repeating-linear-gradient(
+                    45deg,
+                    rgba(255,255,255,0.01) 0px,
+                    rgba(255,255,255,0.01) 1px,
+                    transparent 1px,
+                    transparent 22px
+                ),
+                linear-gradient(135deg, #0d0d11 0%, #14121a 50%, #0d0d11 100%);
+            border: 1px solid rgba(0,210,200,0.22);
+            box-shadow:
+                0 0 0 1px rgba(0,210,200,0.08),
+                0 20px 60px rgba(0,0,0,0.7),
+                inset 0 1px 0 rgba(0,210,200,0.15),
+                inset 0 -1px 0 rgba(0,0,0,0.5);
+        }
+        @keyframes slideUp { from { transform: translateY(-60px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes slideDown { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-60px); opacity: 0; } }
+        .wheel-banner.hiding { animation: slideDown 0.45s cubic-bezier(0.4, 0, 1, 1) both; }
+
+
+        .wheel-bg {
+            position: absolute;
+            left: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 260px;
+            height: 260px;
+            opacity: 0.13;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .wheel-bg svg {
+            width: 100%;
+            height: 100%;
+            animation: spinWheel 55s linear infinite;
+            filter: drop-shadow(0 0 18px rgba(0,210,200,0.25));
+        }
+
+
+        .wheel-bg-overlay {
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: 290px;
+            background: linear-gradient(90deg, rgba(10,10,14,0.55) 0%, rgba(10,10,14,0.2) 70%, transparent 100%);
+            z-index: 1;
+            pointer-events: none;
+        }
+
+
+        @keyframes spinWheel {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+
+        .wheel-banner-center {
+            position: absolute;
+            left: 0; right: 0; top: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            z-index: 2;
+            box-sizing: border-box;
+        }
+        .wb-title {
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: rgba(0,210,200,1);
+            text-align: center;
+            white-space: nowrap;
+            line-height: 1;
+            text-shadow: 0 0 22px rgba(0,210,200,0.5);
+            flex-shrink: 0;
+            transition: color 0.5s, text-shadow 0.5s;
+        }
+
+
+        @keyframes marquee-loop {
+            0%   { transform: translateX(0); }
+            100% { transform: translateX(var(--scroll-dist)); }
+        }
+        .slot-name-marquee {
+            overflow: hidden;
+            flex: 1;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding-bottom: 3px;
+            margin-bottom: -3px;
+        }
+        .slot-name-marquee .slot-name {
+            display: inline-block;
+            white-space: nowrap;
+        }
+        .slot-name-marquee .slot-name.do-marquee,
+        .slot-name-marquee .marquee-dupe.do-marquee {
+            animation: marquee-loop var(--marquee-dur, 18s) linear infinite;
+        }
+        .b-name-marquee {
+            overflow: hidden;
+            width: 100%;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding-bottom: 3px;
+            margin-bottom: -3px;
+        }
+        .b-name-marquee .b-name {
+            display: inline-block;
+            white-space: nowrap !important;
+            overflow: visible !important;
+            width: auto !important;
+        }
+        .b-name-marquee .b-name.do-marquee,
+        .b-name-marquee .marquee-dupe.do-marquee {
+            animation: marquee-loop var(--marquee-dur, 18s) linear infinite;
+        }
+        .wb-grid {
+            display: flex;
+            gap: 8px;
+            align-items: stretch;
+            width: 100%;
+            flex-shrink: 0;
+        }
+        .wb-card {
+            flex: 1;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px;
+            padding: 6px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .wb-card.wb-gold {
+            background: rgba(0,210,200,0.09);
+            border-color: rgba(0,210,200,0.35);
+            box-shadow: inset 0 0 18px rgba(0,210,200,0.08);
+        }
+        .wb-label {
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: rgba(255,255,255,0.5);
+            white-space: nowrap;
+        }
+        .wb-card.wb-gold .wb-label { color: rgba(0,210,200,1); }
+        .wb-val {
+            font-size: 24px;
+            font-weight: 900;
+            color: #fff;
+            white-space: nowrap;
+            line-height: 1;
+        }
+        .wb-card.wb-gold .wb-val {
+            color: #00d2c8;
+            text-shadow: 0 0 14px rgba(0,210,200,0.6);
+        }
+
+        .wheel-banner.inactive {
+            background:
+                repeating-linear-gradient(130deg, rgba(120,120,130,0.04) 0px, rgba(120,120,130,0.04) 1px, transparent 1px, transparent 18px),
+                repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 1px, transparent 1px, transparent 22px),
+                linear-gradient(135deg, #0e0e10 0%, #141416 50%, #0e0e10 100%) !important;
+            border-color: rgba(140,140,155,0.28) !important;
+            box-shadow: 0 0 0 1px rgba(140,140,155,0.08), 0 20px 60px rgba(0,0,0,0.7), inset 0 1px 0 rgba(180,180,195,0.08), inset 0 -1px 0 rgba(0,0,0,0.5) !important;
+            transition: background 0.5s, border-color 0.5s, box-shadow 0.5s;
+        }
+        .wheel-banner.inactive .wb-title {
+            color: rgba(170,170,185,1) !important;
+            text-shadow: none !important;
+            transition: color 0.5s, text-shadow 0.5s;
+        }
+        .wheel-banner.inactive .wb-card,
+        .wheel-banner.inactive .wb-card.wb-gold {
+            background: rgba(140,140,155,0.05) !important;
+            border-color: rgba(140,140,155,0.18) !important;
+            box-shadow: none !important;
+        }
+        .wheel-banner.inactive .wb-label,
+        .wheel-banner.inactive .wb-card.wb-gold .wb-label {
+            color: rgba(140,140,155,0.7) !important;
+        }
+        .wheel-banner.inactive .wb-val,
+        .wheel-banner.inactive .wb-card.wb-gold .wb-val {
+            color: rgba(160,160,175,1) !important;
+            text-shadow: none !important;
+        }
+        .wheel-banner.inactive .wb-link {
+            color: rgba(140,140,155,0.55) !important;
+        }
+        .wb-link {
+            font-size: 13px;
+            font-weight: 900;
+            letter-spacing: 2px;
+            color: rgba(0,210,200,0.8);
+            text-transform: uppercase;
+            text-align: center;
+            white-space: nowrap;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        /* ═══ DRAGON WHEEL ═══ */
+        /* Wrapper sits BELOW the banner, clips overflow so only top arc shows */
+        .dragon-wheel-wrap {
+            margin: 0 auto;
+            width: 580px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow: hidden;
+            height: 0;
+            opacity: 0;
+            transition: height 0.75s cubic-bezier(0.16,1,0.3,1), opacity 0.5s ease;
+            position: relative;
+        }
+        .dragon-wheel-wrap.visible {
+            height: 148px;
+            opacity: 1;
+        }
+        .dragon-wheel-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* starts off-screen ABOVE, slides down into view */
+            transform: translateY(-100%);
+            transition: transform 0.75s cubic-bezier(0.16,1,0.3,1);
+            /* pull inner UP so only bottom ~148px arc peeks out from 340px wheel */
+            margin-top: -202px;
+        }
+        .dragon-wheel-wrap.visible .dragon-wheel-inner {
+            transform: translateY(0);
+        }
+        /* rocket: flies up fast on hide */
+        .dragon-wheel-wrap.hiding .dragon-wheel-inner {
+            transform: translateY(-220%);
+            transition: transform 0.55s cubic-bezier(0.4, 0, 0.6, 1);
+        }
+        .dragon-wheel-stage {
+            position: relative;
+            width: 340px;
+            height: 340px;
+        }
+        .dw-frame {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fff1ba, #e8a317 60%, #b8860b);
+            border: 3px solid #111;
+        }
+        .dw-spin {
+            position: absolute;
+            inset: 8px;
+            border-radius: 50%;
+            border: 3px solid #111;
+            overflow: hidden;
+        }
+        .dw-center {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%,-50%);
+            width: 52px; height: 52px;
+            background: radial-gradient(circle at 30% 30%, #fff1ba, #e8a317 60%, #b8860b);
+            border-radius: 50%;
+            border: 3px solid #111;
+            z-index: 20;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.6);
+        }
+        .dw-center::after {
+            content:''; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+            width: 22px; height: 22px;
+            background: radial-gradient(circle at 30% 30%, #ffe066, #d4af37 60%, #996515);
+            border-radius: 50%; border: 1px solid rgba(0,0,0,0.4);
+        }
+        .dw-dots {
+            position: absolute; inset: 0; border-radius: 50%; pointer-events: none; z-index: 25;
+        }
+        .dw-dot {
+            position: absolute; width: 9px; height: 9px;
+            background: radial-gradient(circle at 30% 30%, #fffbd6, #e8a317 50%, #8b6508);
+            border-radius: 50%; border: 1px solid #111;
+            top: 3px; left: 50%; margin-left: -5px;
+            transform-origin: 5px 167px;
+            box-shadow: inset 0 1px 1px rgba(255,255,255,0.8), 0 1px 2px rgba(0,0,0,0.6);
+        }
+        .dragon-timer-display {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            font-size: 56px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 32px rgba(255,183,3,0.9), 0 4px 18px rgba(0,0,0,0.95);
+            letter-spacing: 2px;
+            text-align: center;
+            position: absolute;
+            /* centered in visible 148px arc: (148 - ~56px font) / 2 ≈ 46px from bottom */
+            bottom: 46px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 50;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        @keyframes wheelShake {
+            0%   { transform: translateY(0) rotate(0deg); }
+            15%  { transform: translateY(-6px) rotate(-3deg); }
+            30%  { transform: translateY(4px) rotate(3deg); }
+            45%  { transform: translateY(-5px) rotate(-2deg); }
+            60%  { transform: translateY(3px) rotate(2deg); }
+            75%  { transform: translateY(-3px) rotate(-1deg); }
+            100% { transform: translateY(0) rotate(0deg); }
+        }
+        @keyframes wheelFlash {
+            0%   { box-shadow: none; }
+            20%  { box-shadow: 0 0 0 6px rgba(255,183,3,0.9), 0 0 40px rgba(255,183,3,0.8), 0 0 80px rgba(255,100,0,0.6); }
+            50%  { box-shadow: 0 0 0 12px rgba(255,50,0,0.7), 0 0 60px rgba(255,50,0,0.9), 0 0 120px rgba(255,0,0,0.5); }
+            80%  { box-shadow: 0 0 0 6px rgba(255,183,3,0.6), 0 0 40px rgba(255,183,3,0.5); }
+            100% { box-shadow: none; }
+        }
+        .dragon-wheel-stage.exploding { animation: wheelShake 0.55s ease-in-out both; }
+        .dw-frame.exploding { animation: wheelFlash 0.55s ease-in-out both; }
+    </style>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap" rel="stylesheet">
+  <style>
+    #dnd-outer-wrap{position:absolute;left:0;top:0;width:1297px;height:728px;overflow:hidden;border-radius:16px;z-index:5;}
+    #dnd-scale-wrap{width:1920px;height:1080px;transform:scale(0.67407);transform-origin:top left;}
+    #dnd-root{width:1920px;height:1080px;overflow:hidden;position:relative;font-family:'Inter','Arial',sans-serif;font-weight:600;}
+    
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@600&display=swap');
+    @font-face {
+      font-family: 'PF Adamant Sans Pro';
+      src: url('https://fonts-online.ru/fonts/pf-adamant-sans-pro/pfadamantsanspro-bold.woff2') format('woff2'),
+           url('https://fonts-online.ru/fonts/pf-adamant-sans-pro/pfadamantsanspro-bold.woff') format('woff');
+      font-weight: 700;
+    }
+#dnd-root{ margin:0; padding:0; box-sizing:border-box; }
+#dnd-root{
+      width:1920px; height:1080px; overflow:hidden;
+      background:transparent;
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      user-select:none;
+    }
+    #dnd-root #widget-root { width:1920px; height:1080px; position:relative; border-radius:24px; overflow:hidden; opacity:0; pointer-events:none; transition:opacity 0.8s ease; }
+    #dnd-root #bg {
+      position:absolute; inset:0; width:1920px; height:1080px;
+      background-size:1920px 1080px; background-repeat:no-repeat;
+    }
+
+    /* ── Case layers ── */
+    #dnd-root .case-layer {
+      position:absolute; inset:0; width:1920px; height:1080px;
+      background-size:1920px 1080px; background-repeat:no-repeat;
+      transition:opacity 0.85s ease; pointer-events:none;
+      animation:caseGlow 3s ease-in-out infinite;
+    }
+    #dnd-root .case-layer.opened { opacity:0; animation:none; }
+    @keyframes caseGlow {
+      0%,100%{filter:drop-shadow(0 0 3px rgba(255,200,60,0.18));}
+      50%{filter:drop-shadow(0 0 7px rgba(255,220,80,0.32));}
+    }
+
+    /* ── Podium layers ── */
+    #dnd-root .podium-layer {
+      position:absolute; inset:0; width:1920px; height:1080px;
+      background-size:1920px 1080px; background-repeat:no-repeat;
+      opacity:0; transition:opacity 0.8s ease; pointer-events:none; z-index:30;
+    }
+    #dnd-root .podium-layer.visible { opacity:1; animation:podiumGlow 2.5s ease-in-out infinite; }
+    @keyframes podiumGlow {
+      0%,100%{filter:drop-shadow(0 0 8px rgba(160,80,255,0.35));}
+      50%{filter:drop-shadow(0 0 16px rgba(180,100,255,0.55));}
+    }
+
+    /* ── Podium OPENED layers (shown when reveal pressed) ── */
+    #dnd-root .podium-open-layer {
+      position:absolute; inset:0; width:1920px; height:1080px;
+      background-size:1920px 1080px; background-repeat:no-repeat;
+      opacity:0; transition:opacity 0.7s ease; pointer-events:none; z-index:31;
+    }
+    #dnd-root .podium-open-layer.visible { opacity:1; }
+
+    /* ── Instruction text — Inter, white+stroke ── */
+    #dnd-root #instruction-text {
+      position:absolute; top:20px; left:50%; transform:translateX(-50%);
+      color:#ffffff;
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:52px; letter-spacing:-1px;
+      text-transform:uppercase; white-space:nowrap;
+      z-index:50; text-align:center; width:1300px;
+      -webkit-text-stroke:2px rgba(0,0,0,0.95); paint-order:stroke fill;
+      text-shadow:3px 3px 0 rgba(0,0,0,0.95),-1px -1px 0 rgba(0,0,0,0.95),1px -1px 0 rgba(0,0,0,0.95),-1px 1px 0 rgba(0,0,0,0.95);
+      transition:color 0.4s;
+    }
+    #dnd-root #instruction-text.attention { color:#ffe84d; animation:textBlink 1.4s infinite; }
+    @keyframes textBlink{0%,100%{opacity:1}50%{opacity:0.5}}
+
+    /* ── Value slots ── */
+    #dnd-root .value-slot {
+      position:absolute; width:280px; height:105px;
+      display:flex; align-items:center; justify-content:center;
+      z-index:20; overflow:hidden;
+      transition:transform 0.65s cubic-bezier(0.4,0,0.8,0.6);
+    }
+    #dnd-root .value-slot::before {
+      content:''; position:absolute; inset:0;
+      background-image:var(--рамка-url);
+      background-size:1262px 1123px; background-position:-490px -517px;
+      background-repeat:no-repeat;
+    }
+    #dnd-root .value-slot .val-text {
+      position:relative; z-index:2; color:#e8d090;
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:50px; letter-spacing:-1px;
+      text-shadow:1px 1px 3px rgba(0,0,0,0.9);
+      text-align:center; width:100%; line-height:1;
+    }
+    #dnd-root .value-slot.left-slot.eliminated  { transform:translateX(-310px); }
+    #dnd-root .value-slot.right-slot.eliminated { transform:translateX(310px); }
+    #dnd-root .value-slot.last-remaining .val-text {
+      color:#fff; text-shadow:0 0 10px #fff,0 0 22px rgba(255,255,255,0.4);
+      animation:valGlow 1s infinite;
+    }
+    @keyframes valGlow{0%,100%{opacity:1}50%{opacity:0.5}}
+
+    #dnd-root .slot-left-1{left:0;top:110px;} .slot-left-2{left:0;top:218px;}
+    #dnd-root .slot-left-3{left:0;top:326px;} .slot-left-4{left:0;top:434px;}
+    #dnd-root .slot-left-5{left:0;top:542px;} .slot-left-6{left:0;top:650px;}
+    #dnd-root .slot-left-7{left:0;top:758px;} .slot-left-8{left:0;top:866px;}
+    #dnd-root .slot-right-1{right:0;top:110px;} .slot-right-2{right:0;top:218px;}
+    #dnd-root .slot-right-3{right:0;top:326px;} .slot-right-4{right:0;top:434px;}
+    #dnd-root .slot-right-5{right:0;top:542px;} .slot-right-6{right:0;top:650px;}
+    #dnd-root .slot-right-7{right:0;top:758px;} .slot-right-8{right:0;top:866px;}
+
+    /* ── Banker popup ── */
+    #dnd-root #banker-popup {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%) scale(0);
+      background:linear-gradient(135deg,#08000f,#160024,#08000f);
+      border:4px solid #cc00ff; padding:30px 80px 40px;
+      border-radius:22px; text-align:center;
+      transition:all 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+      z-index:100; opacity:0;
+      box-shadow:0 0 80px rgba(180,0,255,0.55); min-width:700px;
+    }
+    #dnd-root #banker-popup.visible{transform:translate(-50%,-50%) scale(1);opacity:1;}
+    #dnd-root #banker-banner-img{width:100%;max-height:130px;object-fit:contain;display:none;margin-bottom:8px;}
+    #dnd-root #banker-banner-img.loaded{display:block;}
+    #dnd-root #banker-popup h1{
+      color:#e0aaff; font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:58px; letter-spacing:-1px; margin-bottom:8px;
+      text-shadow:0 0 10px rgba(200,100,255,0.4); text-transform:uppercase;
+    }
+    #dnd-root #banker-offer-amount{
+      color:#00ffcc; font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:120px; letter-spacing:-2px;
+      text-shadow:0 0 20px rgba(0,255,200,0.5); line-height:1;
+    }
+    #dnd-root #banker-hint{
+      display:flex; align-items:center; justify-content:center;
+      gap:20px; margin-top:16px;
+      font-family:'Inter','Arial',sans-serif; font-size:32px; font-weight:600;
+    }
+    #dnd-root .hint-deal{color:#4eff91;} .hint-sep{color:#888;font-size:24px;font-weight:400;} .hint-nodeal{color:#ff6b6b;}
+
+    /* ── Deal taken — win fades in center, no overlay ── */
+    #dnd-root #deal-win-popup {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%);
+      text-align:center; z-index:200;
+      opacity:0; pointer-events:none;
+      transition:opacity 1.0s ease;
+    }
+    #dnd-root #deal-win-popup.visible{opacity:1;}
+    #dnd-root #deal-win-label{
+      color:#fff; font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:52px; letter-spacing:-1px; text-transform:uppercase;
+      -webkit-text-stroke:2px rgba(0,0,0,0.95); paint-order:stroke fill;
+      text-shadow:3px 3px 0 #000,-1px -1px 0 #000,1px -1px 0 #000,-1px 1px 0 #000;
+      margin-bottom:10px;
+    }
+    #dnd-root #deal-win-amount{
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:160px; letter-spacing:-3px;
+      background:linear-gradient(180deg,#fff 0%,#ffd700 60%,#c8a030 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      line-height:1; filter:drop-shadow(0 4px 20px rgba(255,215,0,0.5));
+    }
+
+    /* ── Deal taken — bottom strip showing player case value ── */
+    #dnd-root #deal-info-strip {
+      position:absolute; bottom:0; left:0; right:0;
+      transform:translateY(100%);
+      background:linear-gradient(90deg,rgba(6,0,25,0.92),rgba(30,0,70,0.95),rgba(6,0,25,0.92));
+      border-top:3px solid #7744ee; padding:18px 320px;
+      text-align:center; z-index:201;
+      box-shadow:0 -4px 40px rgba(90,40,220,0.5); opacity:0;
+      transition:transform 0.65s cubic-bezier(0.175,0.885,0.32,1.275),opacity 0.5s ease;
+      pointer-events:none;
+    }
+    #dnd-root #deal-info-strip.visible{transform:translateY(0);opacity:1;}
+    #dnd-root #deal-info-strip .strip-text{
+      color:#e8e0ff; font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:30px; letter-spacing:-0.5px;
+      text-shadow:1px 1px 3px rgba(0,0,0,0.95);
+    }
+    #dnd-root #deal-info-strip .strip-hl{color:#ffe066;}
+
+    /* ── Final bottom strip ── */
+    #dnd-root #final-banner {
+      position:absolute; bottom:0; left:0; right:0;
+      transform:translateY(100%);
+      background:linear-gradient(90deg,rgba(6,0,25,0.92),rgba(30,0,70,0.95),rgba(6,0,25,0.92));
+      border-top:3px solid #7744ee; padding:18px 320px;
+      text-align:center; z-index:80;
+      box-shadow:0 -4px 40px rgba(90,40,220,0.5); opacity:0;
+      transition:transform 0.65s cubic-bezier(0.175,0.885,0.32,1.275),opacity 0.5s ease;
+      pointer-events:none;
+    }
+    #dnd-root #final-banner.visible{transform:translateY(0);opacity:1;}
+    #dnd-root #final-banner .final-body{
+      color:#e8e0ff; font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:28px; letter-spacing:-0.5px; line-height:1.4;
+      text-shadow:1px 1px 3px rgba(0,0,0,0.95);
+    }
+    #dnd-root #final-banner .hl{color:#ffe066;}
+
+    /* ── Final choice buttons — pulsing ── */
+    #dnd-root #final-buttons {
+      position:absolute; top:50%; left:50%;
+      transform:translate(-50%,-50%) scale(0);
+      display:flex; gap:40px; z-index:90; opacity:0;
+      transition:all 0.5s cubic-bezier(0.175,0.885,0.32,1.275);
+      pointer-events:none;
+    }
+    #dnd-root #final-buttons.visible{transform:translate(-50%,-50%) scale(1);opacity:1;pointer-events:all;}
+    #dnd-root .choice-btn{
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:52px; letter-spacing:-1px;
+      padding:28px 70px; border:none; border-radius:18px;
+      cursor:pointer; text-transform:uppercase;
+      transition:transform 0.15s,box-shadow 0.15s;
+    }
+    #dnd-root .choice-btn:hover{transform:scale(1.06);}
+    #dnd-root .choice-btn:active{transform:scale(0.97);}
+    #dnd-root #btn-keep{
+      background:linear-gradient(180deg,#2ecc71,#1a8a4a); color:#fff;
+      box-shadow:0 6px 30px rgba(46,204,113,0.5),0 0 60px rgba(46,204,113,0.2);
+      animation:btnPulseGreen 2.5s ease-in-out infinite;
+    }
+    #dnd-root #btn-swap{
+      background:linear-gradient(180deg,#e74c3c,#a01f14); color:#fff;
+      box-shadow:0 6px 30px rgba(231,76,60,0.5),0 0 60px rgba(231,76,60,0.2);
+      animation:btnPulseRed 2.5s ease-in-out infinite;
+    }
+    @keyframes btnPulseGreen{
+      0%,100%{box-shadow:0 6px 30px rgba(46,204,113,0.5),0 0 60px rgba(46,204,113,0.2);}
+      50%{box-shadow:0 6px 50px rgba(46,204,113,0.8),0 0 90px rgba(46,204,113,0.45);}
+    }
+    @keyframes btnPulseRed{
+      0%,100%{box-shadow:0 6px 30px rgba(231,76,60,0.5),0 0 60px rgba(231,76,60,0.2);}
+      50%{box-shadow:0 6px 50px rgba(231,76,60,0.8),0 0 90px rgba(231,76,60,0.45);}
+    }
+
+    /* ── Win reveal — scale+rise from point 960,720 ── */
+    #dnd-root #win-popup {
+      position:absolute;
+      /* Origin point: 960x720 (center of podium) */
+      left:960px; top:720px;
+      transform:translate(-50%,-50%) scale(0);
+      transform-origin:center center;
+      display:flex; flex-direction:column; align-items:center;
+      z-index:9999; opacity:0; pointer-events:none;
+      transition:transform 0.9s cubic-bezier(0.175,0.885,0.32,1.275),
+                 opacity 0.5s ease,
+                 top 0.9s cubic-bezier(0.175,0.885,0.32,1.275);
+    }
+    #dnd-root #win-popup.visible{
+      transform:translate(-50%,-50%) scale(1);
+      top:480px; /* rises to vertical center ~480px from top */
+      opacity:1; pointer-events:all;
+    }
+    #dnd-root #win-label{
+      color:#ffe066; font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:52px; letter-spacing:-1px; text-transform:uppercase;
+      text-shadow:0 2px 12px rgba(0,0,0,0.6), 0 0 30px rgba(255,200,0,0.4);
+      margin-bottom:10px;
+    }
+    #dnd-root #win-amount{
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:170px; letter-spacing:-3px;
+      background:linear-gradient(180deg,#ffffff 0%,#ffe680 50%,#ffd700 100%);
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      line-height:1;
+      filter:drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+    }
+
+    /* ── Video corner (transparent bg, 3× scale anchored at bottom-right) ── */
+    #dnd-root #video-corner {
+      position:absolute; bottom:0px; right:0px;
+      width:1920px; height:1080px;
+      z-index:10000; display:none;
+      pointer-events:none;
+    }
+    #dnd-root #video-corner.visible{display:block;}
+    #dnd-root #video-corner video{
+      width:100%; height:100%;
+      object-fit:contain;
+      object-position:bottom right;
+      background:transparent;
+    }
+
+    /* ── Loading screen ── */
+    #dnd-root #loading-screen {
+      position:absolute; inset:0;
+      width:1920px; height:1080px;
+      background:rgba(8,0,20,0.97);
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      z-index:99999;
+      border-radius:24px;
+      opacity:0; pointer-events:none;
+      transition:opacity 0.4s ease;
+    }
+    #dnd-root #loading-screen.visible { opacity:1; pointer-events:all; }
+    #dnd-root #loading-screen.hiding  { opacity:0; }
+    #dnd-root #loading-title {
+      font-family:'Inter','Arial',sans-serif; font-weight:600;
+      font-size:180px; letter-spacing:-8px;
+      color:#ffffff;
+      text-shadow: 0 0 60px rgba(200,150,255,0.6), 0 0 120px rgba(160,80,255,0.3);
+      margin-bottom:60px; line-height:1;
+    }
+    #dnd-root #loading-bar-wrap {
+      width:600px; height:8px;
+      background:rgba(255,255,255,0.12);
+      border-radius:999px; overflow:hidden;
+    }
+    #dnd-root #loading-bar {
+      height:100%; width:0%;
+      background:linear-gradient(90deg,#8855ff,#cc88ff,#8855ff);
+      background-size:200% 100%;
+      border-radius:999px;
+      animation:loadingBarMove 0.4s linear forwards, loadingShimmer 1s linear infinite;
+    }
+    @keyframes loadingBarMove { from{width:0%} to{width:100%} }
+    @keyframes loadingShimmer {
+      0%{background-position:0% 0%} 100%{background-position:200% 0%}
+    }
+
+    /* ── Ghost value float on case open ── */
+    #dnd-root .ghost-value {
+      position: absolute;
+      font-family: 'Inter','Arial',sans-serif;
+      font-weight: 600;
+      font-size: 32px;
+      color: #ffe066;
+      text-shadow: 0 0 12px rgba(255,220,0,0.8), 2px 2px 0 rgba(0,0,0,0.9);
+      pointer-events: none;
+      z-index: 200;
+      white-space: nowrap;
+      animation: ghostFloat 2.2s ease-out forwards;
+      transform-origin: center bottom;
+    }
+    @keyframes ghostFloat {
+      0%   { opacity: 1; transform: translateY(0)   scale(1);    }
+      30%  { opacity: 1; transform: translateY(-40px) scale(1.1); }
+      100% { opacity: 0; transform: translateY(-130px) scale(0.7); }
+    }
+  
+  </style>
+</head>
+<body>
+<div id="tracker-wrap" style="position:absolute;left:0;top:0;transform-origin:top left;"><div id="solo-container" class="tracker-container" style="display: none;">
+    <div class="stats-grid">
+        <div class="stat-card"><span class="stat-icon">💰</span><span id="stat-total" class="stat-val">0</span></div>
+        <div class="stat-card"><span class="stat-icon">⭐</span><span id="stat-count" class="stat-val">0/0</span></div>
+        <div class="stat-card"><span class="stat-icon">📈</span><span id="stat-comeback" class="stat-val">—</span></div>
+        <div class="stat-card"><span class="stat-icon">⚖️</span><span id="stat-avg-opened" class="stat-val">0.00x</span></div>
+    </div>
+    <div id="viewport" class="slots-viewport">
+        <div id="slots-container" class="slots-list"></div>
+    </div>
+</div>
+<div id="battle-container" class="tracker-container battle-container" style="display: none;">
+    <div class="battle-shared-stats" id="battle-stats-bar">
+        <div class="b-stat-pill">💰 <span id="b-stat-shared-depo">0</span></div>
+        <div class="b-stat-pill">⭐ <span id="b-stat-shared-count" style="color:#e2e8f0;">0/0</span></div>
+        <div class="b-stat-pill">⚖️ <span id="b-stat-shared-comeback" style="color:#e2e8f0;">0.00x</span></div>
+    </div>
+    <div class="battle-header" id="battle-header"></div>
+    <div id="battle-viewport" class="slots-viewport">
+        <div id="battle-slots-container" class="slots-list"></div>
+    </div>
+</div>
+
+<div id="wheel-banner" class="wheel-banner">
+
+
+    <div class="wheel-bg">
+        <svg viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="130" cy="130" r="124" fill="none" stroke="rgba(0,210,200,0.9)" stroke-width="3"/>
+            <circle cx="130" cy="130" r="110" fill="none" stroke="rgba(0,210,200,0.5)" stroke-width="1"/>
+            <path d="M130 130 L130 6 A124 124 0 0 1 192 29.4 Z" fill="rgba(0,210,200,0.12)"/>
+            <path d="M130 130 L192 29.4 A124 124 0 0 1 230.6 68 Z" fill="rgba(0,210,200,0.06)"/>
+            <path d="M130 130 L230.6 68 A124 124 0 0 1 254 130 Z" fill="rgba(0,210,200,0.12)"/>
+            <path d="M130 130 L254 130 A124 124 0 0 1 230.6 192 Z" fill="rgba(0,210,200,0.06)"/>
+            <path d="M130 130 L230.6 192 A124 124 0 0 1 192 230.6 Z" fill="rgba(0,210,200,0.12)"/>
+            <path d="M130 130 L192 230.6 A124 124 0 0 1 130 254 Z" fill="rgba(0,210,200,0.06)"/>
+            <path d="M130 130 L130 254 A124 124 0 0 1 68 230.6 Z" fill="rgba(0,210,200,0.12)"/>
+            <path d="M130 130 L68 230.6 A124 124 0 0 1 29.4 192 Z" fill="rgba(0,210,200,0.06)"/>
+            <path d="M130 130 L29.4 192 A124 124 0 0 1 6 130 Z" fill="rgba(0,210,200,0.12)"/>
+            <path d="M130 130 L6 130 A124 124 0 0 1 29.4 68 Z" fill="rgba(0,210,200,0.06)"/>
+            <path d="M130 130 L29.4 68 A124 124 0 0 1 68 29.4 Z" fill="rgba(0,210,200,0.12)"/>
+            <path d="M130 130 L68 29.4 A124 124 0 0 1 130 6 Z" fill="rgba(0,210,200,0.06)"/>
+            <line x1="130" y1="20" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="192" y1="36" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="232" y1="68" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="244" y1="130" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="232" y1="192" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="192" y1="224" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="130" y1="240" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="68" y1="224" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="28" y1="192" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="16" y1="130" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="28" y1="68" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <line x1="68" y1="36" x2="130" y2="130" stroke="rgba(0,210,200,0.6)" stroke-width="1.5"/>
+            <circle cx="130" cy="130" r="28" fill="#0d0d11" stroke="rgba(0,210,200,0.7)" stroke-width="2"/>
+            <circle cx="130" cy="130" r="7" fill="rgba(0,210,200,0.85)"/>
+        </svg>
+    </div>
+
+
+    <div class="wheel-bg-overlay"></div>
+
+
+    <div class="wheel-banner-center">
+        <div class="wb-title" id="wb-title">🎡 СТАТУС КОЛЕСА: АКТИВНО</div>
+        <div class="wb-grid">
+            <div class="wb-card">
+                <span class="wb-label">МИН. ДЕПОЗИТ</span>
+                <span class="wb-val" id="wb-val-dep">—</span>
+            </div>
+            <div class="wb-card wb-gold">
+                <span class="wb-label">СУММА КОЛЕСА</span>
+                <span class="wb-val" id="wb-val-amount">—</span>
+            </div>
+            <div class="wb-card">
+                <span class="wb-label">ПОБЕДИТЕЛИ</span>
+                <span class="wb-val" id="wb-val-winners">—</span>
+            </div>
+        </div>
+        <div class="wb-link">🔗 УЧАСТВУЙ ПО ССЫЛКЕ В ЗАКРЕПЕ</div>
+    </div>
+</div>
+
+<!-- DRAGON WHEEL -->
+<div id="dragon-wheel-wrap" class="dragon-wheel-wrap">
+    <div class="dragon-wheel-inner">
+        <div class="dragon-wheel-stage">
+            <div class="dw-frame"></div>
+            <div class="dw-spin" id="dw-spin"></div>
+            <div class="dw-dots" id="dw-dots"></div>
+            <div class="dw-center"></div>
+            <div class="dragon-timer-display" id="dragon-timer-display">0м 00с</div>
+        </div>
+    </div>
+</div>
+
+</div><!-- /tracker-wrap -->
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyC3WVO3p4EwDec5J2PEooIoAkHxIfw6R8w",
+        authDomain: "bonusbyra.firebaseapp.com",
+        databaseURL: "https://bonusbyra-default-rtdb.europe-west1.firebasedatabase.app/",
+        projectId: "bonusbyra",
+        storageBucket: "bonusbyra.firebasestorage.app",
+        messagingSenderId: "873732272758",
+        appId: "1:873732272758:web:b71eb5ac35ea6b6bc26557"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function formatNumberCompact(num) { num = Number(num); if (isNaN(num) || num === 0) return '0'; let absNum = Math.abs(num); let sign = num < 0 ? '-' : ''; if (absNum >= 1000000) return sign + parseFloat((absNum / 1000000).toFixed(2)) + 'кк'; if (absNum >= 1000) return sign + parseFloat((absNum / 1000).toFixed(1)) + 'к'; return sign + absNum.toString(); }
+    function formatNumberWithCommas(num) { return Number(num).toLocaleString('en-US').replace(/,/g, ' '); }
+
+    db.ref('widgets/layout').on('value', function(lay) {
+      if(!lay) return; const d=lay.val(); if(!d) return;
+      const tw=document.getElementById('tracker-wrap'), dw=document.getElementById('dnd-outer-wrap');
+      if(tw&&d.widget){tw.style.left=d.widget.x+'px';tw.style.top=d.widget.y+'px';tw.style.transform='scale('+(d.widget.w/580)+')';}
+      if(dw&&d.dnd){dw.style.left=d.dnd.x+'px';dw.style.top=d.dnd.y+'px';dw.style.width=d.dnd.w+'px';dw.style.height=d.dnd.h+'px';const sw=document.getElementById('dnd-scale-wrap');if(sw)sw.style.transform='scale('+(d.dnd.h/1080)+')';}
+    });
+    db.ref('/').on('value', function(snapshot) {
+        const data = snapshot.val() || {};
+        const mode = data.global_mode || 'solo';
+        const mainVisible = !!data.main_widget_visible;
+
+        if (!mainVisible) {
+            document.getElementById('solo-container').style.display = 'none';
+            document.getElementById('battle-container').style.display = 'none';
+        } else if (mode === 'solo') {
+            document.getElementById('solo-container').style.display = 'flex';
+            document.getElementById('battle-container').style.display = 'none';
+            renderSoloMode(data);
+        } else {
+            document.getElementById('solo-container').style.display = 'none';
+            document.getElementById('battle-container').style.display = 'flex';
+            renderBattleMode(data.battle || {}, data.custom_icons || {});
+        }
+
+
+        const wheel = data.wheel || {};
+        const banner = document.getElementById('wheel-banner');
+
+        if (!wheel.enabled) {
+            hideBanner(banner);
+            hideDragonWheel();
+        } else {
+            showBanner(banner);
+            const isActive = wheel.active !== false;
+            const isDragon = wheel.mode === 'dragon';
+            if (isActive) {
+                banner.classList.remove('inactive');
+                const amt = Number(wheel.amount || 0);
+                const dep = Number(wheel.min_dep || 0);
+                const win = Number(wheel.winners || 0);
+                document.getElementById('wb-title').innerText = '🎡 СТАТУС КОЛЕСА: АКТИВНО';
+                document.getElementById('wb-val-amount').innerText = amt > 0 ? (formatNumberWithCommas(amt) + ' $') : '—';
+                document.getElementById('wb-val-dep').innerText   = dep > 0 ? (formatNumberWithCommas(dep) + ' $') : '—';
+                document.getElementById('wb-val-winners').innerText = win > 0 ? win + ' чел.' : '—';
+                // Dragon wheel visibility
+                if (isDragon) {
+                    const wrap = document.getElementById('dragon-wheel-wrap');
+                    wrap.classList.remove('hiding');
+                    wrap.classList.add('visible');
+                    startDragonTimer(wheel.dragon_timer || 0);
+                } else {
+                    hideDragonWheel();
+                }
+            } else {
+                banner.classList.add('inactive');
+                document.getElementById('wb-title').innerText = '🎡 СТАТУС КОЛЕСА: НЕ АКТИВНО';
+                document.getElementById('wb-val-amount').innerText = '—';
+                document.getElementById('wb-val-dep').innerText = '—';
+                document.getElementById('wb-val-winners').innerText = '—';
+                hideDragonWheel();
+            }
+        }
+    });
+
+    // ═══ DRAGON WHEEL INIT ═══
+    (function initDragonWheel() {
+        const colors = ['#7b2cbf','#f50057','#ff6d00','#ffea00','#76ff03','#00bfa5','#00b0ff','#2979ff'];
+        const segments = colors.length;
+        const degrees = 360 / segments;
+        const spin = document.getElementById('dw-spin');
+        let gradParts = [];
+        colors.forEach((c, i) => { gradParts.push(`${c} ${i*degrees}deg ${(i+1)*degrees}deg`); });
+        spin.style.background = `conic-gradient(${gradParts.join(',')})`;
+        for (let i = 0; i < segments; i++) {
+            const line = document.createElement('div');
+            line.style.cssText = `position:absolute;top:0;left:50%;width:3px;height:50%;background:#111;transform-origin:bottom center;transform:translateX(-50%) rotate(${i*degrees}deg);z-index:10;`;
+            spin.appendChild(line);
+        }
+        // Slow continuous rotation via CSS animation
+        spin.style.animation = 'dragonSpinAnim 18s linear infinite';
+        const styleTag = document.createElement('style');
+        styleTag.textContent = '@keyframes dragonSpinAnim { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }';
+        document.head.appendChild(styleTag);
+        // Dots on frame
+        const dotsEl = document.getElementById('dw-dots');
+        for (let i = 0; i < 16; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'dw-dot';
+            dot.style.transform = `rotate(${i*(360/16)}deg)`;
+            dotsEl.appendChild(dot);
+        }
+    })();
+
+    let dragonTimerInterval = null;
+    let dragonSecondsLeft = 0;
+    let dragonTotalSeconds = 0;
+
+    function formatDragonTime(s) {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        if (m === 0) return String(sec) + 'с';
+        return m + 'м ' + String(sec).padStart(2,'0') + 'с';
+    }
+
+    function stopDragonTimer() {
+        if (dragonTimerInterval) { clearInterval(dragonTimerInterval); dragonTimerInterval = null; }
+    }
+
+    // RAF-based smooth deceleration in last 10 seconds
+    let spinRafId = null;
+    let slowdownStartAngle = 0;   // wheel angle when deceleration began
+    let slowdownStartTime = 0;    // performance.now() when deceleration began
+    const FULL_SPEED_DURATION = 18; // seconds per revolution at full speed
+    const SLOWDOWN_SECONDS = 5;    // last N seconds to decelerate
+    const FULL_SPEED_DEG_PER_MS = 360 / (FULL_SPEED_DURATION * 1000);
+
+    // Track cumulative angle for smooth handoff
+    let currentAngleDeg = 0;
+    let lastRafTime = null;
+
+    // Full-speed CSS animation (runs until last 10s)
+    function setFullSpeedCSS() {
+        const spin = document.getElementById('dw-spin');
+        if (!spin) return;
+        if (spinRafId) { cancelAnimationFrame(spinRafId); spinRafId = null; }
+        spin.style.transition = 'none';
+        spin.style.animation = 'none';
+        void spin.offsetWidth;
+        spin.style.animation = 'dragonSpinAnim ' + FULL_SPEED_DURATION + 's linear infinite';
+    }
+
+    // Switch to RAF-driven deceleration for the last SLOWDOWN_SECONDS
+    // secondsLeft = actual time remaining in seconds (the real budget)
+    function beginSlowdown(secondsLeft) {
+        const spin = document.getElementById('dw-spin');
+        if (!spin) return;
+        if (spinRafId) { cancelAnimationFrame(spinRafId); spinRafId = null; }
+
+        // Capture current angle from CSS animation
+        const computed = window.getComputedStyle(spin);
+        const mat = new DOMMatrix(computed.transform);
+        currentAngleDeg = ((Math.atan2(mat.b, mat.a) * (180 / Math.PI)) % 360 + 360) % 360;
+
+        // Stop CSS animation, take manual control
+        spin.style.animation = 'none';
+        spin.style.transform = 'rotate(' + currentAngleDeg + 'deg)';
+
+        // Use ACTUAL remaining seconds, not the constant
+        const totalSlowMs = secondsLeft * 1000;
+        slowdownStartTime = performance.now();
+        const totalDeg = FULL_SPEED_DEG_PER_MS * totalSlowMs / 3;
+        const startAngle = currentAngleDeg;
+
+        function rafStep(now) {
+            const elapsed = now - slowdownStartTime;
+            const t = Math.min(elapsed / totalSlowMs, 1);
+            const posFrac = 1 - Math.pow(1 - t, 3);
+            spin.style.transform = 'rotate(' + (startAngle + totalDeg * posFrac) + 'deg)';
+            if (t < 1) {
+                spinRafId = requestAnimationFrame(rafStep);
+            } else {
+                spinRafId = null;
+            }
+        }
+        spinRafId = requestAnimationFrame(rafStep);
+    }
+
+    function startDragonTimer(totalSeconds) {
+        // If timer is already running with same total, don't restart
+        if (dragonTimerInterval && dragonTotalSeconds === totalSeconds) return;
+        stopDragonTimer();
+        if (spinRafId) { cancelAnimationFrame(spinRafId); spinRafId = null; }
+        dragonTotalSeconds = Math.max(0, Math.round(totalSeconds));
+        dragonSecondsLeft = dragonTotalSeconds;
+        const display = document.getElementById('dragon-timer-display');
+        display.innerText = formatDragonTime(dragonSecondsLeft);
+        if (dragonSecondsLeft <= 0) return;
+
+        // Start at full speed via CSS animation
+        setFullSpeedCSS();
+
+        // If we're already in the slowdown zone, begin immediately
+        if (dragonSecondsLeft <= SLOWDOWN_SECONDS) {
+            beginSlowdown(dragonSecondsLeft);
+        }
+
+        dragonTimerInterval = setInterval(function() {
+            dragonSecondsLeft--;
+            if (dragonSecondsLeft < 0) dragonSecondsLeft = 0;
+            display.innerText = formatDragonTime(dragonSecondsLeft);
+
+            // Kick off smooth deceleration exactly when we hit the slowdown window
+            if (dragonSecondsLeft === SLOWDOWN_SECONDS) {
+                beginSlowdown(dragonSecondsLeft);
+            }
+
+            if (dragonSecondsLeft <= 0) {
+                stopDragonTimer();
+                if (spinRafId) { cancelAnimationFrame(spinRafId); spinRafId = null; }
+                // EXPLOSION effect: shake + flash
+                const stage = document.querySelector('.dragon-wheel-stage');
+                const frame = document.querySelector('.dw-frame');
+                if (stage) { stage.classList.add('exploding'); setTimeout(function(){ stage.classList.remove('exploding'); }, 600); }
+                if (frame)  { frame.classList.add('exploding');  setTimeout(function(){ frame.classList.remove('exploding');  }, 600); }
+                // Then rocket up
+                setTimeout(function() {
+                    db.ref('wheel/active').set(false);
+                }, 700);
+            }
+        }, 1000);
+    }
+
+    function showBanner(banner) {
+        if (banner.style.display === 'block' && !banner.classList.contains('hiding')) return; // already visible
+        banner.classList.remove('hiding');
+        banner.style.display = 'block';
+        // Re-trigger animation
+        banner.style.animation = 'none';
+        void banner.offsetWidth; // reflow
+        banner.style.animation = '';
+    }
+
+    let bannerHideTimer = null;
+    function hideBanner(banner) {
+        if (banner.style.display === 'none') return; // already hidden
+        if (banner.classList.contains('hiding')) return; // already hiding
+        banner.classList.add('hiding');
+        if (bannerHideTimer) clearTimeout(bannerHideTimer);
+        bannerHideTimer = setTimeout(function() {
+            banner.style.display = 'none';
+            banner.classList.remove('hiding');
+        }, 470);
+    }
+
+    function hideDragonWheel() {
+        const wrap = document.getElementById('dragon-wheel-wrap');
+        if (!wrap.classList.contains('visible')) return; // already hidden
+        // Add hiding class to trigger rocket-up animation
+        wrap.classList.add('hiding');
+        // After animation completes, collapse height and reset spin speed
+        setTimeout(function() {
+            wrap.classList.remove('visible');
+            wrap.classList.remove('hiding');
+            // Stop any RAF slowdown and reset CSS animation
+            if (spinRafId) { cancelAnimationFrame(spinRafId); spinRafId = null; }
+            const spin = document.getElementById('dw-spin');
+            if (spin) {
+                spin.style.transform = '';
+                spin.style.animation = 'none';
+                void spin.offsetWidth;
+                spin.style.animation = 'dragonSpinAnim ' + FULL_SPEED_DURATION + 's linear infinite';
+            }
+        }, 700);
+        stopDragonTimer();
+    }
+
+    function checkMarquee() {
+        requestAnimationFrame(function() {
+            document.querySelectorAll('.slot-name-marquee, .b-name-marquee').forEach(function(wrap) {
+
+                const dupe = wrap.querySelector('.marquee-dupe');
+                if (dupe) dupe.remove();
+                const el = wrap.querySelector('.slot-name, .b-name');
+                if (!el) return;
+                el.classList.remove('do-marquee');
+                wrap.style.removeProperty('--scroll-dist');
+                wrap.style.removeProperty('--marquee-dur');
+
+                const textW = el.scrollWidth;
+                const wrapW = wrap.offsetWidth;
+                if (textW <= wrapW + 2) return;
+
+                const gap = 4;
+                const totalDist = textW + gap;
+                const speed = 22;
+                const dur = totalDist / speed;
+
+                wrap.style.setProperty('--scroll-dist', '-' + totalDist + 'px');
+                wrap.style.setProperty('--marquee-dur', dur + 's');
+
+                const clone = el.cloneNode(true);
+                clone.classList.add('marquee-dupe');
+                clone.classList.add('do-marquee');
+                clone.style.position = 'absolute';
+                clone.style.top = '0';
+                clone.style.left = textW + gap + 'px';
+                clone.style.margin = '0';
+                clone.style.lineHeight = window.getComputedStyle(el).lineHeight;
+                clone.style.fontSize = window.getComputedStyle(el).fontSize;
+                clone.style.fontWeight = window.getComputedStyle(el).fontWeight;
+                clone.style.color = window.getComputedStyle(el).color;
+                wrap.style.position = 'relative';
+                wrap.appendChild(clone);
+
+                el.classList.add('do-marquee');
+            });
+        });
+    }
+    function renderSoloMode(data) {
+        const slots = data.slots ? Object.values(data.slots) : [];
+        const activeIndex = data.active_index !== undefined ? data.active_index : 0;
+        const displayMode = data.display_mode || 'hunt';
+        const startBalance = data.start_balance ?? 0; const balanceCurr = data.start_balance_currency || '₽';
+        const customIcons = data.custom_icons || {};
+        let totalWin = 0; let totalBuy = 0; let openedCount = 0; let remainingBuy = 0; let openedTotalBuy = 0; let openedTotalWin = 0; let maxX = 0;
+        slots.forEach(function(s, idx) {
+            const buy = Number(s.buy || 0); const win = Number(s.win || 0); totalBuy += buy; totalWin += win;
+
+            const isOpened = displayMode === 'hunt'
+                ? (win > 0)
+                : (win > 0 || (win === 0 && idx < activeIndex));
+            if (isOpened) { openedCount++; openedTotalBuy += buy; openedTotalWin += win; } else { remainingBuy += buy; }
+            if (buy > 0 && win > 0 && (win/buy) > maxX) maxX = win/buy;
+        });
+
+        let comebackXText;
+
+        if (displayMode === 'hunt') {
+
+            const deposit = Number(startBalance) || 0;
+            if (slots.length === 0 || deposit === 0) {
+
+                comebackXText = '—';
+            } else if (openedTotalWin >= deposit) {
+                comebackXText = 'ОКУП';
+            } else if (remainingBuy === 0) {
+
+                comebackXText = openedTotalWin >= deposit ? 'ОКУП' : 'НЕ ОКУП';
+            } else {
+
+                const needWin = deposit - openedTotalWin;
+                const needX = needWin / remainingBuy;
+                comebackXText = needX.toFixed(2) + 'x';
+            }
+        } else if (displayMode === 'bonusbuy') {
+
+            // В режимі bonusbuy — показуємо загальну суму виграшу
+            const curr = balanceCurr;
+            if (slots.length === 0) {
+                comebackXText = '—';
+            } else {
+                comebackXText = formatNumberCompact(openedTotalWin) + ' ' + curr;
+            }
+        } else {
+
+            // finish — окуп чи ні
+            if (slots.length === 0) {
+                comebackXText = '—';
+            } else {
+                comebackXText = totalBuy === 0 ? '—' : (totalWin >= totalBuy ? 'ОКУП' : 'НЕ ОКУП');
+            }
+        }
+
+        const openedAvgX = openedTotalBuy > 0 ? (openedTotalWin / openedTotalBuy) : 0;
+        document.getElementById('stat-total').innerText = formatNumberCompact(startBalance) + ' ' + balanceCurr;
+        document.getElementById('stat-count').innerText = openedCount + '/' + slots.length;
+        document.getElementById('stat-comeback').innerText = comebackXText;
+        document.getElementById('stat-avg-opened').innerText = openedAvgX.toFixed(2) + 'x';
+        const container = document.getElementById('slots-container');
+        document.getElementById('solo-container').className = 'tracker-container ' + (slots.length > 0 ? 'has-items ' : '') + 'mode-' + displayMode;
+        let slotsToRender = slots.map((s,i)=>Object.assign({},s,{orig:i}));
+        let listHTML = '';
+        let focusIndex = (displayMode === 'hunt' && slotsToRender.length > 0) ? slotsToRender.length - 1 : activeIndex;
+        slotsToRender.forEach(function(slot) {
+            const isActive = slot.orig === focusIndex;
+            const slotCur = slot.currency || '₽'; const buy = Number(slot.buy || 0); const win = Number(slot.win || 0);
+            let xValText = '—'; let multClass = 'mult-pending';
+            if (win > 0 && buy > 0) { xValText = (win / buy).toFixed(2) + 'x'; multClass = (win / buy) >= 1 ? 'mult-win' : 'mult-loss'; } else if (win === 0 && slot.orig < activeIndex) { xValText = '0.00x'; multClass = 'mult-loss'; }
+            let isCrown = (displayMode === 'finish' && win > 0 && buy > 0 && (win/buy) === maxX && maxX > 0);
+            let iconInner = '?'; if (customIcons[slot.name]) iconInner = `<img class="slot-icon-img" src="${customIcons[slot.name]}" onerror="this.style.display='none'">`; else if (slot.name) iconInner = `<div class="slot-icon-text">${slot.name.substring(0, 2)}</div>`;
+            const winDisplayHTML = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${formatNumberWithCommas(win)} ${slotCur}</span>` : '';
+            let showActiveEffects = isActive && displayMode !== 'finish';
+            let rowExtra = '';
+            if (isCrown) rowExtra = 'border: 1px solid rgba(255,183,3,0.45); background: rgba(255,183,3,0.07);';
+            else if (showActiveEffects) rowExtra = 'border: 1px solid rgba(124, 58, 237, 0.4); box-shadow: 0 10px 30px rgba(124,58,237,0.15); transform: scale(1.02); z-index: 10;';
+            listHTML += `
+                <div class="slot-row" style="${rowExtra}">
+                    <div class="slot-icon-wrapper">${iconInner}${isCrown ? '<div class="crown-overlay">👑</div>' : ''}</div>
+                    <div class="slot-info">
+                        <div class="slot-name-marquee" style="--scroll-dist: calc(-1 * (100% - 10px)); --marquee-dur: ${Math.max(12, slot.name.length * 0.55)}s"><span class="slot-name">${slot.name}</span></div>
+                        <div class="slot-amounts"><span>${formatNumberWithCommas(buy)} ${slotCur}</span>${winDisplayHTML}</div>
+                    </div>
+                    <div class="multiplier-badge ${multClass}" style="margin-left:14px;">${xValText}</div>
+                </div>`;
+        });
+        if (displayMode === 'bonusbuy' || displayMode === 'hunt') {
+            container.innerHTML = listHTML; checkMarquee(); container.style.animation = 'none'; let itemHeight = 100; let totalItems = slotsToRender.length;
+            if (focusIndex >= 2) { let listHeight = (totalItems * itemHeight) - 12; let maxScroll = Math.max(0, listHeight - 488); let targetY = Math.min(maxScroll, (focusIndex - 2) * itemHeight); container.style.transform = `translateY(-${targetY}px)`; }
+            else { container.style.transform = `translateY(0px)`; }
+        } else if (displayMode === 'finish' && slotsToRender.length > 0) {
+            container.style.transform = "none"; container.innerHTML = listHTML.repeat(6); checkMarquee();
+            const timeToMove = slotsToRender.length * 3.5; container.style.animation = `infiniteWheel ${timeToMove * 3}s linear infinite`;
+        } else { container.style.transform = "none"; container.style.animation = 'none'; container.innerHTML = listHTML; checkMarquee(); }
+    }
+
+    function renderBattleMode(bData, globalIcons) {
+        let players = bData.players || [bData.p1_name || 'Игрок 1', bData.p2_name || 'Игрок 2'];
+        let requiredWidth = Math.max(580, players.length * 280);
+        document.getElementById('battle-container').style.width = requiredWidth + 'px';
+        let rawRounds = bData.rounds ? Object.values(bData.rounds) : [];
+        let rounds = rawRounds.map((r, i) => { let rr = (!r.p) ? { p: [r.p1 || {name:'',buy:0,win:0}, r.p2 || {name:'',buy:0,win:0}] } : r; rr.orig = i; return rr; });
+        const activeIndex = bData.active_index !== undefined ? bData.active_index : 0;
+        const displayMode = bData.display_mode || 'hunt';
+        const curr = bData.currency || '₽'; const sharedBalance = bData.start_balance || 0;
+        const bonusXEnabled = bData.bonus_x_enabled === true;
+        let globalBestX = 0; let globalBestRound = -1; let globalBestPlayer = -1;
+        rounds.forEach((r, rIdx) => {
+            r.p.forEach((p, pIdx) => {
+                let b = Number(p.buy || 0); let w = Number(p.win || 0);
+                if (b > 0 && w > 0) { let x = w / b; if (x > globalBestX) { globalBestX = x; globalBestRound = rIdx; globalBestPlayer = pIdx; } }
+            });
+        });
+        let playersStats = Array(players.length).fill().map(()=>({ opened_buy: 0, opened_win: 0, score: 0 }));
+        let openedTotalBuyAll = 0, openedTotalWinAll = 0, openedCount = 0;
+        rounds.forEach((r, idx) => {
+            let isRoundOpened = idx < activeIndex;
+            r.p.forEach(p => { if (Number(p.win || 0) > 0) isRoundOpened = true; });
+            if (isRoundOpened) {
+                let round_max_x = 0; let round_xs = [];
+                r.p.forEach((p, i) => {
+                    let b = Number(p.buy || 0); let w = Number(p.win || 0);
+                    if(playersStats[i]) { playersStats[i].opened_buy += b; playersStats[i].opened_win += w; }
+                    openedTotalBuyAll += b; openedTotalWinAll += w;
+                    let x = b > 0 ? w/b : 0; round_xs.push(x);
+                    if (x > round_max_x) round_max_x = x;
+                });
+                if (round_max_x > 0) { round_xs.forEach((x, i) => { if (x === round_max_x && playersStats[i]) playersStats[i].score += 1; }); }
+                openedCount++;
+            }
+        });
+        if (bonusXEnabled && globalBestPlayer >= 0 && globalBestRound < activeIndex) {
+            let bestRound = rounds[globalBestRound]; let isOpened = globalBestRound < activeIndex;
+            if (!isOpened && bestRound) { bestRound.p.forEach(p => { if (Number(p.win || 0) > 0) isOpened = true; }); }
+            if (isOpened && playersStats[globalBestPlayer]) { playersStats[globalBestPlayer].score += 1; }
+        }
+        let maxScore = -1;
+        if (displayMode === 'finish') { playersStats.forEach(ps => { if (ps.score > maxScore) maxScore = ps.score; }); }
+        let headerHTML = '';
+        players.forEach((pName, i) => {
+            let avgX = playersStats[i].opened_buy > 0 ? (playersStats[i].opened_win / playersStats[i].opened_buy) : 0;
+            let isHighestScore = (displayMode === 'finish' && playersStats[i].score === maxScore && maxScore > 0);
+            headerHTML += `<div class="battle-player-block ${isHighestScore ? 'winner-block' : ''}"><div class="b-name-wrap"><span class="b-crown-diagonal">👑</span><span class="b-name">${pName}</span></div><span class="b-meta">Средний: ${avgX.toFixed(2)}x</span><div class="b-score-box">${playersStats[i].score}</div></div>`;
+            if (i < players.length - 1) headerHTML += `<div style="font-weight:900; color:#444; font-size: 20px; align-self: center; padding-top: 10px;">VS</div>`;
+        });
+        document.getElementById('battle-header').innerHTML = headerHTML; checkMarquee();
+        const sharedAvgX = openedTotalBuyAll > 0 ? (openedTotalWinAll / openedTotalBuyAll) : 0;
+        document.getElementById('b-stat-shared-depo').innerText = formatNumberCompact(sharedBalance) + ' ' + curr;
+        document.getElementById('b-stat-shared-comeback').innerText = sharedAvgX.toFixed(2) + 'x';
+        document.getElementById('b-stat-shared-count').innerText = openedCount + '/' + rounds.length;
+        const container = document.getElementById('battle-slots-container');
+        let listHTML = '';
+        let focusIndex = (displayMode === 'hunt' && rounds.length > 0) ? rounds.length - 1 : activeIndex;
+        rounds.forEach((r) => {
+            let isScored = r.orig < activeIndex; r.p.forEach(p => { if (Number(p.win || 0) > 0) isScored = true; });
+            let showActiveEffects = r.orig === focusIndex && displayMode !== 'finish';
+            let max_x = 0; r.p.forEach(p => { let x = Number(p.buy||0) > 0 ? Number(p.win||0) / Number(p.buy||0) : 0; if(x > max_x) max_x = x; });
+            let playersRowHTML = '';
+            r.p.forEach((p, i) => {
+                let buy = Number(p.buy||0); let win = Number(p.win||0); let x = buy > 0 ? win/buy : 0;
+                let isWinner = (isScored && x === max_x && max_x > 0);
+                let isGlobalBestX = bonusXEnabled && displayMode === 'finish' && (r.orig === globalBestRound) && (i === globalBestPlayer) && globalBestX > 0;
+                let tx = win > 0 ? x.toFixed(2) + 'x' : (isScored ? '0.00x' : '—');
+                let mc = win > 0 && x >= 1 ? 'mult-win' : (isScored ? 'mult-loss' : 'mult-pending');
+                let wDisplay = win > 0 ? `<span class="arrow-blue">➔</span> <span style="color:#2ecc71;">${formatNumberWithCommas(win)} ${curr}</span>` : '';
+                let icn = globalIcons[p.name] ? `<img class="slot-icon-img" src="${globalIcons[p.name]}" onerror="this.style.display='none'">` : `<div class="slot-icon-text" style="font-size: 14px;">${(p.name || '?').substring(0, 2)}</div>`;
+                let sideClass = 'b-side'; if (isGlobalBestX) sideClass += ' best-x-winner'; else if (isWinner) sideClass += ' winner';
+                playersRowHTML += `<div class="${sideClass}"><div class="slot-icon-wrapper">${icn}</div><div class="slot-info"><div class="slot-name-row"><div class="slot-name-marquee" style="--scroll-dist: calc(-1 * (100% - 10px)); --marquee-dur: ${Math.max(12, (p.name||'Слот').length * 0.55)}s"><span class="slot-name">${p.name || 'Слот'}</span></div><div class="multiplier-badge ${mc}">${tx}${isGlobalBestX ? ' ⭐' : ''}</div></div><div class="slot-amounts"><span>${formatNumberWithCommas(buy)} ${curr}</span>${wDisplay}</div></div></div>`;
+                if (i < r.p.length - 1) playersRowHTML += `<div class="b-vs-text">VS</div>`;
+            });
+            listHTML += `<div class="battle-row" style="transform: scale(${showActiveEffects ? '1.02' : '1'}); ${showActiveEffects ? 'border: 1px solid rgba(124, 58, 237, 0.4); box-shadow: 0 10px 30px rgba(124,58,237,0.15); z-index: 10;' : ''}">${playersRowHTML}</div>`;
+        });
+        if (displayMode === 'bonusbuy' || displayMode === 'hunt') {
+            container.innerHTML = listHTML; checkMarquee(); container.style.animation = 'none'; let itemHeight = 100; let totalItems = rounds.length;
+            if (focusIndex >= 2) { let listHeight = (totalItems * itemHeight) - 12; let maxScroll = Math.max(0, listHeight - 488); let targetY = Math.min(maxScroll, (focusIndex - 2) * itemHeight); container.style.transform = `translateY(-${targetY}px)`; }
+            else { container.style.transform = `translateY(0px)`; }
+        } else if (displayMode === 'finish' && rounds.length > 0) {
+            container.style.transform = "none"; container.innerHTML = listHTML.repeat(6); checkMarquee();
+            const timeToMove = rounds.length * 3.5; container.style.animation = `infiniteWheel ${timeToMove * 3}s linear infinite`;
+        } else { container.style.transform = "none"; container.style.animation = 'none'; container.innerHTML = listHTML; checkMarquee(); }
+    }
+</script>
+
+  <div id="dnd-outer-wrap"><div id="dnd-scale-wrap"><div id="dnd-root"><div id="widget-root">
+  <div id="bg"></div>
+  <div id="instruction-text">ОЖИДАНИЕ ИГРЫ...</div>
+
+  <!-- Shelf cases -->
+  <div class="case-layer" id="cl-1"></div><div class="case-layer" id="cl-2"></div>
+  <div class="case-layer" id="cl-3"></div><div class="case-layer" id="cl-4"></div>
+  <div class="case-layer" id="cl-5"></div><div class="case-layer" id="cl-6"></div>
+  <div class="case-layer" id="cl-7"></div><div class="case-layer" id="cl-8"></div>
+  <div class="case-layer" id="cl-9"></div><div class="case-layer" id="cl-10"></div>
+  <div class="case-layer" id="cl-11"></div><div class="case-layer" id="cl-12"></div>
+  <div class="case-layer" id="cl-13"></div><div class="case-layer" id="cl-14"></div>
+  <div class="case-layer" id="cl-15"></div><div class="case-layer" id="cl-16"></div>
+
+  <!-- Podium closed -->
+  <div class="podium-layer" id="pl-1"></div><div class="podium-layer" id="pl-2"></div>
+  <div class="podium-layer" id="pl-3"></div><div class="podium-layer" id="pl-4"></div>
+  <div class="podium-layer" id="pl-5"></div><div class="podium-layer" id="pl-6"></div>
+  <div class="podium-layer" id="pl-7"></div><div class="podium-layer" id="pl-8"></div>
+  <div class="podium-layer" id="pl-9"></div><div class="podium-layer" id="pl-10"></div>
+  <div class="podium-layer" id="pl-11"></div><div class="podium-layer" id="pl-12"></div>
+  <div class="podium-layer" id="pl-13"></div><div class="podium-layer" id="pl-14"></div>
+  <div class="podium-layer" id="pl-15"></div><div class="podium-layer" id="pl-16"></div>
+
+  <!-- Podium opened (po1–po16) -->
+  <div class="podium-open-layer" id="po-1"></div><div class="podium-open-layer" id="po-2"></div>
+  <div class="podium-open-layer" id="po-3"></div><div class="podium-open-layer" id="po-4"></div>
+  <div class="podium-open-layer" id="po-5"></div><div class="podium-open-layer" id="po-6"></div>
+  <div class="podium-open-layer" id="po-7"></div><div class="podium-open-layer" id="po-8"></div>
+  <div class="podium-open-layer" id="po-9"></div><div class="podium-open-layer" id="po-10"></div>
+  <div class="podium-open-layer" id="po-11"></div><div class="podium-open-layer" id="po-12"></div>
+  <div class="podium-open-layer" id="po-13"></div><div class="podium-open-layer" id="po-14"></div>
+  <div class="podium-open-layer" id="po-15"></div><div class="podium-open-layer" id="po-16"></div>
+
+  <!-- Value slots left (ids and text updated dynamically from Firebase) -->
+  <div class="value-slot slot-left-1 left-slot" id="vslot-1"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-2 left-slot" id="vslot-2"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-3 left-slot" id="vslot-3"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-4 left-slot" id="vslot-4"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-5 left-slot" id="vslot-5"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-6 left-slot" id="vslot-6"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-7 left-slot" id="vslot-7"><span class="val-text">—</span></div>
+  <div class="value-slot slot-left-8 left-slot" id="vslot-8"><span class="val-text">—</span></div>
+  <!-- Value slots right -->
+  <div class="value-slot slot-right-1 right-slot" id="vslot-9"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-2 right-slot" id="vslot-10"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-3 right-slot" id="vslot-11"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-4 right-slot" id="vslot-12"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-5 right-slot" id="vslot-13"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-6 right-slot" id="vslot-14"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-7 right-slot" id="vslot-15"><span class="val-text">—</span></div>
+  <div class="value-slot slot-right-8 right-slot" id="vslot-16"><span class="val-text">—</span></div>
+
+  <!-- Banker popup -->
+  <div id="banker-popup">
+    <img id="banker-banner-img" src="" alt="">
+    <h1>☎ КОСТИЗИ ПРЕДЛАГАЕТ</h1>
+    <div id="banker-offer-amount">0 ₽</div>
+    <div id="banker-hint">
+      <span class="hint-deal">💰 ЗАБРАТЬ ДЕНЬГИ</span>
+      <span class="hint-sep">или</span>
+      <span class="hint-nodeal">🎲 ИГРАТЬ ДАЛЬШЕ</span>
+    </div>
+  </div>
+
+  <!-- Deal taken win (fade, center, no overlay) -->
+  <div id="deal-win-popup">
+    <div id="deal-win-label">💰 СДЕЛКА!</div>
+    <div id="deal-win-amount">0 ₽</div>
+  </div>
+  <!-- Deal info strip: what was in player's case -->
+  <div id="deal-info-strip">
+    <div class="strip-text">В твоём кейсе было: <span class="strip-hl" id="deal-case-val">—</span></div>
+  </div>
+
+  <!-- Final bottom strip -->
+  <div id="final-banner">
+    <div class="final-body">
+      Остался <span class="hl">1 КЕЙС НА ПОЛКЕ</span> и <span class="hl">ТВОЙ КЕЙС</span> на подиуме.
+      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> — или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
+    </div>
+  </div>
+
+  <!-- Final choice buttons -->
+  <div id="final-buttons">
+    <button class="choice-btn" id="btn-keep">✅ ОСТАВИТЬ</button>
+    <button class="choice-btn" id="btn-swap">🔄 ПОМЕНЯТЬ</button>
+  </div>
+
+  <!-- Final win (scale+rise from 960,720) -->
+  <div id="win-popup">
+    <div id="win-label">🎉 ТВОЙ ВЫИГРЫШ!</div>
+    <div id="win-amount">0 ₽</div>
+  </div>
+
+  <!-- Video corner -->
+  <div id="video-corner">
+    <video id="video-el" playsinline></video>
+  </div>
+  <!-- Loading screen -->
+  <div id="loading-screen">
+    <!-- Video mode (if loading-video asset set) -->
+    <video id="loading-video-el" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;display:none;" playsinline muted></video>
+    <!-- Default KSTZ text mode -->
+    <div id="loading-text-wrap" style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;">
+      <div id="loading-title">KSTZ</div>
+      <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+    </div>
+  </div>
+</div></div></div></div>
+
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getDatabase, ref, onValue, update } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1Lde9n2SroxE024-5Jned8ItOEuYQGLI",
+    authDomain: "dornod-74e98.firebaseapp.com",
+    databaseURL: "https://dornod-74e98-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "dornod-74e98",
+    storageBucket: "dornod-74e98.firebasestorage.app",
+    messagingSenderId: "941512359529",
+    appId: "1:941512359529:web:bac6084dba4d9c66192cf8"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  const gameRef   = ref(db, 'widgets/deal_or_no_deal');
+  const assetsRef = ref(db, 'widgets/assets');
+  const TOTAL = 16;
+  const fmt = n => n.toLocaleString('ru-RU') + ' ₽';
+  function caseWord(n){ return n===1?'КЕЙС':n<=4?'КЕЙСА':'КЕЙСОВ'; }
+
+  // ── State ──
+  let assets        = {};
+  let prevPlayerCase = null;
+  let prevShowBanker = false;
+  let prevGameState  = null;
+
+  // ── Volume state (loaded from localStorage) ──
+  let volVideo = parseFloat(localStorage.getItem('dnd_vol_video') ?? '0.85');
+  let volMusic = parseFloat(localStorage.getItem('dnd_vol_music') ?? '0.60');
+  let volSfx   = parseFloat(localStorage.getItem('dnd_vol_sfx')   ?? '0.80');
+  // Track all active sfx audio elements to update volume live
+  const activeSfx = new Set();
+
+  // ── Media refs ──
+  const videoCorner = document.getElementById('video-corner');
+  const videoEl     = document.getElementById('video-el');
+  let   bgAudioEl   = null;
+  let   videoPlayed = { start:false, pick:false, deal:false, result:false };
+
+  // ── Apply assets ──
+
+  // Case positions in 1920x1080 widget space (given by user)
+  const CASE_POS = {
+    1:  {x:500,  y:250},  2: {x:730,  y:243},  3: {x:960,  y:243},
+    4:  {x:1195, y:250},  5: {x:1428, y:250},  6: {x:504,  y:416},
+    7:  {x:743,  y:420},  8: {x:982,  y:420},  9: {x:1213, y:410},
+    10: {x:1443, y:410}, 11: {x:443,  y:557}, 12: {x:650,  y:572},
+    13: {x:865,  y:569}, 14: {x:1075, y:569}, 15: {x:250,  y:567},
+    16: {x:1490, y:580},
+  };
+
+  // Show ghost value float at case position
+  function showGhostValue(caseNum, value) {
+    const pos = CASE_POS[caseNum];
+    if (!pos) return;
+    const root = document.getElementById('widget-root');
+    const ghost = document.createElement('div');
+    ghost.className = 'ghost-value';
+    // Position: convert from 1920x1080 to actual root coords
+    // widget-root IS 1920x1080, so use directly
+    ghost.style.left = (pos.x - 60) + 'px';
+    ghost.style.top  = (pos.y - 30) + 'px';
+    ghost.textContent = value.toLocaleString('ru-RU') + ' ₽';
+    root.appendChild(ghost);
+    // Remove after animation
+    setTimeout(() => ghost.remove(), 2300);
+  }
+
+  function applyAssets(a) {
+    if (!a) return;
+    assets = a;
+    if (a['фон'])   document.getElementById('bg').style.backgroundImage = `url('${a['фон']}')`;
+    if (a['рамка']) document.documentElement.style.setProperty('--рамка-url', `url('${a['рамка']}')`);
+    if (a['banker-banner']) {
+      const img = document.getElementById('banker-banner-img');
+      img.src = a['banker-banner'];
+      img.onload = () => img.classList.add('loaded');
+    }
+    for (let i = 1; i <= TOTAL; i++) {
+      const cl = document.getElementById(`cl-${i}`);
+      if (cl && a[String(i)]) cl.style.backgroundImage = `url('${a[String(i)]}')`;
+      const pl = document.getElementById(`pl-${i}`);
+      if (pl && a[`p${i}`]) pl.style.backgroundImage = `url('${a[`p${i}`]}')`;
+      const po = document.getElementById(`po-${i}`);
+      if (po && a[`po${i}`]) po.style.backgroundImage = `url('${a[`po${i}`]}')`;
+    }
+  }
+  onValue(assetsRef, s => applyAssets(s.val()));
+
+  // ── Volume sync from Firebase — applies instantly to all active audio ──
+  onValue(ref(db, 'widgets/dnd_volumes'), snap => {
+    const v = snap.val();
+    if (!v) return;
+    if (v.video !== undefined) { volVideo = v.video; localStorage.setItem('dnd_vol_video', volVideo); }
+    if (v.music !== undefined) { volMusic = v.music; localStorage.setItem('dnd_vol_music', volMusic); }
+    if (v.sfx   !== undefined) { volSfx   = v.sfx;   localStorage.setItem('dnd_vol_sfx',   volSfx);   }
+    // Apply to currently playing elements immediately
+    if (bgAudioEl) bgAudioEl.volume = volMusic;
+    videoEl.volume = volVideo;
+    activeSfx.forEach(a => { if (!a.paused) a.volume = volSfx; });
+    // Clean up finished sfx
+    activeSfx.forEach(a => { if (a.ended || a.paused) activeSfx.delete(a); });
+  });
+
+  // ── Media helpers ──
+  function pickRandom(baseKey, maxCount) {
+    const avail = [];
+    for (let i = 1; i <= maxCount; i++) {
+      const u = assets[`${baseKey}-${i}`];
+      if (u) avail.push(u);
+    }
+    return avail.length ? avail[Math.floor(Math.random() * avail.length)] : null;
+  }
+
+  function playVideo(url, onEnded) {
+    if (!url) { if (onEnded) onEnded(); return; }
+    videoEl.src    = url;
+    videoEl.volume = volVideo;
+    videoCorner.classList.add('visible');
+    videoEl.load();
+    videoEl.play().catch(() => {});
+    videoEl.onended = () => {
+      videoCorner.classList.remove('visible');
+      videoEl.src = '';
+      if (onEnded) onEnded();
+    };
+  }
+
+  function triggerVideo(slot, maxCount, onEnded) {
+    playVideo(pickRandom(slot, maxCount), onEnded);
+  }
+
+  function playAudio(key, loop = false) {
+    const url = assets[key];
+    if (!url) return null;
+    const a  = new Audio(url);
+    a.loop   = loop;
+    a.volume = loop ? volMusic : volSfx;
+    a.play().catch(() => {});
+    if (!loop) {
+      activeSfx.add(a);
+      a.onended = () => activeSfx.delete(a);
+    }
+    return a;
+  }
+
+  function stopBgAudio() {
+    if (bgAudioEl) { bgAudioEl.pause(); bgAudioEl.src = ''; bgAudioEl = null; }
+  }
+
+  // ── Loading screen ──
+  let pendingStartVideo = false; // set to true if start video should play after loading
+
+  function hideLoadingScreen() {
+    const ls  = document.getElementById('loading-screen');
+    const lve = document.getElementById('loading-video-el');
+    if (!ls.classList.contains('visible')) return;
+    ls.classList.add('hiding');
+    setTimeout(() => {
+      ls.classList.remove('visible', 'hiding');
+      lve.pause(); lve.src = ''; lve.style.display = 'none';
+      document.getElementById('loading-text-wrap').style.display = 'flex';
+      document.getElementById('widget-root').style.pointerEvents = 'all';
+      // Play start video now that loading is done
+      if (pendingStartVideo) {
+        pendingStartVideo = false;
+        triggerVideo('vid-start', 2);
+        bgAudioEl = playAudio('aud-bg', true);
+      }
+    }, 400);
+  }
+
+  // ── Main game listener ──
+  onValue(gameRef, snapshot => {
+    const d = snapshot.val();
+    if (!d) return;
+
+    const root       = document.getElementById('widget-root');
+    const wasVisible = root.style.opacity === '1';
+    const nowVisible = d.isVisible;
+
+    // Fade in/out
+    if (nowVisible && !wasVisible) {
+      root.style.opacity = '1';
+      root.style.pointerEvents = 'none';
+      const ls  = document.getElementById('loading-screen');
+      const lb  = document.getElementById('loading-bar');
+      const lve = document.getElementById('loading-video-el');
+      const ltw = document.getElementById('loading-text-wrap');
+      ls.classList.add('visible');
+      const loadUrl = assets['loading-video'];
+      if (loadUrl) {
+        lve.src = loadUrl; lve.style.display = 'block'; ltw.style.display = 'none';
+        lve.load(); lve.play().catch(() => {});
+        lve.onended = hideLoadingScreen;
+        setTimeout(hideLoadingScreen, 8000); // fallback
+      } else {
+        lve.style.display = 'none'; ltw.style.display = 'flex';
+        lb.style.animation = 'none'; void lb.offsetHeight;
+        lb.style.animation = 'loadingBarMove 3s linear forwards, loadingShimmer 1s linear infinite';
+        setTimeout(hideLoadingScreen, 3000);
+      }
+    } else if (!nowVisible && wasVisible) {
+      root.style.opacity = '0';
+      root.style.pointerEvents = 'none';
+    }
+
+    // ── Snapshot prev values for comparison (before any updates) ──
+    const prevPlayerCaseSnap = prevPlayerCase;
+    const prevShowBankerSnap = prevShowBanker;
+    const prevGameStateSnap  = prevGameState;
+
+    // Reset slots
+    document.querySelectorAll('.value-slot').forEach(el => el.classList.remove('eliminated', 'last-remaining'));
+
+    // Refresh value slot labels
+    if (d.gameValues && Array.isArray(d.gameValues)) {
+      d.gameValues.forEach((v, i) => {
+        const slot = document.getElementById(`vslot-${i+1}`);
+        if (slot) { slot.dataset.val = v; slot.querySelector('.val-text').textContent = fmt(v); }
+      });
+    }
+
+    let openedCount = 0, remainingCount = 0;
+    let playerCaseValue = 0;
+
+    if (d.cases) {
+      for (let i = 1; i <= TOTAL; i++) {
+        const cd = d.cases[i];
+        const cl = document.getElementById(`cl-${i}`);
+        if (d.playerCase === i) {
+          cl.classList.add('opened');
+          remainingCount++;
+          playerCaseValue = cd.value;
+        } else if (cd && cd.isOpen) {
+          const wasAlreadyOpen = cl.classList.contains('opened');
+          cl.classList.add('opened');
+          if (!wasAlreadyOpen) {
+            // Freshly opened this render — show ghost value float
+            showGhostValue(i, cd.value);
+          }
+          openedCount++;
+          const ve = document.querySelector(`.value-slot[data-val="${cd.value}"]`);
+          if (ve) ve.classList.add('eliminated');
+        } else {
+          cl.classList.remove('opened');
+          remainingCount++;
+        }
+      }
+      if (remainingCount <= 3 && d.gameState !== 'finished') {
+        document.querySelectorAll('.value-slot:not(.eliminated)').forEach(el => el.classList.add('last-remaining'));
+      }
+    }
+
+    // ── Podium logic ──
+    const isSwapped = d.swapped === true && d.swappedTo;
+
+    if (!d.playerCase) {
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
+      prevPlayerCase = null;
+    } else if (isSwapped) {
+      const orig = d.playerCase, sw = d.swappedTo;
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
+      if (d.gameState === 'finished') {
+        const po = document.getElementById(`po-${sw}`);
+        if (po && po.style.backgroundImage && po.style.backgroundImage !== 'none') po.classList.add('visible');
+        else { const pl = document.getElementById(`pl-${sw}`); if (pl) pl.classList.add('visible'); }
+      } else {
+        const pl = document.getElementById(`pl-${sw}`); if (pl) pl.classList.add('visible');
+      }
+      const origCl = document.getElementById(`cl-${orig}`); if (origCl) origCl.classList.remove('opened');
+      const swCl   = document.getElementById(`cl-${sw}`);   if (swCl)   swCl.classList.add('opened');
+    } else if (d.gameState === 'finished' && !isSwapped && d.playerCase) {
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
+      const po = document.getElementById(`po-${d.playerCase}`);
+      if (po && po.style.backgroundImage && po.style.backgroundImage !== 'none') po.classList.add('visible');
+      else { const pl = document.getElementById(`pl-${d.playerCase}`); if (pl) pl.classList.add('visible'); }
+    } else if (prevPlayerCase !== d.playerCase) {
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
+      const pl = document.getElementById(`pl-${d.playerCase}`); if (pl) pl.classList.add('visible');
+      prevPlayerCase = d.playerCase;
+    }
+
+    // ── Instruction ──
+    const it = document.getElementById('instruction-text');
+    it.classList.remove('attention');
+    const gs = d.gameState;
+    if      (gs === 'choose_player_case') it.innerText = 'ВЫБЕРИ СВОЙ КЕЙС';
+    else if (gs === 'playing') {
+      const next = [6,12,14].find(t => t > openedCount);
+      if (next) {
+        const left = next - openedCount;
+        const rs   = (next===6&&openedCount===0)||(next===12&&openedCount===6)||(next===14&&openedCount===12);
+        it.innerText = `${rs?'ОТКРОЙ':'ОТКРОЙ ЕЩЕ'} ${left} ${caseWord(left)}`;
+      }
+    }
+    else if (gs === 'banker_offer')  { it.innerText = 'ВЫБОР ЗА ТОБОЙ!'; it.classList.add('attention'); }
+    else if (gs === 'final_swap')    { it.innerText = 'ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?'; it.classList.add('attention'); }
+    else if (gs === 'finished')      { it.innerText = isSwapped ? 'ОБМЕН СОВЕРШЕН!' : 'ИГРА ОКОНЧЕНА!'; }
+    else                               it.innerText = 'ОЖИДАНИЕ ИГРЫ...';
+
+    // ── Final strip + buttons ──
+    const showFinal = gs === 'final_swap' && !isSwapped;
+    document.getElementById('final-banner').classList.toggle('visible', showFinal);
+    document.getElementById('final-buttons').classList.toggle('visible', showFinal);
+
+    // ── Banker popup ──
+    if (d.showBanker) {
+      document.getElementById('banker-offer-amount').innerText = fmt(d.bankerOffer);
+      document.getElementById('banker-popup').classList.add('visible');
+    } else document.getElementById('banker-popup').classList.remove('visible');
+
+    // ── Deal win (mid-game) ──
+    const isDeal = gs === 'finished' && d.dealTaken === true;
+    if (isDeal) {
+      document.getElementById('deal-win-amount').innerText = fmt(d.winAmount);
+      document.getElementById('deal-win-popup').classList.add('visible');
+      if (playerCaseValue) {
+        document.getElementById('deal-case-val').innerText = fmt(playerCaseValue);
+        document.getElementById('deal-info-strip').classList.add('visible');
+      }
+    } else {
+      document.getElementById('deal-win-popup').classList.remove('visible');
+      document.getElementById('deal-info-strip').classList.remove('visible');
+    }
+
+    // ── Final win popup (shown after reaction video) ──
+    if (gs !== 'finished' || d.dealTaken === true) {
+      document.getElementById('win-popup').classList.remove('visible');
+    }
+    // win-popup shown by media engine below
+
+    // ══ Media triggers ══
+    if (gs === 'choose_player_case' && prevGameStateSnap !== 'choose_player_case') {
+      videoPlayed = { start:false, pick:false, deal:false, result:false };
+      document.getElementById('win-popup').classList.remove('visible');
+      stopBgAudio();
+      videoPlayed.start = true;
+      // Check if loading screen is still visible — if yes, defer; if no, play now
+      const ls = document.getElementById('loading-screen');
+      if (ls.classList.contains('visible')) {
+        pendingStartVideo = true; // will fire in hideLoadingScreen
+      } else {
+        triggerVideo('vid-start', 2);
+        bgAudioEl = playAudio('aud-bg', true);
+      }
+    }
+
+    if (d.playerCase && !prevPlayerCaseSnap && !videoPlayed.pick) {
+      videoPlayed.pick = true;
+      triggerVideo('vid-pick', 2);
+      playAudio('aud-pick');
+    }
+
+    if (gs === 'playing' && prevGameStateSnap === 'playing') {
+      playAudio('aud-open');
+    }
+
+    if (d.showBanker && !prevShowBankerSnap) {
+      playAudio('aud-banker');
+    }
+
+    if (gs === 'finished' && d.dealTaken === true && !videoPlayed.deal) {
+      videoPlayed.deal = true;
+      stopBgAudio();
+      triggerVideo('vid-deal', 2);
+      playAudio('aud-deal');
+    }
+
+    if (gs === 'finished' && d.dealTaken !== true && !videoPlayed.result) {
+      videoPlayed.result = true;
+      stopBgAudio();
+      playAudio('aud-final');
+
+      let finalVals = [];
+      if (d.cases && d.playerCase) {
+        finalVals.push(d.cases[d.playerCase].value);
+        const otherIdx = d.swappedTo || Object.keys(d.cases).find(k =>
+          parseInt(k) !== d.playerCase && !d.cases[k].isOpen
+        );
+        if (otherIdx && d.cases[otherIdx]) finalVals.push(d.cases[otherIdx].value);
+      }
+      const maxFinal = finalVals.length > 0 ? Math.max(...finalVals) : (d.winAmount||0)+1;
+      const isHigh   = (d.winAmount||0) >= maxFinal;
+      const resultSlot = isHigh ? 'vid-win-high' : 'vid-win-low';
+
+      // Step 1: reaction video → Step 2: show win + result video
+      const revealWin = () => {
+        document.getElementById('win-amount').innerText = fmt(d.winAmount);
+        document.getElementById('win-popup').classList.add('visible');
+        triggerVideo(resultSlot, 3);
+        playAudio(isHigh ? 'aud-win-big' : 'aud-win-small');
+      };
+
+      const reactionUrl = pickRandom('vid-final-reaction', 2);
+      if (reactionUrl) playVideo(reactionUrl, revealWin);
+      else revealWin();
+    }
+
+    prevShowBanker = d.showBanker;
+    prevGameState  = gs;
+  });
+</script>
+</body>
+</html>

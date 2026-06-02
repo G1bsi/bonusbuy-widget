@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DnD — Пульт стримера</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #12121a;
+      color: #fff;
+      padding: 14px;
+      min-height: 100vh;
+    }
+
+    h2 { font-size: 15px; color: #ffcc00; margin-bottom: 12px; }
+
+    .panel {
+      background: #1e1e2a;
+      border: 1px solid #2e2e3e;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    /* Collapsible panels */
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .panel-header h2 { margin: 0; }
+    .panel-toggle {
+      font-size: 16px;
+      color: #888;
+      transition: transform 0.25s;
+      width: 22px; text-align: center;
+    }
+    .panel-body { margin-top: 12px; }
+    .panel.collapsed .panel-body { display: none; }
+    .panel.collapsed .panel-toggle { transform: rotate(-90deg); }
+
+    button {
+      background: #3a3aff;
+      color: #fff;
+      border: none;
+      padding: 10px 14px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 14px;
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    button:hover  { opacity: 0.85; }
+    button:active { transform: scale(0.97); }
+    button:disabled { background: #333; color: #666; cursor: not-allowed; opacity: 1; }
+    .btn-red    { background: #c0392b; }
+    .btn-green  { background: #27ae60; }
+    .btn-orange { background: #e67e22; }
+    .btn-teal   { background: #16a085; }
+    .btn-purple { background: #8e44ad; }
+    .btn-yellow { background: #f39c12; color: #000; }
+    .btn-big    { width: 100%; padding: 14px; font-size: 16px; margin-bottom: 8px; }
+
+    .top-bar {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .top-bar button { flex: 1; min-width: 140px; padding: 12px; }
+
+    .status-badge {
+      padding: 8px 12px;
+      border-radius: 7px;
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 12px;
+      background: #252535;
+      border-left: 4px solid #3a3aff;
+      color: #aaa;
+    }
+    .status-badge.playing  { border-color: #27ae60; color: #2ecc71; }
+    .status-badge.banker   { border-color: #e74c3c; color: #ff6b6b; }
+    .status-badge.final    { border-color: #9b59b6; color: #bb8fce; }
+    .status-badge.finished { border-color: #f39c12; color: #f39c12; }
+    .status-badge.choose   { border-color: #1abc9c; color: #1abc9c; }
+
+    /* Prize inputs */
+    .prize-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    .prize-row label { font-size: 13px; color: #aaa; min-width: 80px; }
+    .prize-input {
+      background: #12121a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #fff;
+      padding: 7px 10px;
+      font-size: 14px;
+      width: 120px;
+    }
+    .prize-input:focus { outline: none; border-color: #00ffcc; }
+    #autoSaveStatus { font-size: 12px; color: #00ffcc; }
+
+    /* Cases grid */
+    .cases-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin-top: 10px;
+    }
+    .case-btn {
+      padding: 10px 4px;
+      border-radius: 7px;
+      background: #2a2a3a;
+      border: 2px solid #3a3a5a;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .case-btn:hover:not(:disabled) { background: #3a3a5a; }
+    .case-btn.player-case {
+      background: #b8860b;
+      border-color: #ffd700;
+      color: #fff;
+      cursor: default;
+    }
+    .case-btn.opened {
+      background: #1a1a1a;
+      border-color: #2a2a2a;
+      color: #555;
+      cursor: not-allowed;
+    }
+    .case-val { font-size: 10px; color: #00ffcc; font-weight: 600; }
+    .case-btn.opened .case-val { color: #444; }
+
+    /* Banker + swap sections */
+    #bankerDecision, #swapDecision {
+      display: none;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px dashed #333;
+    }
+    .banker-offer {
+      font-size: 28px;
+      font-weight: 900;
+      color: #00ffcc;
+      text-align: center;
+      margin-bottom: 10px;
+      letter-spacing: -1px;
+    }
+
+    /* OBS toggle */
+    #obsToggle {
+      width: 100%;
+      padding: 14px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1px;
+    }
+    #obsToggle.on  { background: #27ae60; }
+    #obsToggle.off { background: #c0392b; }
+
+    /* Password screen */
+    #pass-screen {
+      position: fixed; inset: 0;
+      background: #0a0a12;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      z-index: 9999;
+      gap: 16px;
+    }
+    #pass-screen h1 {
+      font-size: 22px; font-weight: 700;
+      color: #ffcc00; letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    #pass-screen p { font-size: 13px; color: #666; }
+    .password-wrapper { position: relative; width: 260px; }
+    .password-wrapper input { width: 100%; padding-right: 40px; }
+    .toggle-pass-btn { position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#888; cursor:pointer; font-size:18px; padding:0; }
+    #pass-input {
+      width: 260px; padding: 14px 16px;
+      background: #1e1e2a; border: 2px solid #333;
+      border-radius: 10px; color: #fff;
+      font-size: 20px; text-align: center;
+      letter-spacing: 4px; outline: none;
+      transition: border-color 0.2s;
+    }
+    #pass-input:focus { border-color: #ffcc00; }
+    #pass-input.err   { border-color: #c0392b; animation: shake 0.3s; }
+    #pass-btn {
+      width: 260px; padding: 13px;
+      background: #ffcc00; color: #000;
+      border: none; border-radius: 10px;
+      font-size: 16px; font-weight: 900;
+      cursor: pointer; letter-spacing: 1px;
+    }
+    #pass-btn:hover { opacity: 0.88; }
+    #pass-err { font-size: 13px; color: #c0392b; min-height: 18px; }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)}
+      25%{transform:translateX(-8px)}
+      75%{transform:translateX(8px)}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Password screen -->
+  <div id="pass-screen">
+    <h1>🎰 DnD — Пульт</h1>
+    <p>Введи пароль для доступу</p>
+    <div class="password-wrapper">
+      <input type="password" id="pass-input" placeholder="••••••" maxlength="64"
+        onkeydown="if(event.key==='Enter')checkPass()">
+      <button type="button" class="toggle-pass-btn" onclick="togglePassVis()">👁️</button>
+    </div>
+    <button id="pass-btn" onclick="checkPass()">ВОЙТИ →</button>
+    <div id="pass-err"></div>
+  </div>
+
+  <!-- Main content (hidden until auth) -->
+  <div id="main-content" style="display:none;">
+
+  <!-- OBS + New Game -->
+  <div class="top-bar">
+    <button id="obsToggle" class="off">📺 OBS: ВЫКЛ</button>
+    <button id="newGameBtn" class="btn-green">🎲 Новая игра</button>
+    <button id="forceBankerBtn" class="btn-orange">☎️ Банкир</button>
+  </div>
+
+  <!-- Status -->
+  <div id="statusBadge" class="status-badge">Ожидание...</div>
+
+  <!-- Actions (banker / final) -->
+  <div id="bankerDecision" class="panel">
+    <h2>☎️ Банкир предлагает</h2>
+    <div class="banker-offer" id="bankerOffer">0 ₽</div>
+    <button class="btn-big btn-green" id="dealBtn">✅ ЗАБРАТЬ (DEAL)</button>
+    <button class="btn-big btn-red"   id="noDealBtn">❌ ИГРАТЬ ДАЛЬШЕ</button>
+  </div>
+
+  <div id="swapDecision" class="panel">
+    <h2>⚔️ Финальный выбор</h2>
+    <button class="btn-big btn-green"  id="keepBtn">💼 ОСТАВИТЬ СВОЙ</button>
+    <button class="btn-big btn-yellow" id="swapBtn">🔄 ПОМЕНЯТЬСЯ</button>
+  </div>
+
+  <!-- Prize settings -->
+  <div class="panel" id="panelPrize">
+    <div class="panel-header" onclick="togglePanel('panelPrize')">
+      <h2>🎰 Настройка призов</h2>
+      <span class="panel-toggle">▼</span>
+    </div>
+    <div class="panel-body">
+      <div class="prize-row">
+        <label>Мин. сумма</label>
+        <input type="number" class="prize-input" id="prizeMin" value="2000" step="500">
+        <label>Макс.</label>
+        <input type="number" class="prize-input" id="prizeMax" value="50000" step="500">
+        <span id="autoSaveStatus"></span>
+      </div>
+      <div style="font-size:12px;color:#555;margin-top:4px;">Значения применяются автоматически к следующей «Новой игре»</div>
+    </div>
+  </div>
+
+  <!-- Game field -->
+  <div class="panel" id="panelField">
+    <div class="panel-header" onclick="togglePanel('panelField')">
+      <h2>💼 Игровое поле</h2>
+      <span class="panel-toggle">▼</span>
+    </div>
+    <div class="panel-body">
+      <div id="casesGrid" class="cases-grid"></div>
+    </div>
+  </div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+  import { getDatabase, ref, set, update, onValue } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1Lde9n2SroxE024-5Jned8ItOEuYQGLI",
+    authDomain: "dornod-74e98.firebaseapp.com",
+    databaseURL: "https://dornod-74e98-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "dornod-74e98",
+    storageBucket: "dornod-74e98.firebasestorage.app",
+    messagingSenderId: "941512359529",
+    appId: "1:941512359529:web:bac6084dba4d9c66192cf8"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+  const gameRef = ref(db, 'widgets/deal_or_no_deal');
+
+  const DEFAULT_VALUES = [2000,3000,4000,5000,7000,9000,12000,15000,18000,22000,26000,30000,35000,40000,45000,50000];
+  const TOTAL = 16;
+  const fmt = n => n.toLocaleString('ru-RU') + ' ₽';
+
+  let state = {};
+  let customValues = null;
+
+  // ── Restore prize settings ──
+  const savedMin = localStorage.getItem('dnd_prizeMin');
+  const savedMax = localStorage.getItem('dnd_prizeMax');
+  const savedCV  = localStorage.getItem('dnd_customValues');
+  if (savedMin) document.getElementById('prizeMin').value = savedMin;
+  if (savedMax) document.getElementById('prizeMax').value = savedMax;
+  if (savedCV)  { try { customValues = JSON.parse(savedCV); } catch {} }
+
+  // Auto-calc on input change
+  ['prizeMin','prizeMax'].forEach(id => {
+    document.getElementById(id).addEventListener('input', calcPrizes);
+  });
+
+  function calcPrizes() {
+    const minV = parseInt(document.getElementById('prizeMin').value) || 2000;
+    const maxV = parseInt(document.getElementById('prizeMax').value) || 50000;
+    if (maxV <= minV) return;
+    localStorage.setItem('dnd_prizeMin', minV);
+    localStorage.setItem('dnd_prizeMax', maxV);
+
+    const mid = Math.round((minV + maxV) / 2 / 500) * 500;
+    const L = Array.from({length:8}, (_,i) => Math.round((minV+(mid-minV)*Math.pow(i/7,0.7))/500)*500);
+    const R = Array.from({length:8}, (_,i) => Math.round((mid+(maxV-mid)*Math.pow(i/7,1.3))/500)*500);
+    let all = [...new Set([...L,...R])].sort((a,b)=>a-b);
+    while (all.length < 16) {
+      let bg=0,bi=0;
+      for(let i=0;i<all.length-1;i++) if(all[i+1]-all[i]>bg){bg=all[i+1]-all[i];bi=i;}
+      all.splice(bi+1,0,Math.round((all[bi]+all[bi+1])/2/500)*500);
+      all=[...new Set(all)].sort((a,b)=>a-b);
+    }
+    customValues = all.slice(0,16);
+    localStorage.setItem('dnd_customValues', JSON.stringify(customValues));
+
+    const st = document.getElementById('autoSaveStatus');
+    update(gameRef, { gameValues: customValues }).then(() => {
+      st.textContent = '✅'; setTimeout(() => st.textContent = '', 1500);
+    }).catch(() => {});
+  }
+
+  // ── Firebase listener ──
+  onValue(gameRef, snap => {
+    const d = snap.val(); if (!d) return;
+    state = d;
+    renderUI();
+    renderCases();
+  });
+
+  function renderUI() {
+    const d = state;
+    const obs = document.getElementById('obsToggle');
+    obs.textContent = d.isVisible ? '📺 OBS: ВКЛ' : '📺 OBS: ВЫКЛ';
+    obs.className   = d.isVisible ? 'on' : 'off';
+
+    const badge = document.getElementById('statusBadge');
+    badge.className = 'status-badge';
+    document.getElementById('bankerDecision').style.display = 'none';
+    document.getElementById('swapDecision').style.display   = 'none';
+
+    if (d.gameState === 'choose_player_case') {
+      badge.textContent = '👆 Шаг 1: Игрок выбирает свой кейс'; badge.classList.add('choose');
+    } else if (d.gameState === 'playing') {
+      const opened = Object.values(d.cases||{}).filter(c=>c.isOpen&&Object.keys(d.cases||{}).findIndex((_,i)=>i+1===d.playerCase)<0).length;
+      badge.textContent = '🎮 Шаг 2: Открывайте кейсы'; badge.classList.add('playing');
+    } else if (d.gameState === 'banker_offer') {
+      badge.textContent = `☎️ Банкир: ${fmt(d.bankerOffer)}`; badge.classList.add('banker');
+      document.getElementById('bankerOffer').textContent = fmt(d.bankerOffer);
+      document.getElementById('bankerDecision').style.display = 'block';
+    } else if (d.gameState === 'final_swap') {
+      badge.textContent = '⚔️ Финал: оставить или поменять?'; badge.classList.add('final');
+      document.getElementById('swapDecision').style.display = 'block';
+    } else if (d.gameState === 'finished') {
+      badge.textContent = `🏆 Готово! Выигрыш: ${fmt(d.winAmount)}`; badge.classList.add('finished');
+    } else {
+      badge.textContent = '⏳ Ожидание...';
+    }
+  }
+
+  function renderCases() {
+    const d = state;
+    const grid = document.getElementById('casesGrid');
+    grid.innerHTML = '';
+    if (!d.cases) return;
+    for (let i = 1; i <= TOTAL; i++) {
+      const cd  = d.cases[i];
+      const btn = document.createElement('button');
+      btn.className = 'case-btn';
+      const isPlayer = d.playerCase === i;
+      const isOpen   = cd.isOpen;
+
+      if (isPlayer) {
+        btn.classList.add('player-case');
+        btn.innerHTML = `<span>★ ${i} ★</span><span class="case-val">твой</span>`;
+        btn.disabled  = true; // cannot click player's case
+      } else if (isOpen) {
+        btn.classList.add('opened');
+        btn.innerHTML = `<span>📂 ${i}</span><span class="case-val">${fmt(cd.value)}</span>`;
+        btn.disabled  = true;
+      } else {
+        btn.innerHTML = `<span>💼 ${i}</span>`;
+        btn.onclick   = () => handleCaseClick(i);
+      }
+      grid.appendChild(btn);
+    }
+  }
+
+  async function handleCaseClick(n) {
+    const gs = state.gameState;
+    if (['banker_offer','final_swap','final_reveal','finished'].includes(gs)) return;
+    if (gs === 'choose_player_case') {
+      await update(gameRef, { playerCase: n, gameState: 'playing' }); return;
+    }
+    let opened = 0, rem = [];
+    for (let i = 1; i <= TOTAL; i++) {
+      if (i === n || state.cases[i].isOpen) { if (i !== state.playerCase) opened++; }
+      else if (i !== state.playerCase) rem.push(state.cases[i].value);
+    }
+    rem.push(state.cases[state.playerCase].value);
+    const upd = { [`cases/${n}/isOpen`]: true };
+    if (opened === 14) {
+      upd.gameState = 'final_swap';
+    } else if (opened === 6 || opened === 12) {
+      const ev = rem.reduce((a,b)=>a+b,0)/rem.length;
+      let m = 0.15+((TOTAL-rem.length)*0.04); if(m>0.80)m=0.80;
+      upd.bankerOffer = Math.round(ev*m*(1+(Math.random()*0.1-0.05))/100)*100;
+      upd.showBanker  = true;
+      upd.gameState   = 'banker_offer';
+    }
+    await update(gameRef, upd);
+  }
+
+  // ── Buttons ──
+  document.getElementById('obsToggle').onclick = async () => {
+    const turnOn = !state.isVisible;
+    if (turnOn) {
+      if (!confirm('Включить в OBS? Это запустит новую игру.')) return;
+      const vals = shuffle(customValues || DEFAULT_VALUES);
+      const nc   = {};
+      for (let i = 1; i <= TOTAL; i++) nc[i] = { value: vals[i-1], isOpen: false };
+      const gv = [...(customValues||DEFAULT_VALUES)].sort((a,b)=>a-b);
+      await set(gameRef, {
+        isVisible: true, gameState: 'choose_player_case',
+        playerCase: null, bankerOffer: 0, showBanker: false,
+        cases: nc, winAmount: 0, swapped: false, swappedTo: null,
+        dealTaken: false, pendingWin: null, gameValues: gv
+      });
+    } else {
+      await update(gameRef, { isVisible: false });
+    }
+  };
+
+  document.getElementById('newGameBtn').onclick = async () => {
+    if (!confirm('Начать новую игру?')) return;
+    const vals = shuffle(customValues || DEFAULT_VALUES);
+    const nc   = {};
+    for (let i = 1; i <= TOTAL; i++) nc[i] = { value: vals[i-1], isOpen: false };
+    const gv = [...(customValues||DEFAULT_VALUES)].sort((a,b)=>a-b);
+    await set(gameRef, {
+      isVisible: state.isVisible || false, gameState: 'choose_player_case',
+      playerCase: null, bankerOffer: 0, showBanker: false,
+      cases: nc, winAmount: 0, swapped: false, swappedTo: null,
+      dealTaken: false, pendingWin: null, gameValues: gv
+    });
+  };
+
+  document.getElementById('forceBankerBtn').onclick = () => {
+    if (state.gameState !== 'playing' || !state.playerCase) return;
+    let rem = [];
+    for (let i = 1; i <= TOTAL; i++) if (!state.cases[i].isOpen) rem.push(state.cases[i].value);
+    const ev = rem.reduce((a,b)=>a+b,0)/rem.length;
+    let m = 0.15+((TOTAL-rem.length)*0.04); if(m>0.80)m=0.80;
+    const offer = Math.round(ev*m*(1+(Math.random()*0.1-0.05))/100)*100;
+    update(gameRef, { bankerOffer: offer, showBanker: true, gameState: 'banker_offer' });
+  };
+
+  document.getElementById('dealBtn').onclick  = () => update(gameRef, { gameState:'finished', showBanker:false, winAmount:state.bankerOffer, dealTaken:true });
+  document.getElementById('noDealBtn').onclick = () => update(gameRef, { gameState:'playing',  showBanker:false });
+
+  document.getElementById('keepBtn').onclick = () => {
+    if (!state.playerCase || !state.cases) return;
+    update(gameRef, { gameState:'finished', winAmount:state.cases[state.playerCase].value, dealTaken:false, swapped:false });
+  };
+  document.getElementById('swapBtn').onclick = () => {
+    let otherCase=0, otherVal=0;
+    for (let i=1;i<=TOTAL;i++) {
+      if (!state.cases[i].isOpen && i!==state.playerCase) { otherCase=i; otherVal=state.cases[i].value; break; }
+    }
+    if (!otherCase) return;
+    update(gameRef, { gameState:'finished', winAmount:otherVal, swapped:true, swappedTo:otherCase, dealTaken:false });
+  };
+
+  function shuffle(arr) {
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    return a;
+  }
+</script>
+
+<script>
+  function togglePanel(id) {
+    document.getElementById(id).classList.toggle('collapsed');
+  }
+</script>
+
+  </div><!-- /main-content -->
+
+<script>
+  // ── Firebase Auth (same as main moderator) ──
+  const firebaseConfig = {
+    apiKey: "AIzaSyC1Lde9n2SroxE024-5Jned8ItOEuYQGLI",
+    authDomain: "dornod-74e98.firebaseapp.com",
+    databaseURL: "https://dornod-74e98-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "dornod-74e98",
+    storageBucket: "dornod-74e98.firebasestorage.app",
+    messagingSenderId: "941512359529",
+    appId: "1:941512359529:web:bac6084dba4d9c66192cf8"
+  };
+  firebase.initializeApp(firebaseConfig);
+
+  const STREAMER_EMAIL = "kostezezanos@gmail.com";
+
+  // Auth state watcher
+  firebase.auth().onAuthStateChanged(user => {
+    if (user) {
+      document.getElementById('pass-screen').style.display = 'none';
+      document.getElementById('main-content').style.display = 'block';
+    } else {
+      document.getElementById('pass-screen').style.display = 'flex';
+      document.getElementById('main-content').style.display = 'none';
+    }
+  });
+
+  function checkPass() {
+    const inp  = document.getElementById('pass-input');
+    const err  = document.getElementById('pass-err');
+    const pass = inp.value;
+    err.textContent = '';
+    if (!pass) { err.textContent = 'Введи пароль'; return; }
+    document.getElementById('pass-btn').textContent = '...';
+    firebase.auth().signInWithEmailAndPassword(STREAMER_EMAIL, pass)
+      .catch(e => {
+        inp.classList.add('err');
+        inp.value = '';
+        err.textContent = 'Неправильний пароль';
+        document.getElementById('pass-btn').textContent = 'ВОЙТИ →';
+        setTimeout(() => { inp.classList.remove('err'); err.textContent = ''; }, 1500);
+      });
+  }
+
+  function togglePassVis() {
+    const inp = document.getElementById('pass-input');
+    const btn = document.querySelector('.toggle-pass-btn');
+    if (inp.type === 'password') { inp.type = 'text'; btn.innerText = '🙈'; }
+    else { inp.type = 'password'; btn.innerText = '👁️'; }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('pass-input').focus();
+  });
+</script>
+</body>
+</html>
