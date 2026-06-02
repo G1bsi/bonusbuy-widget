@@ -1447,8 +1447,8 @@
   <!-- Final bottom strip -->
   <div id="final-banner">
     <div class="final-body">
-      Осталось <span class="hl">2</span> кейса.
-      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
+      Остался <span class="hl">1 КЕЙС НА ПОЛКЕ</span> и <span class="hl">ТВОЙ КЕЙС</span> на подиуме.
+      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> — или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
     </div>
   </div>
 
@@ -1677,11 +1677,11 @@
       }
     } else if(d.gameState==='banker_offer'){it.innerText='ВЫБОР ЗА ТОБОЙ!';it.classList.add('attention');}
     else if(d.gameState==='final_swap'||d.gameState==='final_reveal'){
-      if(isSwapped) it.innerText='ДА БУДЕТ СВЕТ!';
-      else if(d.gameState==='final_reveal') it.innerText='ДА БУДЕТ СВЕТ!';
+      if(isSwapped) it.innerText='ОБМЕН! ОТКРОЙ КЕЙС НА ПОЛКЕ!';
+      else if(d.gameState==='final_reveal') it.innerText='КЕЙС НА ПОДИУМЕ — ОТКРОЙ ЕГО!';
       else it.innerText='ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?';
       it.classList.add('attention');
-    } else if(d.gameState==='finished'){it.innerText=isSwapped?'ИГРА ОКОНЧЕНА!':'ИГРА ОКОНЧЕНА!';}
+    } else if(d.gameState==='finished'){it.innerText=isSwapped?'ОБМЕН СОВЕРШЕН!':'ИГРА ОКОНЧЕНА!';}
     else it.innerText='ОЖИДАНИЕ ИГРЫ...';
 
     // ── Final strip & buttons ──
