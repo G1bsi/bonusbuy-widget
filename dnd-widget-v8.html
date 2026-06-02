@@ -428,8 +428,13 @@
   </div>
   <!-- Loading screen -->
   <div id="loading-screen">
-    <div id="loading-title">KSTZ</div>
-    <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+    <!-- Video mode (if loading-video asset set) -->
+    <video id="loading-video-el" style="position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;display:none;" playsinline muted></video>
+    <!-- Default KSTZ text mode -->
+    <div id="loading-text-wrap" style="position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;">
+      <div id="loading-title">KSTZ</div>
+      <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+    </div>
   </div>
 </div>
 
@@ -457,6 +462,18 @@
 
   let assets = {};
   let prevPlayerCase = null;
+
+  function hideLoadingScreen(ls, lve, ltw) {
+    if (!ls.classList.contains('visible')) return; // already hidden
+    ls.classList.add('hiding');
+    setTimeout(() => {
+      ls.classList.remove('visible','hiding');
+      if(lve) { lve.pause(); lve.src=''; lve.style.display='none'; }
+      if(ltw) ltw.style.display='flex';
+      document.getElementById('widget-root').style.pointerEvents = 'all';
+    }, 400);
+  }
+  let prevShowBanker  = false;
   let prevGameState  = null;
 
   function applyAssets(a) {
@@ -681,23 +698,25 @@
     }
 
     // ── Final win (scale+rise from podium) ──
-    const isFinalWin=d.gameState==='finished'&&d.dealTaken!==true;
+    // win-popup is only shown AFTER reaction video plays (see media triggers)
+    const isFinalWin = d.gameState==='finished' && d.dealTaken!==true;
     if(isFinalWin){
-      document.getElementById('win-amount').innerText=fmt(d.winAmount);
-      document.getElementById('win-popup').classList.add('visible');
-    } else document.getElementById('win-popup').classList.remove('visible');
+      document.getElementById('win-amount').innerText = fmt(d.winAmount);
+      // win-popup visibility controlled by media engine below
+    } else {
+      document.getElementById('win-popup').classList.remove('visible');
+    }
 
     // ══ Media triggers ══
-    const gs = d.gameState;
+    const gs   = d.gameState;
     const prev = prevGameState;
 
-    // Reset video flags on new game
+    // Reset on new game
     if (gs === 'choose_player_case' && prev !== 'choose_player_case') {
       videoPlayed = { start:false, pick:false, deal:false, result:false };
-      // Start bg audio
+      document.getElementById('win-popup').classList.remove('visible');
       stopBgAudio();
       bgAudioEl = playAudio('aud-bg', true);
-      // Start video
       if (!videoPlayed.start) { videoPlayed.start=true; triggerVideo('vid-start', 2); }
     }
 
@@ -708,29 +727,33 @@
       playAudio('aud-pick');
     }
 
-    // Case opened (openedCount changed)
+    // Case opened sound (state was playing and a case just opened)
     if (gs === 'playing' && prev === 'playing') {
       playAudio('aud-open');
     }
 
-    // Banker call
-    if (d.showBanker && !d.showBanker_prev) {
+    // Banker call (showBanker just turned true)
+    if (d.showBanker && !prevShowBanker) {
       playAudio('aud-banker');
     }
 
-    // Deal taken
+    // Deal taken (banker offer accepted)
     if (gs === 'finished' && d.dealTaken === true && !videoPlayed.deal) {
       videoPlayed.deal = true;
+      stopBgAudio();
       triggerVideo('vid-deal', 2);
       playAudio('aud-deal');
-      stopBgAudio();
     }
 
-    // Final win (keep or swap)
+    // Final win: 2-step sequence
+    // Step 1: play vid-final-reaction (once, immediately on finished)
+    // Step 2: on video end → show win popup + play vid-win-high/low
     if (gs === 'finished' && d.dealTaken !== true && !videoPlayed.result) {
       videoPlayed.result = true;
       stopBgAudio();
-      // Determine high/low
+      playAudio('aud-final');
+
+      // Determine high/low for step 2
       let finalVals = [];
       if (d.cases && d.playerCase) {
         finalVals.push(d.cases[d.playerCase].value);
@@ -740,12 +763,38 @@
         if (otherIdx && d.cases[otherIdx]) finalVals.push(d.cases[otherIdx].value);
       }
       const maxFinal = finalVals.length > 0 ? Math.max(...finalVals) : (d.winAmount||0)+1;
-      const isHigh = (d.winAmount||0) >= maxFinal;
-      triggerVideo(isHigh ? 'vid-win-high' : 'vid-win-low', 3);
-      playAudio(isHigh ? 'aud-win-big' : 'aud-win-small');
+      const isHigh   = (d.winAmount||0) >= maxFinal;
+      const resultSlot = isHigh ? 'vid-win-high' : 'vid-win-low';
+
+      // Pick reaction video url
+      const reactionUrl = pickRandom('vid-final-reaction', 2);
+
+      if (reactionUrl) {
+        // Play reaction first, then reveal win
+        videoEl.src = reactionUrl;
+        videoCorner.classList.add('visible');
+        videoEl.load();
+        videoEl.play().catch(()=>{});
+        videoEl.onended = () => {
+          videoCorner.classList.remove('visible');
+          videoEl.src = '';
+          // Now show win popup
+          document.getElementById('win-popup').classList.add('visible');
+          // Play win video
+          triggerVideo(resultSlot, 3);
+          // Play win audio
+          playAudio(isHigh ? 'aud-win-big' : 'aud-win-small');
+        };
+      } else {
+        // No reaction video — show win directly
+        document.getElementById('win-popup').classList.add('visible');
+        triggerVideo(resultSlot, 3);
+        playAudio(isHigh ? 'aud-win-big' : 'aud-win-small');
+      }
     }
 
-    prevGameState = gs;
+    prevShowBanker = d.showBanker;
+    prevGameState  = gs;
   });
 </script>
 </body>
