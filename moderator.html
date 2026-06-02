@@ -849,16 +849,16 @@
 
         <!-- Header -->
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid #333;background:#25252c;flex-shrink:0;gap:8px;flex-wrap:wrap;">
-          <h3 style="margin:0;color:#1abc9c;font-size:14px;">📐 РАСПОЛОЖЕНИЕ — 1920×1080</h3>
+          <h3 style="margin:0;color:#1abc9c;font-size:14px;">📐 Редактор позицій — 1920×1080</h3>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <!-- BG url -->
             <input id="le-bg-url" type="text" placeholder="URL фону (скрін з стріма)..." style="background:#1a1a2e;border:1px solid #444;border-radius:4px;color:#fff;padding:5px 8px;font-size:11px;width:220px;">
             <button onclick="applyLEBg()" style="width:auto;padding:5px 10px;background:#2980b9;border-radius:5px;margin:0;font-size:11px;">🖼 Фон</button>
             <button onclick="clearLEBg()" style="width:auto;padding:5px 8px;background:#444;border-radius:5px;margin:0;font-size:11px;">✕</button>
             <div style="width:1px;height:20px;background:#444;margin:0 4px;"></div>
-            <button onclick="resetLayoutPositions()" style="width:auto;padding:5px 10px;background:#e67e22;border-radius:5px;margin:0;font-size:11px;">↺ Скинуть</button>
-            <button onclick="saveLayoutPositions()" style="width:auto;padding:5px 10px;background:#27ae60;border-radius:5px;margin:0;font-size:11px;">💾 Сохранить</button>
-            <button onclick="closeLayoutEditor()" style="width:auto;padding:5px 10px;background:#555;border-radius:5px;margin:0;font-size:11px;">✕ Закрыть</button>
+            <button onclick="resetLayoutPositions()" style="width:auto;padding:5px 10px;background:#e67e22;border-radius:5px;margin:0;font-size:11px;">↺ Скинути</button>
+            <button onclick="saveLayoutPositions()" style="width:auto;padding:5px 10px;background:#27ae60;border-radius:5px;margin:0;font-size:11px;">💾 Зберегти</button>
+            <button onclick="closeLayoutEditor()" style="width:auto;padding:5px 10px;background:#555;border-radius:5px;margin:0;font-size:11px;">✕ Закрити</button>
           </div>
         </div>
 
@@ -879,10 +879,11 @@
                   <div id="le-widget-coords" style="font-size:9px;color:#5dade2;margin-top:2px;"></div>
                 </div>
               </div>
-              <!-- Resize handles -->
-              <div class="le-handle le-se" data-block="widget" data-dir="se" style="position:absolute;right:-5px;bottom:-5px;width:12px;height:12px;background:#3498db;border-radius:2px;cursor:se-resize;z-index:11;"></div>
-              <div class="le-handle le-e"  data-block="widget" data-dir="e"  style="position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:10px;height:20px;background:#3498db;border-radius:2px;cursor:e-resize;z-index:11;opacity:0.7;"></div>
-              <div class="le-handle le-s"  data-block="widget" data-dir="s"  style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:20px;height:10px;background:#3498db;border-radius:2px;cursor:s-resize;z-index:11;opacity:0.7;"></div>
+              <!-- Resize handles: SE=вільний, E=ширина, S=висота, NE=пропорційний -->
+              <div class="le-handle" data-block="widget" data-dir="se"    style="position:absolute;right:-5px;bottom:-5px;width:14px;height:14px;background:#3498db;border-radius:3px;cursor:se-resize;z-index:11;" title="Вільний розмір"></div>
+              <div class="le-handle" data-block="widget" data-dir="e"     style="position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:10px;height:24px;background:#3498db;border-radius:2px;cursor:e-resize;z-index:11;opacity:0.7;" title="Ширина"></div>
+              <div class="le-handle" data-block="widget" data-dir="s"     style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:24px;height:10px;background:#3498db;border-radius:2px;cursor:s-resize;z-index:11;opacity:0.7;" title="Висота"></div>
+              <div class="le-handle" data-block="widget" data-dir="scale" style="position:absolute;right:-5px;top:-5px;width:14px;height:14px;background:#e74c3c;border-radius:50%;cursor:ne-resize;z-index:11;" title="Пропорційний масштаб (→)"></div>
             </div>
 
             <!-- DnD block -->
@@ -893,9 +894,10 @@
                   <div id="le-dnd-coords" style="font-size:9px;color:#bb8fce;margin-top:2px;"></div>
                 </div>
               </div>
-              <div class="le-handle le-se" data-block="dnd" data-dir="se" style="position:absolute;right:-5px;bottom:-5px;width:12px;height:12px;background:#9b59b6;border-radius:2px;cursor:se-resize;z-index:11;"></div>
-              <div class="le-handle le-e"  data-block="dnd" data-dir="e"  style="position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:10px;height:20px;background:#9b59b6;border-radius:2px;cursor:e-resize;z-index:11;opacity:0.7;"></div>
-              <div class="le-handle le-s"  data-block="dnd" data-dir="s"  style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:20px;height:10px;background:#9b59b6;border-radius:2px;cursor:s-resize;z-index:11;opacity:0.7;"></div>
+              <div class="le-handle" data-block="dnd" data-dir="se"    style="position:absolute;right:-5px;bottom:-5px;width:14px;height:14px;background:#9b59b6;border-radius:3px;cursor:se-resize;z-index:11;" title="Вільний розмір"></div>
+              <div class="le-handle" data-block="dnd" data-dir="e"     style="position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:10px;height:24px;background:#9b59b6;border-radius:2px;cursor:e-resize;z-index:11;opacity:0.7;" title="Ширина"></div>
+              <div class="le-handle" data-block="dnd" data-dir="s"     style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:24px;height:10px;background:#9b59b6;border-radius:2px;cursor:s-resize;z-index:11;opacity:0.7;" title="Висота"></div>
+              <div class="le-handle" data-block="dnd" data-dir="scale" style="position:absolute;right:-5px;top:-5px;width:14px;height:14px;background:#e74c3c;border-radius:50%;cursor:ne-resize;z-index:11;" title="Пропорційний масштаб (→)"></div>
             </div>
           </div>
         </div>
@@ -914,7 +916,7 @@
             <span id="le-d-br" style="color:#fff;font-weight:bold;">—</span>
             <span style="color:#666;"> w:</span><span id="le-d-size" style="color:#aaa;">—</span>
           </div>
-          <div style="font-size:11px;color:#555;margin-left:auto;">негры пидарасы</div>
+          <div style="font-size:11px;color:#666;margin-left:auto;">🔵 кут = вільний · 🔵 бік = одна вісь · 🔴 верх-право = пропорційно</div>
         </div>
 
       </div>
@@ -1006,12 +1008,26 @@
           const r = getCanvasRect();
           const sx = e.clientX, sy = e.clientY;
           const ow = lePositions[key].w, oh = lePositions[key].h;
+          const aspect = ow / oh; // for proportional scale
           const onM = e2 => {
             const dx = Math.round((e2.clientX-sx)/r.width*CANVAS_W);
             const dy = Math.round((e2.clientY-sy)/r.height*CANVAS_H);
-            if(dir==='se'||dir==='e') lePositions[key].w = Math.max(80, ow+dx);
-            if(dir==='se'||dir==='s') lePositions[key].h = Math.max(50, oh+dy);
-            // Clamp
+            if(dir==='e') {
+              // Width only
+              lePositions[key].w = Math.max(80, ow+dx);
+            } else if(dir==='s') {
+              // Height only
+              lePositions[key].h = Math.max(50, oh+dy);
+            } else if(dir==='se') {
+              // Free resize both axes independently (no forced aspect)
+              lePositions[key].w = Math.max(80, ow+dx);
+              lePositions[key].h = Math.max(50, oh+dy);
+            } else if(dir==='scale') {
+              // Proportional scale (locked aspect ratio)
+              const factor = 1 + dx / CANVAS_W;
+              lePositions[key].w = Math.max(80, Math.round(ow * factor));
+              lePositions[key].h = Math.round(lePositions[key].w / aspect);
+            }
             lePositions[key].w = Math.min(CANVAS_W-lePositions[key].x, lePositions[key].w);
             lePositions[key].h = Math.min(CANVAS_H-lePositions[key].y, lePositions[key].h);
             renderLEBlocks();
