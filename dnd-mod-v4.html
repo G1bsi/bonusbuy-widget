@@ -84,6 +84,7 @@
       <label>Макс. сумма (₽):</label>
       <input type="number" class="prize-input" id="prizeMax" value="50000" min="1" step="100">
       <button id="calcPrizesBtn" class="btn-info" style="padding:7px 16px">⚡ Рассчитать</button>
+      <span id="autoSaveStatus" style="font-size:12px;color:#00ffcc;align-self:center;"></span>
     </div>
     <div class="slider-row">
       <label>Шанс большого выигрыша:</label>
@@ -93,9 +94,8 @@
       <span id="chanceLabel">50% — сбалансировано</span>
     </div>
     <div class="prize-values-grid" id="prizeValuesGrid"></div>
-    <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap">
-      <button id="applyPrizesBtn" class="btn-success" style="padding:8px 18px">✅ Применить призы к новой игре</button>
-      <span style="font-size:12px;color:#888;align-self:center">Призы применяются при следующей "Новой игре"</span>
+    <div style="margin-top:10px;font-size:12px;color:#666;">
+      ✅ Призы применяются <b style="color:#00ffcc">автоматически</b> — просто меняй значения и они сохранятся
     </div>
   </div>
 
@@ -110,10 +110,6 @@
       <h3 style="color:#00ffcc;text-align:center">ФИНАЛ: ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?</h3>
       <button id="keepBtn" class="btn-success btn-huge">💼 ОСТАВИТЬ СВОЙ КЕЙС</button>
       <button id="swapBtn" class="btn-warning btn-huge">🔄 ПОМЕНЯТЬСЯ КЕЙСАМИ</button>
-      <div id="revealSection">
-        <div class="reveal-info" id="revealInfo">—</div>
-        <button id="revealCaseBtn" class="btn-reveal btn-huge">🔓 ОТКРЫТЬ КЕЙС НА ЭКРАНЕ</button>
-      </div>
     </div>
   </div>
 
@@ -137,7 +133,8 @@
       <div class="tab" data-tab="cases">💼 Полка (1–16)</div>
       <div class="tab" data-tab="podium">🏆 Подиум закрыт</div>
       <div class="tab" data-tab="podium-open">📂 Подиум открыт</div>
-      <div class="tab" data-tab="videos">🎬 Видео</div>
+      <div class="tab" data-tab="videos">🎬 Відео</div>
+      <div class="tab" data-tab="audio">🔊 Аудіо</div>
     </div>
 
     <div class="tab-content active" id="tab-scene">
@@ -156,16 +153,33 @@
     </div>
     <div class="tab-content" id="tab-videos">
       <p class="hint" style="margin-bottom:10px">
-        Три видео (MOV/MP4, прямая ссылка) в правом нижнем углу.<br>
-        <span>vid-decision</span> — появляется после нажатия ОСТАВИТЬ или ПОМЕНЯТЬ<br>
-        <span>vid-win-high</span> — если выигрыш ≥ порога (большая из двух сумм)<br>
-        <span>vid-win-low</span> — если выигрыш < порога (меньшая из двух сумм)
+        Відео з прозорим фоном (webm/mov) у правому нижньому куті.<br>
+        Для кожного тригера можна завантажити <b style="color:#ffcc00">кілька відео</b> — буде вибрано рандомне.<br>
+        <span>vid-start</span> — старт гри (показ кейсів)<br>
+        <span>vid-pick</span> — гравець вибрав свій кейс<br>
+        <span>vid-deal</span> — прийнята пропозиція банкіра<br>
+        <span>vid-win-high-1/2/3</span> — великий виграш (рандом)<br>
+        <span>vid-win-low-1/2/3</span> — малий виграш (рандом)
       </p>
-      <div class="url-grid" id="urlsVideos"></div>
+      <div id="urlsVideos" style="display:flex;flex-direction:column;gap:12px;"></div>
       <div style="margin-top:10px;padding:10px;background:#1a1a2e;border-radius:6px;font-size:13px;color:#aaa;line-height:1.6;">
-        💡 <b style="color:#ffcc00;">Как работает:</b> сравниваются 2 финальные суммы — большей соответствует vid-win-high, меньшей — vid-win-low.<br>
-        Максимальный размер файла: <b style="color:#fff;">8 МБ</b>. Для больших файлов используй прямую URL-ссылку.
+        💡 Формат: .webm (з альфа-каналом для прозорості) або .mp4/.mov. Ліміт 8МБ на файл. Для більших — URL.
       </div>
+    </div>
+
+    <div class="tab-content" id="tab-audio">
+      <p class="hint" style="margin-bottom:10px">
+        Аудіо завантажується напряму у Firebase (ліміт 8МБ).<br>
+        <span>aud-bg</span> — фонова музика (зациклена)<br>
+        <span>aud-open</span> — звук відкриття кейсу<br>
+        <span>aud-pick</span> — вибір свого кейсу<br>
+        <span>aud-banker</span> — дзвінок банкіра<br>
+        <span>aud-deal</span> — прийнята угода<br>
+        <span>aud-win-big</span> — великий виграш<br>
+        <span>aud-win-small</span> — малий виграш<br>
+        <span>aud-final</span> — фінальна сцена
+      </p>
+      <div id="urlsAudio" style="display:flex;flex-direction:column;gap:8px;"></div>
     </div>
 
     <div class="url-actions">
@@ -234,31 +248,102 @@
   }
 
   const PODIUM_OPEN_KEYS = Array.from({length:16},(_,i)=>`po${i+1}`);
-  const VIDEO_KEYS = ['vid-decision','vid-win-high','vid-win-low'];
-  const VIDEO_LABEL = {'vid-decision':'Видео 1 — После выбора (оставить/поменять)','vid-win-high':'Видео 2 — Высокий выигрыш','vid-win-low':'Видео 3 — Низкий выигрыш'};
+
+  // Video slots: each trigger can have multiple (random pick)
+  const VIDEO_SLOTS = [
+    { key:'vid-start',     label:'🎬 Старт гри (показ кейсів)',        count:2 },
+    { key:'vid-pick',      label:'👆 Гравець вибрав кейс',              count:2 },
+    { key:'vid-deal',      label:'🤝 Прийнята пропозиція банкіра',      count:2 },
+    { key:'vid-win-high',  label:'🏆 Великий виграш',                   count:3 },
+    { key:'vid-win-low',   label:'💸 Малий виграш',                     count:3 },
+  ];
+  // All video keys flat
+  const VIDEO_KEYS = VIDEO_SLOTS.flatMap(s => Array.from({length:s.count},(_,i)=>`${s.key}-${i+1}`));
+
+  // Audio keys
+  const AUDIO_KEYS = ['aud-bg','aud-open','aud-pick','aud-banker','aud-deal','aud-win-big','aud-win-small','aud-final'];
+  const AUDIO_LABEL = {
+    'aud-bg':       '🎵 Фонова музика (зациклена)',
+    'aud-open':     '📦 Відкриття кейсу',
+    'aud-pick':     '✋ Вибір кейсу гравцем',
+    'aud-banker':   '☎️ Дзвінок банкіра',
+    'aud-deal':     '🤝 Прийнята угода',
+    'aud-win-big':  '🏆 Великий виграш',
+    'aud-win-small':'💸 Малий виграш',
+    'aud-final':    '⚔️ Фінальна сцена',
+  };
 
   buildUrlRows(SCENE_KEYS,  'urlsScene');
   buildUrlRows(CASE_KEYS,   'urlsCases');
   buildUrlRows(PODIUM_KEYS, 'urlsPodium');
   buildUrlRows(PODIUM_OPEN_KEYS, 'urlsPodiumOpen');
 
-  // Video rows — file upload (base64) OR URL
-  const videoContainer = document.getElementById('urlsVideos');
-  VIDEO_KEYS.forEach(key => {
+  // Video rows — grouped by trigger, multiple slots, file upload OR URL
+  function makeMediaRow(key, label, accept, container, isAudio) {
     const div = document.createElement('div');
-    div.className = 'url-row';
-    div.style.cssText = 'grid-column:1/-1;';
+    div.style.cssText = 'background:#1a1a2e;border-radius:8px;padding:10px 12px;';
     div.innerHTML = `
-      <label style="font-size:13px;color:#ffcc00;font-weight:bold;">${VIDEO_LABEL[key]||key}</label>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:4px;">
-        <input type="text" id="url-${key}" placeholder="URL (.webm/.mov/.mp4) или загрузи файл →" autocomplete="off" style="flex:1;min-width:280px;">
-        <label style="background:#6610f2;color:#fff;padding:7px 14px;border-radius:5px;cursor:pointer;font-size:13px;font-weight:bold;white-space:nowrap;">
-          📁 Загрузить видео
-          <input type="file" accept="video/*,.mov,.webm,.mp4" style="display:none" data-vidkey="${key}" class="vid-file-input">
+      <div style="font-size:13px;color:${isAudio?'#1abc9c':'#ffcc00'};font-weight:bold;margin-bottom:6px;">${label}</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="text" id="url-${key}" placeholder="URL или загрузи файл →" autocomplete="off"
+          style="flex:1;min-width:240px;background:#111;border:1px solid #333;border-radius:4px;color:#fff;padding:5px 8px;font-size:12px;">
+        <label style="background:#6610f2;color:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:bold;white-space:nowrap;">
+          📁 Файл
+          <input type="file" accept="${accept}" style="display:none" data-mediakey="${key}" class="media-file-input">
         </label>
-        <span id="vid-status-${key}" style="font-size:12px;color:#aaa;">—</span>
+        <span id="media-status-${key}" style="font-size:11px;color:#888;min-width:80px;">—</span>
       </div>`;
-    videoContainer.appendChild(div);
+    container.appendChild(div);
+  }
+
+  const videoContainer = document.getElementById('urlsVideos');
+  VIDEO_SLOTS.forEach(slot => {
+    // Group header
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'font-size:14px;color:#fff;font-weight:700;margin-top:8px;padding:4px 0;border-bottom:1px solid #333;';
+    hdr.textContent = slot.label;
+    videoContainer.appendChild(hdr);
+    // Slots
+    for(let i=1;i<=slot.count;i++){
+      const key = `${slot.key}-${i}`;
+      makeMediaRow(key, `Варіант ${i}`, 'video/*,.mov,.webm,.mp4', videoContainer, false);
+    }
+  });
+
+  // Audio rows
+  const audioContainer = document.getElementById('urlsAudio');
+  AUDIO_KEYS.forEach(key => {
+    makeMediaRow(key, AUDIO_LABEL[key]||key, 'audio/*,.mp3,.ogg,.wav,.m4a', audioContainer, true);
+  });
+
+  // Handle media file uploads → base64 → Firebase
+  document.addEventListener('change', async (e) => {
+    const input = e.target.closest('.media-file-input');
+    if (!input) return;
+    const file = e.target.files[0];
+    if (!file) return;
+    const key = input.dataset.mediakey;
+    const statusEl = document.getElementById(`media-status-${key}`);
+    const urlInp   = document.getElementById(`url-${key}`);
+    statusEl.textContent = '⏳ Читаю...'; statusEl.style.color = '#ffcc00';
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      const dataUrl = ev.target.result;
+      const sizeKB  = Math.round(dataUrl.length / 1024);
+      if (sizeKB > 9000) {
+        statusEl.textContent = `⚠ ${sizeKB}KB > 8MB`; statusEl.style.color='#ff6b6b';
+        return;
+      }
+      try {
+        await set(ref(db, 'widgets/assets/' + key), dataUrl);
+        urlInp.value = `[${file.name}]`;
+        urlInp.classList.add('ok');
+        statusEl.textContent = `✓ ${sizeKB}KB`; statusEl.style.color='#28a745';
+      } catch(err) {
+        statusEl.textContent = `✗ ${err.message}`; statusEl.style.color='#ff6b6b';
+      }
+    };
+    reader.readAsDataURL(file);
   });
 
   // Handle video file uploads → base64 → stored as URL
@@ -308,7 +393,7 @@
   onValue(assetsRef, snap => {
     const data = snap.val();
     if (!data) return;
-    [...SCENE_KEYS,...CASE_KEYS,...PODIUM_KEYS,...PODIUM_OPEN_KEYS,...VIDEO_KEYS].forEach(key => {
+    [...SCENE_KEYS,...CASE_KEYS,...PODIUM_KEYS,...PODIUM_OPEN_KEYS,...VIDEO_KEYS,...AUDIO_KEYS].forEach(key => {
       const inp = document.getElementById(`url-${key}`);
       if (inp && data[key]) {
         inp.value = data[key];
@@ -329,7 +414,7 @@
 
   // Preview all
   document.getElementById('previewAllBtn').onclick = () => {
-    [...SCENE_KEYS,...CASE_KEYS,...PODIUM_KEYS,...PODIUM_OPEN_KEYS,...VIDEO_KEYS].forEach(key => {
+    [...SCENE_KEYS,...CASE_KEYS,...PODIUM_KEYS,...PODIUM_OPEN_KEYS,...VIDEO_KEYS,...AUDIO_KEYS].forEach(key => {
       const inp = document.getElementById(`url-${key}`);
       if (!inp || !inp.value.trim()) return;
       const url = inp.value.trim();
@@ -356,12 +441,12 @@
     const btn = document.getElementById('saveAssetsBtn');
     btn.textContent = '⏳ Сохраняю...'; btn.disabled = true;
     const assets = {};
-    [...SCENE_KEYS,...CASE_KEYS,...PODIUM_KEYS,...PODIUM_OPEN_KEYS,...VIDEO_KEYS].forEach(key => {
+    [...SCENE_KEYS,...CASE_KEYS,...PODIUM_KEYS,...PODIUM_OPEN_KEYS,...VIDEO_KEYS,...AUDIO_KEYS].forEach(key => {
       const inp = document.getElementById(`url-${key}`);
       if (!inp) return;
       const val = inp.value.trim();
-      // Skip base64 placeholders (already saved directly by upload handler)
-      if (val && !val.startsWith('[BASE64')) assets[key] = val;
+      // Skip base64/file placeholders (already saved directly by upload handler)
+      if (val && !val.startsWith('[') && !val.startsWith('[BASE64')) assets[key] = val;
     });
     try {
       await set(assetsRef, assets);
@@ -446,19 +531,46 @@
     const grid = document.getElementById('prizeValuesGrid');
     grid.innerHTML = '<div style="grid-column:1/-1;font-size:11px;color:#888;margin-bottom:4px;">Ліва колонка (малі) → Права колонка (великі)</div>' +
       customValues.map((v,i)=>`<div class="prize-val-box" style="${i<8?'border-color:#3498db':'border-color:#9b59b6'}">${v.toLocaleString('ru-RU')} ₽</div>`).join('');
+
+    // Auto-save to Firebase + localStorage
+    autoSavePrizes();
   };
 
-  document.getElementById('applyPrizesBtn').onclick = async () => {
-    if(!customValues){ alert('Сначала нажми «Рассчитать»'); return; }
-    // Save gameValues to Firebase so widget reads them immediately
+  async function autoSavePrizes() {
+    if (!customValues || customValues.length < 16) return;
+    // Save settings to localStorage permanently
+    localStorage.setItem('dnd_prizeMin', document.getElementById('prizeMin').value);
+    localStorage.setItem('dnd_prizeMax', document.getElementById('prizeMax').value);
+    localStorage.setItem('dnd_chance',   document.getElementById('chanceSlider').value);
+    localStorage.setItem('dnd_customValues', JSON.stringify(customValues));
+    // Save to Firebase
     try {
       await update(gameRef, { gameValues: customValues });
-      document.getElementById('applyPrizesBtn').textContent = `✅ Активно: ${customValues[0].toLocaleString()}₽ — ${customValues[15].toLocaleString()}₽`;
-      document.getElementById('applyPrizesBtn').style.background = '#27ae60';
-    } catch(e) {
-      alert('Ошибка сохранения: ' + e.message);
-    }
-  };
+      const st = document.getElementById('autoSaveStatus');
+      if (st) { st.textContent = '✅ Сохранено'; setTimeout(() => st.textContent = '', 2000); }
+    } catch(e) { console.error('autoSavePrizes:', e); }
+  }
+
+  // Restore saved settings on load
+  function restorePrizeSettings() {
+    const min = localStorage.getItem('dnd_prizeMin');
+    const max = localStorage.getItem('dnd_prizeMax');
+    const ch  = localStorage.getItem('dnd_chance');
+    const cv  = localStorage.getItem('dnd_customValues');
+    if (min) document.getElementById('prizeMin').value = min;
+    if (max) document.getElementById('prizeMax').value = max;
+    if (ch)  { document.getElementById('chanceSlider').value = ch; document.getElementById('chanceLabel').textContent = chanceLabel(parseInt(ch)); }
+    if (cv)  { try { customValues = JSON.parse(cv); } catch {} }
+    // Auto-trigger calc to show grid
+    if (min || max) document.getElementById('calcPrizesBtn').click();
+  }
+
+  // Auto-recalc on any prize input change
+  ['prizeMin','prizeMax','chanceSlider'].forEach(id => {
+    document.getElementById(id).addEventListener('input', () => {
+      document.getElementById('calcPrizesBtn').click();
+    });
+  });
 
   // ── Game logic ──
   const fmt = n => n.toLocaleString('ru-RU') + ' ₽';
@@ -484,8 +596,12 @@
     if (d.gameState==='choose_player_case') st.textContent='ШАГ 1: Выберите кейс игрока';
     else if(d.gameState==='playing')        st.textContent='ШАГ 2: Открывайте кейсы';
     else if(d.gameState==='banker_offer')  { st.textContent=`БАНКИР: ${fmt(d.bankerOffer)}`; document.getElementById('bankerDecision').style.display='block'; }
-    else if(d.gameState==='final_swap')    { st.textContent='ФИНАЛ: Ждем решения!'; document.getElementById('swapDecision').style.display='block'; }
-    else if(d.gameState==='final_reveal')  { st.textContent='ФИНАЛ: Ждем открытия кейса!'; document.getElementById('swapDecision').style.display='block'; document.getElementById('revealSection').style.display='block'; document.getElementById('keepBtn').disabled=true; document.getElementById('swapBtn').disabled=true; }
+    else if(d.gameState==='final_swap') {
+      st.textContent = 'ФИНАЛ: Ждем решения!';
+      document.getElementById('swapDecision').style.display = 'block';
+      document.getElementById('keepBtn').disabled = false;
+      document.getElementById('swapBtn').disabled = false;
+    }
     else if(d.gameState==='finished')       st.textContent=`ИГРА ОКОНЧЕНА. ВЫИГРЫШ: ${fmt(d.winAmount)}`;
   }
 
@@ -521,7 +637,7 @@
   }
 
   async function handleCaseClick(n,isOpen){
-    if(isOpen||['banker_offer','final_swap','finished'].includes(currentState.gameState)) return;
+    if(isOpen||['banker_offer','final_swap','final_reveal','finished'].includes(currentState.gameState)) return;
     if(currentState.gameState==='choose_player_case'){
       update(gameRef,{playerCase:n,gameState:'playing'}); return;
     }
@@ -545,18 +661,14 @@
   document.getElementById('dealBtn').onclick  = ()=>update(gameRef,{gameState:'finished',showBanker:false,winAmount:currentState.bankerOffer,dealTaken:true});
   document.getElementById('noDealBtn').onclick = ()=>update(gameRef,{gameState:'playing',showBanker:false});
 
-  // KEEP: hide choice buttons immediately, then show reveal section
+  // KEEP: finish game immediately
   document.getElementById('keepBtn').onclick = () => {
+    if (!currentState.playerCase || !currentState.cases) return;
     const myVal = currentState.cases[currentState.playerCase].value;
-    // Immediately hide buttons on widget via pendingWin flag
-    update(gameRef, { pendingWin: myVal, pendingSwapped: false, gameState: 'final_reveal' });
-    document.getElementById('revealInfo').textContent = `Кейс игрока: ${fmt(myVal)} — нажми "Открыть кейс" когда готов`;
-    document.getElementById('revealSection').style.display = 'block';
-    document.getElementById('keepBtn').disabled = true;
-    document.getElementById('swapBtn').disabled = true;
+    update(gameRef, { gameState: 'finished', winAmount: myVal, dealTaken: false, pendingWin: null, swapped: false });
   };
 
-  // SWAP: IMMEDIATELY switch cases on widget, THEN wait for "открыть кейс"
+  // SWAP: finish game immediately with swap
   document.getElementById('swapBtn').onclick = () => {
     let otherCase = 0, otherVal = 0;
     for (let i = 1; i <= TOTAL_CASES; i++) {
@@ -564,27 +676,18 @@
         otherCase = i; otherVal = currentState.cases[i].value; break;
       }
     }
-    // swapped:true fires IMMEDIATELY — widget swaps cases right now
+    if (!otherCase) return;
     update(gameRef, {
+      gameState: 'finished',
+      winAmount: otherVal,
       swapped: true,
       swappedTo: otherCase,
-      pendingWin: otherVal,
-      gameState: 'final_reveal'
+      dealTaken: false,
+      pendingWin: null
     });
-    document.getElementById('revealInfo').textContent = `Обмен! Кейс #${otherCase}: ${fmt(otherVal)} — нажми "Открыть кейс" когда готов`;
-    document.getElementById('revealSection').style.display = 'block';
-    document.getElementById('keepBtn').disabled = true;
-    document.getElementById('swapBtn').disabled = true;
   };
 
-  // REVEAL — show win amount on widget
-  document.getElementById('revealCaseBtn').onclick = () => {
-    const win = currentState.pendingWin || 0;
-    update(gameRef, { gameState: 'finished', winAmount: win, pendingWin: null, dealTaken: false });
-    document.getElementById('revealSection').style.display = 'none';
-    document.getElementById('keepBtn').disabled = false;
-    document.getElementById('swapBtn').disabled = false;
-  };
+  // revealCaseBtn removed — keep/swap now finish game directly
   document.getElementById('newGameBtn').onclick = ()=>{
     if(!confirm('Точно начать новую игру?')) return;
     const sv=shuffle(customValues||VALUES),nc={};
@@ -592,6 +695,8 @@
     const gv = customValues || [2000,3000,4000,5000,7000,9000,12000,15000,18000,22000,26000,30000,35000,40000,45000,50000];
     set(gameRef,{isVisible:currentState.isVisible||false,gameState:'choose_player_case',playerCase:null,bankerOffer:0,showBanker:false,cases:nc,winAmount:0,swapped:false,swappedTo:null,dealTaken:false,pendingWin:null,gameValues:gv});
   };
+  restorePrizeSettings();
+
   document.getElementById('toggleVisibleBtn').onclick = () => {
     const turnOn = !currentState.isVisible;
     if(turnOn) {
