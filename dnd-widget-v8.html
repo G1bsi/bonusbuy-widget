@@ -405,8 +405,8 @@
   <!-- Final bottom strip -->
   <div id="final-banner">
     <div class="final-body">
-      Осталось <span class="hl">2 </span> кейса.
-      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span>  или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
+      Остался <span class="hl">1 КЕЙС НА ПОЛКЕ</span> и <span class="hl">ТВОЙ КЕЙС</span> на подиуме.
+      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> — или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
     </div>
   </div>
 
@@ -563,6 +563,8 @@
   }
 
   // ── Loading screen ──
+  let pendingStartVideo = false; // set to true if start video should play after loading
+
   function hideLoadingScreen() {
     const ls  = document.getElementById('loading-screen');
     const lve = document.getElementById('loading-video-el');
@@ -573,6 +575,12 @@
       lve.pause(); lve.src = ''; lve.style.display = 'none';
       document.getElementById('loading-text-wrap').style.display = 'flex';
       document.getElementById('widget-root').style.pointerEvents = 'all';
+      // Play start video now that loading is done
+      if (pendingStartVideo) {
+        pendingStartVideo = false;
+        triggerVideo('vid-start', 2);
+        bgAudioEl = playAudio('aud-bg', true);
+      }
     }, 400);
   }
 
@@ -697,7 +705,7 @@
     }
     else if (gs === 'banker_offer')  { it.innerText = 'ВЫБОР ЗА ТОБОЙ!'; it.classList.add('attention'); }
     else if (gs === 'final_swap')    { it.innerText = 'ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?'; it.classList.add('attention'); }
-    else if (gs === 'finished')      { it.innerText = isSwapped ? 'ДА БУДЕТ СВЕТ!' : 'ИГРА ОКОНЧЕНА!'; }
+    else if (gs === 'finished')      { it.innerText = isSwapped ? 'ОБМЕН СОВЕРШЕН!' : 'ИГРА ОКОНЧЕНА!'; }
     else                               it.innerText = 'ОЖИДАНИЕ ИГРЫ...';
 
     // ── Final strip + buttons ──
@@ -736,8 +744,15 @@
       videoPlayed = { start:false, pick:false, deal:false, result:false };
       document.getElementById('win-popup').classList.remove('visible');
       stopBgAudio();
-      bgAudioEl = playAudio('aud-bg', true);
-      if (!videoPlayed.start) { videoPlayed.start = true; triggerVideo('vid-start', 2); }
+      videoPlayed.start = true;
+      // Check if loading screen is still visible — if yes, defer; if no, play now
+      const ls = document.getElementById('loading-screen');
+      if (ls.classList.contains('visible')) {
+        pendingStartVideo = true; // will fire in hideLoadingScreen
+      } else {
+        triggerVideo('vid-start', 2);
+        bgAudioEl = playAudio('aud-bg', true);
+      }
     }
 
     if (d.playerCase && !prevPlayerCaseSnap && !videoPlayed.pick) {
