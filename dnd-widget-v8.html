@@ -405,8 +405,8 @@
   <!-- Final bottom strip -->
   <div id="final-banner">
     <div class="final-body">
-      Остался <span class="hl">1 КЕЙС НА ПОЛКЕ</span> и <span class="hl">ТВОЙ КЕЙС</span> на подиуме.
-      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> — или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
+      Осталось <span class="hl">2 </span> кейса.
+      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span>  или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
     </div>
   </div>
 
@@ -458,238 +458,266 @@
   const assetsRef = ref(db, 'widgets/assets');
   const TOTAL = 16;
   const fmt = n => n.toLocaleString('ru-RU') + ' ₽';
-  function caseWord(n){if(n===1)return 'КЕЙС';if(n>=2&&n<=4)return 'КЕЙСА';return 'КЕЙСОВ';}
+  function caseWord(n){ return n===1?'КЕЙС':n<=4?'КЕЙСА':'КЕЙСОВ'; }
 
-  let assets = {};
+  // ── State ──
+  let assets        = {};
   let prevPlayerCase = null;
-
-  function hideLoadingScreen(ls, lve, ltw) {
-    if (!ls.classList.contains('visible')) return; // already hidden
-    ls.classList.add('hiding');
-    setTimeout(() => {
-      ls.classList.remove('visible','hiding');
-      if(lve) { lve.pause(); lve.src=''; lve.style.display='none'; }
-      if(ltw) ltw.style.display='flex';
-      document.getElementById('widget-root').style.pointerEvents = 'all';
-    }, 400);
-  }
-  let prevShowBanker  = false;
+  let prevShowBanker = false;
   let prevGameState  = null;
 
+  // ── Volume state (loaded from localStorage) ──
+  let volVideo = parseFloat(localStorage.getItem('dnd_vol_video') ?? '0.85');
+  let volMusic = parseFloat(localStorage.getItem('dnd_vol_music') ?? '0.60');
+  let volSfx   = parseFloat(localStorage.getItem('dnd_vol_sfx')   ?? '0.80');
+  // Track all active sfx audio elements to update volume live
+  const activeSfx = new Set();
+
+  // ── Media refs ──
+  const videoCorner = document.getElementById('video-corner');
+  const videoEl     = document.getElementById('video-el');
+  let   bgAudioEl   = null;
+  let   videoPlayed = { start:false, pick:false, deal:false, result:false };
+
+  // ── Apply assets ──
   function applyAssets(a) {
     if (!a) return;
     assets = a;
-    if (a['фон'])   document.getElementById('bg').style.backgroundImage=`url('${a['фон']}')`;
-    if (a['рамка']) document.documentElement.style.setProperty('--рамка-url',`url('${a['рамка']}')`);
-    if (a['banker-banner']){
-      const img=document.getElementById('banker-banner-img');
-      img.src=a['banker-banner']; img.onload=()=>img.classList.add('loaded');
+    if (a['фон'])   document.getElementById('bg').style.backgroundImage = `url('${a['фон']}')`;
+    if (a['рамка']) document.documentElement.style.setProperty('--рамка-url', `url('${a['рамка']}')`);
+    if (a['banker-banner']) {
+      const img = document.getElementById('banker-banner-img');
+      img.src = a['banker-banner'];
+      img.onload = () => img.classList.add('loaded');
     }
-    for(let i=1;i<=TOTAL;i++){
-      const cl=document.getElementById(`cl-${i}`);
-      if(cl&&a[String(i)]) cl.style.backgroundImage=`url('${a[String(i)]}')`;
-      const pl=document.getElementById(`pl-${i}`);
-      if(pl&&a[`p${i}`]) pl.style.backgroundImage=`url('${a[`p${i}`]}')`;
-      const po=document.getElementById(`po-${i}`);
-      if(po&&a[`po${i}`]) po.style.backgroundImage=`url('${a[`po${i}`]}')`;
+    for (let i = 1; i <= TOTAL; i++) {
+      const cl = document.getElementById(`cl-${i}`);
+      if (cl && a[String(i)]) cl.style.backgroundImage = `url('${a[String(i)]}')`;
+      const pl = document.getElementById(`pl-${i}`);
+      if (pl && a[`p${i}`]) pl.style.backgroundImage = `url('${a[`p${i}`]}')`;
+      const po = document.getElementById(`po-${i}`);
+      if (po && a[`po${i}`]) po.style.backgroundImage = `url('${a[`po${i}`]}')`;
     }
   }
-  onValue(assetsRef, s=>applyAssets(s.val()));
+  onValue(assetsRef, s => applyAssets(s.val()));
 
-  // ══ Media Engine: Video + Audio ══
-  const videoCorner = document.getElementById('video-corner');
-  const videoEl     = document.getElementById('video-el');
-  let bgAudioEl     = null;
-  let videoPlayed   = { start:false, pick:false, deal:false, result:false };
-  let prevGameState = null;
+  // ── Volume sync from Firebase — applies instantly to all active audio ──
+  onValue(ref(db, 'widgets/dnd_volumes'), snap => {
+    const v = snap.val();
+    if (!v) return;
+    if (v.video !== undefined) { volVideo = v.video; localStorage.setItem('dnd_vol_video', volVideo); }
+    if (v.music !== undefined) { volMusic = v.music; localStorage.setItem('dnd_vol_music', volMusic); }
+    if (v.sfx   !== undefined) { volSfx   = v.sfx;   localStorage.setItem('dnd_vol_sfx',   volSfx);   }
+    // Apply to currently playing elements immediately
+    if (bgAudioEl) bgAudioEl.volume = volMusic;
+    videoEl.volume = volVideo;
+    activeSfx.forEach(a => { if (!a.paused) a.volume = volSfx; });
+    // Clean up finished sfx
+    activeSfx.forEach(a => { if (a.ended || a.paused) activeSfx.delete(a); });
+  });
 
-  // Pick random variant for a slot key (vid-win-high-1/2/3 → one of them)
+  // ── Media helpers ──
   function pickRandom(baseKey, maxCount) {
-    const available = [];
+    const avail = [];
     for (let i = 1; i <= maxCount; i++) {
-      const url = assets[`${baseKey}-${i}`];
-      if (url) available.push(url);
+      const u = assets[`${baseKey}-${i}`];
+      if (u) avail.push(u);
     }
-    if (!available.length) return null;
-    return available[Math.floor(Math.random() * available.length)];
+    return avail.length ? avail[Math.floor(Math.random() * avail.length)] : null;
   }
 
-  function playVideo(url) {
-    if (!url) return;
-    videoEl.src = url;
+  function playVideo(url, onEnded) {
+    if (!url) { if (onEnded) onEnded(); return; }
+    videoEl.src    = url;
+    videoEl.volume = volVideo;
     videoCorner.classList.add('visible');
     videoEl.load();
-    videoEl.play().catch(()=>{});
-    videoEl.onended = () => { videoCorner.classList.remove('visible'); videoEl.src = ''; };
+    videoEl.play().catch(() => {});
+    videoEl.onended = () => {
+      videoCorner.classList.remove('visible');
+      videoEl.src = '';
+      if (onEnded) onEnded();
+    };
   }
 
-  function playAudio(key, loop=false) {
+  function triggerVideo(slot, maxCount, onEnded) {
+    playVideo(pickRandom(slot, maxCount), onEnded);
+  }
+
+  function playAudio(key, loop = false) {
     const url = assets[key];
     if (!url) return null;
-    const a = new Audio(url);
-    a.loop = loop;
-    a.volume = 0.75;
-    a.play().catch(()=>{});
+    const a  = new Audio(url);
+    a.loop   = loop;
+    a.volume = loop ? volMusic : volSfx;
+    a.play().catch(() => {});
+    if (!loop) {
+      activeSfx.add(a);
+      a.onended = () => activeSfx.delete(a);
+    }
     return a;
   }
 
   function stopBgAudio() {
-    if (bgAudioEl) { bgAudioEl.pause(); bgAudioEl.src=''; bgAudioEl=null; }
+    if (bgAudioEl) { bgAudioEl.pause(); bgAudioEl.src = ''; bgAudioEl = null; }
   }
 
-  function triggerVideo(slot, maxCount) {
-    const url = pickRandom(slot, maxCount);
-    if (url) playVideo(url);
+  // ── Loading screen ──
+  function hideLoadingScreen() {
+    const ls  = document.getElementById('loading-screen');
+    const lve = document.getElementById('loading-video-el');
+    if (!ls.classList.contains('visible')) return;
+    ls.classList.add('hiding');
+    setTimeout(() => {
+      ls.classList.remove('visible', 'hiding');
+      lve.pause(); lve.src = ''; lve.style.display = 'none';
+      document.getElementById('loading-text-wrap').style.display = 'flex';
+      document.getElementById('widget-root').style.pointerEvents = 'all';
+    }, 400);
   }
 
+  // ── Main game listener ──
   onValue(gameRef, snapshot => {
     const d = snapshot.val();
     if (!d) return;
-    // Fade in/out logic (no display:none — use opacity)
-    const root = document.getElementById('widget-root');
+
+    const root       = document.getElementById('widget-root');
     const wasVisible = root.style.opacity === '1';
     const nowVisible = d.isVisible;
 
-    if(nowVisible && !wasVisible) {
-      root.style.pointerEvents = 'none';
+    // Fade in/out
+    if (nowVisible && !wasVisible) {
       root.style.opacity = '1';
-      // Show loading for 3s then enable interaction
-      const ls = document.getElementById('loading-screen');
-      const lb = document.getElementById('loading-bar');
+      root.style.pointerEvents = 'none';
+      const ls  = document.getElementById('loading-screen');
+      const lb  = document.getElementById('loading-bar');
+      const lve = document.getElementById('loading-video-el');
+      const ltw = document.getElementById('loading-text-wrap');
       ls.classList.add('visible');
-      lb.style.animation = 'none'; void lb.offsetHeight;
-      lb.style.animation = 'loadingBarMove 3s linear forwards, loadingShimmer 1s linear infinite';
-      setTimeout(()=>{
-        ls.classList.add('hiding');
-        setTimeout(()=>{
-          ls.classList.remove('visible','hiding');
-          root.style.pointerEvents = 'all';
-        }, 400);
-      }, 3000);
-    } else if(!nowVisible && wasVisible) {
-      // Fade out smoothly
+      const loadUrl = assets['loading-video'];
+      if (loadUrl) {
+        lve.src = loadUrl; lve.style.display = 'block'; ltw.style.display = 'none';
+        lve.load(); lve.play().catch(() => {});
+        lve.onended = hideLoadingScreen;
+        setTimeout(hideLoadingScreen, 8000); // fallback
+      } else {
+        lve.style.display = 'none'; ltw.style.display = 'flex';
+        lb.style.animation = 'none'; void lb.offsetHeight;
+        lb.style.animation = 'loadingBarMove 3s linear forwards, loadingShimmer 1s linear infinite';
+        setTimeout(hideLoadingScreen, 3000);
+      }
+    } else if (!nowVisible && wasVisible) {
       root.style.opacity = '0';
       root.style.pointerEvents = 'none';
     }
 
-    document.querySelectorAll('.value-slot').forEach(el=>el.classList.remove('eliminated','last-remaining'));
+    // ── Snapshot prev values for comparison (before any updates) ──
+    const prevPlayerCaseSnap = prevPlayerCase;
+    const prevShowBankerSnap = prevShowBanker;
+    const prevGameStateSnap  = prevGameState;
 
-    // ── Refresh value slot labels from gameValues (saved in Firebase) ──
-    const gv = d.gameValues; // sorted array of 16 values
-    if (gv && Array.isArray(gv)) {
-      for (let i = 0; i < 16; i++) {
+    // Reset slots
+    document.querySelectorAll('.value-slot').forEach(el => el.classList.remove('eliminated', 'last-remaining'));
+
+    // Refresh value slot labels
+    if (d.gameValues && Array.isArray(d.gameValues)) {
+      d.gameValues.forEach((v, i) => {
         const slot = document.getElementById(`vslot-${i+1}`);
-        if (slot) {
-          slot.dataset.val = gv[i];
-          slot.querySelector('.val-text').textContent = fmt(gv[i]);
-        }
-      }
+        if (slot) { slot.dataset.val = v; slot.querySelector('.val-text').textContent = fmt(v); }
+      });
     }
 
-    let openedCount=0, remainingCount=0;
-    let playerCaseValue=0;
+    let openedCount = 0, remainingCount = 0;
+    let playerCaseValue = 0;
 
-    if(d.cases){
-      for(let i=1;i<=TOTAL;i++){
-        const cd=d.cases[i];
-        const cl=document.getElementById(`cl-${i}`);
-        if(d.playerCase===i){
+    if (d.cases) {
+      for (let i = 1; i <= TOTAL; i++) {
+        const cd = d.cases[i];
+        const cl = document.getElementById(`cl-${i}`);
+        if (d.playerCase === i) {
           cl.classList.add('opened');
           remainingCount++;
-          playerCaseValue=cd.value;
+          playerCaseValue = cd.value;
+        } else if (cd && cd.isOpen) {
+          cl.classList.add('opened');
+          openedCount++;
+          const ve = document.querySelector(`.value-slot[data-val="${cd.value}"]`);
+          if (ve) ve.classList.add('eliminated');
         } else {
-          if(cd&&cd.isOpen){
-            cl.classList.add('opened'); openedCount++;
-            const ve=document.querySelector(`.value-slot[data-val='${cd.value}']`);
-            if(ve) ve.classList.add('eliminated');
-          } else {
-            cl.classList.remove('opened'); remainingCount++;
-          }
+          cl.classList.remove('opened');
+          remainingCount++;
         }
       }
-      if(remainingCount<=3&&d.gameState!=='finished'){
-        document.querySelectorAll('.value-slot:not(.eliminated)').forEach(el=>el.classList.add('last-remaining'));
+      if (remainingCount <= 3 && d.gameState !== 'finished') {
+        document.querySelectorAll('.value-slot:not(.eliminated)').forEach(el => el.classList.add('last-remaining'));
       }
     }
 
-    // ── Podium ──
-    const isSwapped = d.swapped===true && d.swappedTo;
-    const isFinalDone = d.gameState==='final_reveal'||d.gameState==='finished';
+    // ── Podium logic ──
+    const isSwapped = d.swapped === true && d.swappedTo;
 
-    if(!d.playerCase){
-      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p=>p.classList.remove('visible'));
-      prevPlayerCase=null;
-    } else if(isSwapped){
-      const orig=d.playerCase, sw=d.swappedTo;
-      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p=>p.classList.remove('visible'));
-
-      // If reveal done: show opened version of swapped case on podium
-      if(d.gameState==='finished'){
-        const po=document.getElementById(`po-${sw}`);
-        if(po&&po.style.backgroundImage&&po.style.backgroundImage!=='none') po.classList.add('visible');
-        else { const pl=document.getElementById(`pl-${sw}`); if(pl) pl.classList.add('visible'); }
+    if (!d.playerCase) {
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
+      prevPlayerCase = null;
+    } else if (isSwapped) {
+      const orig = d.playerCase, sw = d.swappedTo;
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
+      if (d.gameState === 'finished') {
+        const po = document.getElementById(`po-${sw}`);
+        if (po && po.style.backgroundImage && po.style.backgroundImage !== 'none') po.classList.add('visible');
+        else { const pl = document.getElementById(`pl-${sw}`); if (pl) pl.classList.add('visible'); }
       } else {
-        const pl=document.getElementById(`pl-${sw}`); if(pl) pl.classList.add('visible');
+        const pl = document.getElementById(`pl-${sw}`); if (pl) pl.classList.add('visible');
       }
-      const origCl=document.getElementById(`cl-${orig}`); if(origCl) origCl.classList.remove('opened');
-      const swCl=document.getElementById(`cl-${sw}`); if(swCl) swCl.classList.add('opened');
-
-    } else if(d.gameState==='finished'&&!isSwapped&&d.playerCase){
-      // Reveal: show opened version of player's case
-      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p=>p.classList.remove('visible'));
-      const po=document.getElementById(`po-${d.playerCase}`);
-      if(po&&po.style.backgroundImage&&po.style.backgroundImage!=='none') po.classList.add('visible');
-      else { const pl=document.getElementById(`pl-${d.playerCase}`); if(pl) pl.classList.add('visible'); }
-    } else {
-      if(prevPlayerCase!==d.playerCase){
-        document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p=>p.classList.remove('visible'));
-        const pl=document.getElementById(`pl-${d.playerCase}`); if(pl) pl.classList.add('visible');
-        prevPlayerCase=d.playerCase;
-      }
+      const origCl = document.getElementById(`cl-${orig}`); if (origCl) origCl.classList.remove('opened');
+      const swCl   = document.getElementById(`cl-${sw}`);   if (swCl)   swCl.classList.add('opened');
+    } else if (d.gameState === 'finished' && !isSwapped && d.playerCase) {
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
+      const po = document.getElementById(`po-${d.playerCase}`);
+      if (po && po.style.backgroundImage && po.style.backgroundImage !== 'none') po.classList.add('visible');
+      else { const pl = document.getElementById(`pl-${d.playerCase}`); if (pl) pl.classList.add('visible'); }
+    } else if (prevPlayerCase !== d.playerCase) {
+      document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
+      const pl = document.getElementById(`pl-${d.playerCase}`); if (pl) pl.classList.add('visible');
+      prevPlayerCase = d.playerCase;
     }
 
     // ── Instruction ──
-    const it=document.getElementById('instruction-text');
+    const it = document.getElementById('instruction-text');
     it.classList.remove('attention');
-    if(d.gameState==='choose_player_case') it.innerText='ВЫБЕРИ СВОЙ КЕЙС';
-    else if(d.gameState==='playing'){
-      const next=[6,12,14].find(t=>t>openedCount);
-      if(next){
-        const left=next-openedCount;
-        const rs=(next===6&&openedCount===0)||(next===12&&openedCount===6)||(next===14&&openedCount===12);
-        it.innerText=`${rs?'ОТКРОЙ':'ОТКРОЙ ЕЩЕ'} ${left} ${caseWord(left)}`;
+    const gs = d.gameState;
+    if      (gs === 'choose_player_case') it.innerText = 'ВЫБЕРИ СВОЙ КЕЙС';
+    else if (gs === 'playing') {
+      const next = [6,12,14].find(t => t > openedCount);
+      if (next) {
+        const left = next - openedCount;
+        const rs   = (next===6&&openedCount===0)||(next===12&&openedCount===6)||(next===14&&openedCount===12);
+        it.innerText = `${rs?'ОТКРОЙ':'ОТКРОЙ ЕЩЕ'} ${left} ${caseWord(left)}`;
       }
-    } else if(d.gameState==='banker_offer'){it.innerText='ВЫБОР ЗА ТОБОЙ!';it.classList.add('attention');}
-    else if(d.gameState==='final_swap'||d.gameState==='final_reveal'){
-      if(isSwapped) it.innerText='ОБМЕН! ОТКРОЙ КЕЙС НА ПОЛКЕ!';
-      else if(d.gameState==='final_reveal') it.innerText='КЕЙС НА ПОДИУМЕ — ОТКРОЙ ЕГО!';
-      else it.innerText='ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?';
-      it.classList.add('attention');
-    } else if(d.gameState==='finished'){it.innerText=isSwapped?'ОБМЕН СОВЕРШЕН!':'ИГРА ОКОНЧЕНА!';}
-    else it.innerText='ОЖИДАНИЕ ИГРЫ...';
+    }
+    else if (gs === 'banker_offer')  { it.innerText = 'ВЫБОР ЗА ТОБОЙ!'; it.classList.add('attention'); }
+    else if (gs === 'final_swap')    { it.innerText = 'ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?'; it.classList.add('attention'); }
+    else if (gs === 'finished')      { it.innerText = isSwapped ? 'ДА БУДЕТ СВЕТ!' : 'ИГРА ОКОНЧЕНА!'; }
+    else                               it.innerText = 'ОЖИДАНИЕ ИГРЫ...';
 
-    // ── Final strip & buttons ──
-    // Show strip during final_swap only (before choice)
-    const showFinal = d.gameState === 'final_swap' && !isSwapped;
+    // ── Final strip + buttons ──
+    const showFinal = gs === 'final_swap' && !isSwapped;
     document.getElementById('final-banner').classList.toggle('visible', showFinal);
-    // Buttons: only during final_swap, hide once swapped or finished
-    const showBtns = d.gameState === 'final_swap' && !isSwapped;
-    document.getElementById('final-buttons').classList.toggle('visible', showBtns);
+    document.getElementById('final-buttons').classList.toggle('visible', showFinal);
 
     // ── Banker popup ──
-    if(d.showBanker){
-      document.getElementById('banker-offer-amount').innerText=fmt(d.bankerOffer);
+    if (d.showBanker) {
+      document.getElementById('banker-offer-amount').innerText = fmt(d.bankerOffer);
       document.getElementById('banker-popup').classList.add('visible');
     } else document.getElementById('banker-popup').classList.remove('visible');
 
-    // ── Deal taken win (mid-game banker accept) ──
-    const isDeal = d.gameState==='finished' && d.dealTaken===true;
-    if(isDeal){
-      document.getElementById('deal-win-amount').innerText=fmt(d.winAmount);
+    // ── Deal win (mid-game) ──
+    const isDeal = gs === 'finished' && d.dealTaken === true;
+    if (isDeal) {
+      document.getElementById('deal-win-amount').innerText = fmt(d.winAmount);
       document.getElementById('deal-win-popup').classList.add('visible');
-      // Show what was in player's case
-      if(playerCaseValue){
-        document.getElementById('deal-case-val').innerText=fmt(playerCaseValue);
+      if (playerCaseValue) {
+        document.getElementById('deal-case-val').innerText = fmt(playerCaseValue);
         document.getElementById('deal-info-strip').classList.add('visible');
       }
     } else {
@@ -697,47 +725,35 @@
       document.getElementById('deal-info-strip').classList.remove('visible');
     }
 
-    // ── Final win (scale+rise from podium) ──
-    // win-popup is only shown AFTER reaction video plays (see media triggers)
-    const isFinalWin = d.gameState==='finished' && d.dealTaken!==true;
-    if(isFinalWin){
-      document.getElementById('win-amount').innerText = fmt(d.winAmount);
-      // win-popup visibility controlled by media engine below
-    } else {
+    // ── Final win popup (shown after reaction video) ──
+    if (gs !== 'finished' || d.dealTaken === true) {
       document.getElementById('win-popup').classList.remove('visible');
     }
+    // win-popup shown by media engine below
 
     // ══ Media triggers ══
-    const gs   = d.gameState;
-    const prev = prevGameState;
-
-    // Reset on new game
-    if (gs === 'choose_player_case' && prev !== 'choose_player_case') {
+    if (gs === 'choose_player_case' && prevGameStateSnap !== 'choose_player_case') {
       videoPlayed = { start:false, pick:false, deal:false, result:false };
       document.getElementById('win-popup').classList.remove('visible');
       stopBgAudio();
       bgAudioEl = playAudio('aud-bg', true);
-      if (!videoPlayed.start) { videoPlayed.start=true; triggerVideo('vid-start', 2); }
+      if (!videoPlayed.start) { videoPlayed.start = true; triggerVideo('vid-start', 2); }
     }
 
-    // Player picked their case
-    if (d.playerCase && !prevPlayerCase && !videoPlayed.pick) {
+    if (d.playerCase && !prevPlayerCaseSnap && !videoPlayed.pick) {
       videoPlayed.pick = true;
       triggerVideo('vid-pick', 2);
       playAudio('aud-pick');
     }
 
-    // Case opened sound (state was playing and a case just opened)
-    if (gs === 'playing' && prev === 'playing') {
+    if (gs === 'playing' && prevGameStateSnap === 'playing') {
       playAudio('aud-open');
     }
 
-    // Banker call (showBanker just turned true)
-    if (d.showBanker && !prevShowBanker) {
+    if (d.showBanker && !prevShowBankerSnap) {
       playAudio('aud-banker');
     }
 
-    // Deal taken (banker offer accepted)
     if (gs === 'finished' && d.dealTaken === true && !videoPlayed.deal) {
       videoPlayed.deal = true;
       stopBgAudio();
@@ -745,15 +761,11 @@
       playAudio('aud-deal');
     }
 
-    // Final win: 2-step sequence
-    // Step 1: play vid-final-reaction (once, immediately on finished)
-    // Step 2: on video end → show win popup + play vid-win-high/low
     if (gs === 'finished' && d.dealTaken !== true && !videoPlayed.result) {
       videoPlayed.result = true;
       stopBgAudio();
       playAudio('aud-final');
 
-      // Determine high/low for step 2
       let finalVals = [];
       if (d.cases && d.playerCase) {
         finalVals.push(d.cases[d.playerCase].value);
@@ -766,31 +778,17 @@
       const isHigh   = (d.winAmount||0) >= maxFinal;
       const resultSlot = isHigh ? 'vid-win-high' : 'vid-win-low';
 
-      // Pick reaction video url
-      const reactionUrl = pickRandom('vid-final-reaction', 2);
-
-      if (reactionUrl) {
-        // Play reaction first, then reveal win
-        videoEl.src = reactionUrl;
-        videoCorner.classList.add('visible');
-        videoEl.load();
-        videoEl.play().catch(()=>{});
-        videoEl.onended = () => {
-          videoCorner.classList.remove('visible');
-          videoEl.src = '';
-          // Now show win popup
-          document.getElementById('win-popup').classList.add('visible');
-          // Play win video
-          triggerVideo(resultSlot, 3);
-          // Play win audio
-          playAudio(isHigh ? 'aud-win-big' : 'aud-win-small');
-        };
-      } else {
-        // No reaction video — show win directly
+      // Step 1: reaction video → Step 2: show win + result video
+      const revealWin = () => {
+        document.getElementById('win-amount').innerText = fmt(d.winAmount);
         document.getElementById('win-popup').classList.add('visible');
         triggerVideo(resultSlot, 3);
         playAudio(isHigh ? 'aud-win-big' : 'aud-win-small');
-      }
+      };
+
+      const reactionUrl = pickRandom('vid-final-reaction', 2);
+      if (reactionUrl) playVideo(reactionUrl, revealWin);
+      else revealWin();
     }
 
     prevShowBanker = d.showBanker;
