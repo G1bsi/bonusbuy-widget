@@ -18,7 +18,7 @@
       font-family:'Inter','Arial',sans-serif; font-weight:600;
       user-select:none;
     }
-    #widget-root { width:1920px; height:1080px; position:relative; border-radius:24px; overflow:hidden; opacity:0; pointer-events:none; transition:opacity 0.8s ease; }
+    #widget-root { width:1920px; height:1080px; position:relative; border-radius:24px; overflow:visible; opacity:0; pointer-events:none; transition:opacity 0.8s ease; }
     #bg {
       position:absolute; inset:0; width:1920px; height:1080px;
       background-size:1920px 1080px; background-repeat:no-repeat;
@@ -515,16 +515,19 @@
   function showGhostValue(caseNum, value) {
     const pos = CASE_POS[caseNum];
     if (!pos) return;
-    const root = document.getElementById('widget-root');
+    // Append to body (not widget-root) to avoid overflow:hidden clipping
+    // Get widget-root offset on screen
+    const root   = document.getElementById('widget-root');
+    const dndEl  = document.getElementById('dnd-root');
+    // We're inside dnd-root which is scaled — use widget-root's coordinate space directly
+    // Since ghost is inside widget-root via dnd-root chain, append to dnd-root
     const ghost = document.createElement('div');
     ghost.className = 'ghost-value';
-    // Position: convert from 1920x1080 to actual root coords
-    // widget-root IS 1920x1080, so use directly
-    ghost.style.left = (pos.x - 60) + 'px';
-    ghost.style.top  = (pos.y - 30) + 'px';
+    ghost.style.left = (pos.x - 80) + 'px';
+    ghost.style.top  = (pos.y - 20) + 'px';
     ghost.textContent = value.toLocaleString('ru-RU') + ' ₽';
+    // Append to widget-root but override overflow via z-index trick
     root.appendChild(ghost);
-    // Remove after animation
     setTimeout(() => ghost.remove(), 2300);
   }
 
