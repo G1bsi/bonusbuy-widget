@@ -405,8 +405,8 @@
   <!-- Final bottom strip -->
   <div id="final-banner">
     <div class="final-body">
-      Осталось <span class="hl">2</span> Кейса.
-      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
+      Остался <span class="hl">1 КЕЙС НА ПОЛКЕ</span> и <span class="hl">ТВОЙ КЕЙС</span> на подиуме.
+      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> — или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
     </div>
   </div>
 
@@ -479,36 +479,50 @@
   }
   onValue(assetsRef, s=>applyAssets(s.val()));
 
-  // Video player
+  // ══ Media Engine: Video + Audio ══
   const videoCorner = document.getElementById('video-corner');
   const videoEl     = document.getElementById('video-el');
-  let   videoPlayed = { decision:false, result:false };
+  let bgAudioEl     = null;
+  let videoPlayed   = { start:false, pick:false, deal:false, result:false };
+  let prevGameState = null;
 
-  function playVideo(urlKey, onEndCallback) {
-    const url = assets[urlKey];
-    if (!url) { if(onEndCallback) onEndCallback(); return; }
+  // Pick random variant for a slot key (vid-win-high-1/2/3 → one of them)
+  function pickRandom(baseKey, maxCount) {
+    const available = [];
+    for (let i = 1; i <= maxCount; i++) {
+      const url = assets[`${baseKey}-${i}`];
+      if (url) available.push(url);
+    }
+    if (!available.length) return null;
+    return available[Math.floor(Math.random() * available.length)];
+  }
+
+  function playVideo(url) {
+    if (!url) return;
     videoEl.src = url;
     videoCorner.classList.add('visible');
     videoEl.load();
     videoEl.play().catch(()=>{});
-    videoEl.onended = () => {
-      videoCorner.classList.remove('visible');
-      videoEl.src='';
-      if(onEndCallback) onEndCallback();
-    };
+    videoEl.onended = () => { videoCorner.classList.remove('visible'); videoEl.src = ''; };
   }
 
-  // Auto-reveal after decision video ends
-  function autoRevealCase() {
-    // Read current state from Firebase and trigger reveal
-    import("https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js").then(({get})=>{
-      get(gameRef).then(snap=>{
-        const d=snap.val();
-        if(!d) return;
-        const win=d.pendingWin||0;
-        update(gameRef,{gameState:'finished',winAmount:win,pendingWin:null,dealTaken:false});
-      });
-    });
+  function playAudio(key, loop=false) {
+    const url = assets[key];
+    if (!url) return null;
+    const a = new Audio(url);
+    a.loop = loop;
+    a.volume = 0.75;
+    a.play().catch(()=>{});
+    return a;
+  }
+
+  function stopBgAudio() {
+    if (bgAudioEl) { bgAudioEl.pause(); bgAudioEl.src=''; bgAudioEl=null; }
+  }
+
+  function triggerVideo(slot, maxCount) {
+    const url = pickRandom(slot, maxCount);
+    if (url) playVideo(url);
   }
 
   onValue(gameRef, snapshot => {
@@ -630,20 +644,20 @@
       }
     } else if(d.gameState==='banker_offer'){it.innerText='ВЫБОР ЗА ТОБОЙ!';it.classList.add('attention');}
     else if(d.gameState==='final_swap'||d.gameState==='final_reveal'){
-      if(isSwapped) it.innerText='ДА БУДЕТ СВЕТ!';
-      else if(d.gameState==='final_reveal') it.innerText='ДА БУДЕТ СВЕТ!';
+      if(isSwapped) it.innerText='ОБМЕН! ОТКРОЙ КЕЙС НА ПОЛКЕ!';
+      else if(d.gameState==='final_reveal') it.innerText='КЕЙС НА ПОДИУМЕ — ОТКРОЙ ЕГО!';
       else it.innerText='ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?';
       it.classList.add('attention');
-    } else if(d.gameState==='finished'){it.innerText=isSwapped?'ИГРА ОКОНЧЕНА!':'ИГРА ОКОНЧЕНА!';}
+    } else if(d.gameState==='finished'){it.innerText=isSwapped?'ОБМЕН СОВЕРШЕН!':'ИГРА ОКОНЧЕНА!';}
     else it.innerText='ОЖИДАНИЕ ИГРЫ...';
 
     // ── Final strip & buttons ──
-    // Hide strip once choice is made (pendingWin is set)
-    const showFinal=(d.gameState==='final_swap'||d.gameState==='final_reveal')&&!d.pendingWin;
-    document.getElementById('final-banner').classList.toggle('visible',showFinal);
-    // Buttons: only during final_swap before any choice
-    const showBtns=d.gameState==='final_swap'&&!isSwapped&&!d.pendingWin;
-    document.getElementById('final-buttons').classList.toggle('visible',showBtns);
+    // Show strip during final_swap only (before choice)
+    const showFinal = d.gameState === 'final_swap' && !isSwapped;
+    document.getElementById('final-banner').classList.toggle('visible', showFinal);
+    // Buttons: only during final_swap, hide once swapped or finished
+    const showBtns = d.gameState === 'final_swap' && !isSwapped;
+    document.getElementById('final-buttons').classList.toggle('visible', showBtns);
 
     // ── Banker popup ──
     if(d.showBanker){
@@ -673,38 +687,65 @@
       document.getElementById('win-popup').classList.add('visible');
     } else document.getElementById('win-popup').classList.remove('visible');
 
-    // ── Videos ──
-    // decision video: play once when final_swap starts
-    if(d.gameState==='final_swap' && prevGameState!=='final_swap'){
-      videoPlayed.decision=false; videoPlayed.result=false;
-    }
-    if((d.gameState==='final_reveal'||d.gameState==='final_swap')&&d.pendingWin&&!videoPlayed.decision){
-      videoPlayed.decision=true;
-      playVideo('vid-decision', autoRevealCase);
-    }
-    // result video after finished (final only)
-    if(d.gameState==='finished'&&d.dealTaken!==true&&!videoPlayed.result){
-      videoPlayed.result=true;
-      const winVal = d.winAmount||0;
-      // Find the other final case value to compare
-      // The two remaining values at final were: playerCase + one shelf case
-      // We can get both from d.cases
-      let finalVals = [];
-      if(d.cases && d.playerCase){
-        // Player case value
-        finalVals.push(d.cases[d.playerCase].value);
-        // The other case (swappedTo or the last non-open non-player case)
-        const otherIdx = d.swappedTo || Object.keys(d.cases).find(k=>
-          parseInt(k)!==d.playerCase && !d.cases[k].isOpen
-        );
-        if(otherIdx && d.cases[otherIdx]) finalVals.push(d.cases[otherIdx].value);
-      }
-      const maxFinal = finalVals.length>0 ? Math.max(...finalVals) : winVal+1;
-      // High = player won the bigger sum, Low = player won the smaller sum
-      playVideo(winVal >= maxFinal ? 'vid-win-high' : 'vid-win-low');
+    // ══ Media triggers ══
+    const gs = d.gameState;
+    const prev = prevGameState;
+
+    // Reset video flags on new game
+    if (gs === 'choose_player_case' && prev !== 'choose_player_case') {
+      videoPlayed = { start:false, pick:false, deal:false, result:false };
+      // Start bg audio
+      stopBgAudio();
+      bgAudioEl = playAudio('aud-bg', true);
+      // Start video
+      if (!videoPlayed.start) { videoPlayed.start=true; triggerVideo('vid-start', 2); }
     }
 
-    prevGameState=d.gameState;
+    // Player picked their case
+    if (d.playerCase && !prevPlayerCase && !videoPlayed.pick) {
+      videoPlayed.pick = true;
+      triggerVideo('vid-pick', 2);
+      playAudio('aud-pick');
+    }
+
+    // Case opened (openedCount changed)
+    if (gs === 'playing' && prev === 'playing') {
+      playAudio('aud-open');
+    }
+
+    // Banker call
+    if (d.showBanker && !d.showBanker_prev) {
+      playAudio('aud-banker');
+    }
+
+    // Deal taken
+    if (gs === 'finished' && d.dealTaken === true && !videoPlayed.deal) {
+      videoPlayed.deal = true;
+      triggerVideo('vid-deal', 2);
+      playAudio('aud-deal');
+      stopBgAudio();
+    }
+
+    // Final win (keep or swap)
+    if (gs === 'finished' && d.dealTaken !== true && !videoPlayed.result) {
+      videoPlayed.result = true;
+      stopBgAudio();
+      // Determine high/low
+      let finalVals = [];
+      if (d.cases && d.playerCase) {
+        finalVals.push(d.cases[d.playerCase].value);
+        const otherIdx = d.swappedTo || Object.keys(d.cases).find(k =>
+          parseInt(k) !== d.playerCase && !d.cases[k].isOpen
+        );
+        if (otherIdx && d.cases[otherIdx]) finalVals.push(d.cases[otherIdx].value);
+      }
+      const maxFinal = finalVals.length > 0 ? Math.max(...finalVals) : (d.winAmount||0)+1;
+      const isHigh = (d.winAmount||0) >= maxFinal;
+      triggerVideo(isHigh ? 'vid-win-high' : 'vid-win-low', 3);
+      playAudio(isHigh ? 'aud-win-big' : 'aud-win-small');
+    }
+
+    prevGameState = gs;
   });
 </script>
 </body>
