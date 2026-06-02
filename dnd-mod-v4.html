@@ -515,16 +515,23 @@
   };
 
   document.getElementById('calcPrizesBtn').onclick = () => {
-    const minV = parseInt(document.getElementById('prizeMin').value) || 2000;
-    const maxV = parseInt(document.getElementById('prizeMax').value) || 50000;
+    const minRaw = document.getElementById('prizeMin').value.trim();
+    const maxRaw = document.getElementById('prizeMax').value.trim();
+    // Don't calc while user is still typing (empty or too short)
+    if (!minRaw || !maxRaw || minRaw.length < 2 || maxRaw.length < 2) return;
+    const minV = parseInt(minRaw) || 2000;
+    const maxV = parseInt(maxRaw) || 50000;
     const chance = parseInt(document.getElementById('chanceSlider').value); // 0-100
-    if(maxV <= minV) return;
+    // Guard against NaN, equal or inverted values
+    if (isNaN(minV) || isNaN(maxV) || maxV <= minV || minV < 1) return;
 
     // Split into two halves: left column (8 small) and right column (8 large)
     // midpoint splits the range, skewed by chance slider
     // chance=50 → mid = (min+max)/2
     // chance>50 → mid moves toward max (more values in upper half)
     // chance<50 → mid moves toward min (more values in lower half)
+    // Extra safety: range must be big enough
+    if (maxV - minV < 500) return;
     const chanceOn = document.getElementById('chanceEnabled').checked;
     const skewFactor = chanceOn ? (chance - 50) / 100 : 0; // 0 = fully random linear
     const range = maxV - minV;
@@ -553,20 +560,22 @@
     }
 
     // Merge, deduplicate, ensure 16 unique sorted values
-    let all = [...leftVals, ...rightVals].sort((a,b)=>a-b);
-    all = [...new Set(all)];
-    // If duplicates removed some, fill gaps
-    while(all.length < 16) {
-      // Find largest gap and add midpoint
+    let all = [...new Set([...leftVals, ...rightVals])].sort((a,b)=>a-b);
+    // Fill gaps safely — max 30 iterations to avoid infinite loop
+    let guard = 0;
+    while (all.length < 16 && guard++ < 30) {
       let bestGap = 0, bestIdx = 0;
-      for(let i=0;i<all.length-1;i++){
+      for (let i = 0; i < all.length-1; i++) {
         const g = all[i+1]-all[i];
-        if(g > bestGap){ bestGap=g; bestIdx=i; }
+        if (g > bestGap) { bestGap=g; bestIdx=i; }
       }
       const newVal = Math.round((all[bestIdx]+all[bestIdx+1])/2/500)*500;
-      all.splice(bestIdx+1,0,newVal);
+      if (!all.includes(newVal)) all.splice(bestIdx+1, 0, newVal);
+      else break;
       all = [...new Set(all)].sort((a,b)=>a-b);
     }
+    // Safety: if still short, just add sequential values
+    while (all.length < 16) all.push(all[all.length-1] + 500);
     customValues = all.slice(0,16);
 
     // Auto-save to Firebase + localStorage
@@ -635,11 +644,18 @@
     if (min || max) document.getElementById('calcPrizesBtn').click();
   }
 
-  // Auto-recalc on any prize input change
-  ['prizeMin','prizeMax','chanceSlider'].forEach(id => {
+  // Auto-recalc on prize input change — debounced so it waits for user to finish typing
+  let calcDebounce = null;
+  ['prizeMin','prizeMax'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => {
-      document.getElementById('calcPrizesBtn').click();
+      clearTimeout(calcDebounce);
+      calcDebounce = setTimeout(() => {
+        document.getElementById('calcPrizesBtn').click();
+      }, 600); // wait 600ms after last keystroke
     });
+  });
+  document.getElementById('chanceSlider').addEventListener('input', () => {
+    document.getElementById('calcPrizesBtn').click();
   });
 
   // ── Game logic ──

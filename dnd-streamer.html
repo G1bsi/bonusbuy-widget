@@ -328,30 +328,51 @@
   if (savedCV)  { try { customValues = JSON.parse(savedCV); } catch {} }
 
   // Auto-calc on input change
+  let calcDebounce = null;
   ['prizeMin','prizeMax'].forEach(id => {
-    document.getElementById(id).addEventListener('input', calcPrizes);
+    document.getElementById(id).addEventListener('input', () => {
+      clearTimeout(calcDebounce);
+      calcDebounce = setTimeout(calcPrizes, 600);
+    });
   });
 
   function calcPrizes() {
-    const minV = parseInt(document.getElementById('prizeMin').value) || 2000;
-    const maxV = parseInt(document.getElementById('prizeMax').value) || 50000;
-    if (maxV <= minV) return;
+    const minRaw = document.getElementById('prizeMin').value.trim();
+    const maxRaw = document.getElementById('prizeMax').value.trim();
+    // Wait until user finishes typing a real number
+    if (!minRaw || !maxRaw) return;
+    const minV = parseInt(minRaw);
+    const maxV = parseInt(maxRaw);
+    // Skip if not valid numbers or range too small
+    if (isNaN(minV) || isNaN(maxV) || minV < 1 || maxV < 1 || maxV - minV < 500) return;
+
     localStorage.setItem('dnd_prizeMin', minV);
     localStorage.setItem('dnd_prizeMax', maxV);
 
-    const mid = Math.round((minV + maxV) / 2 / 500) * 500;
-    const L = Array.from({length:8}, (_,i) => Math.round((minV+(mid-minV)*Math.pow(i/7,0.7))/500)*500);
-    const R = Array.from({length:8}, (_,i) => Math.round((mid+(maxV-mid)*Math.pow(i/7,1.3))/500)*500);
-    let all = [...new Set([...L,...R])].sort((a,b)=>a-b);
-    while (all.length < 16) {
-      let bg=0,bi=0;
-      for(let i=0;i<all.length-1;i++) if(all[i+1]-all[i]>bg){bg=all[i+1]-all[i];bi=i;}
-      all.splice(bi+1,0,Math.round((all[bi]+all[bi+1])/2/500)*500);
-      all=[...new Set(all)].sort((a,b)=>a-b);
+    // Generate 16 unique values spread across min..max
+    const step = (maxV - minV) / 15;
+    let all = [];
+    for (let i = 0; i < 16; i++) {
+      all.push(Math.round((minV + step * i) / 100) * 100);
     }
-    customValues = all.slice(0,16);
-    localStorage.setItem('dnd_customValues', JSON.stringify(customValues));
+    // Ensure unique and within bounds
+    all = [...new Set(all)].sort((a,b) => a-b);
+    // If somehow less than 16, fill by splitting largest gap (max 30 iterations)
+    let guard = 0;
+    while (all.length < 16 && guard++ < 30) {
+      let bg = 0, bi = 0;
+      for (let i = 0; i < all.length - 1; i++) {
+        if (all[i+1] - all[i] > bg) { bg = all[i+1] - all[i]; bi = i; }
+      }
+      const newVal = Math.round((all[bi] + all[bi+1]) / 2 / 100) * 100;
+      if (!all.includes(newVal)) all.splice(bi+1, 0, newVal);
+      else break; // can't add more unique values in this range
+    }
+    // Always exactly 16: pad or trim
+    while (all.length < 16) all.push(all[all.length-1] + 100);
+    customValues = all.slice(0, 16);
 
+    localStorage.setItem('dnd_customValues', JSON.stringify(customValues));
     const st = document.getElementById('autoSaveStatus');
     update(gameRef, { gameValues: customValues }).then(() => {
       st.textContent = '✅'; setTimeout(() => st.textContent = '', 1500);
