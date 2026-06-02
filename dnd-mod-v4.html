@@ -62,6 +62,11 @@
     .slider-row label { color:#ffcc00; font-size:13px; }
     #chanceSlider { width:320px; accent-color:#8855ff; }
     #chanceLabel { color:#fff; font-size:14px; min-width:160px; }
+    /* Volume sliders */
+    .vol-row { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+    .vol-row label { font-size:13px; color:#aaa; min-width:140px; }
+    .vol-slider { width:200px; accent-color:#00ffcc; }
+    .vol-val { font-size:13px; color:#00ffcc; min-width:36px; text-align:right; font-weight:bold; }
   </style>
 </head>
 <body>
@@ -101,6 +106,26 @@
     </div>
     <div style="margin-top:10px;font-size:12px;color:#666;">
       ✅ Призы применяются <b style="color:#00ffcc">автоматически</b> — просто меняй значения и они сохранятся
+    </div>
+  </div>
+
+  <!-- Volume Controls -->
+  <div class="panel">
+    <h2>🔊 Гучність</h2>
+    <div class="vol-row">
+      <label>🎬 Відео</label>
+      <input type="range" class="vol-slider" id="volVideo" min="0" max="1" step="0.05" value="0.85">
+      <span class="vol-val" id="volVideoVal">85%</span>
+    </div>
+    <div class="vol-row">
+      <label>🎵 Фонова музика</label>
+      <input type="range" class="vol-slider" id="volMusic" min="0" max="1" step="0.05" value="0.6">
+      <span class="vol-val" id="volMusicVal">60%</span>
+    </div>
+    <div class="vol-row">
+      <label>💥 Звукові ефекти</label>
+      <input type="range" class="vol-slider" id="volSfx" min="0" max="1" step="0.05" value="0.8">
+      <span class="vol-val" id="volSfxVal">80%</span>
     </div>
   </div>
 
@@ -146,14 +171,11 @@
       <div class="url-grid" id="urlsScene"></div>
       <div style="margin-top:14px;padding:12px;background:#1a1a2e;border-radius:8px;">
         <div style="font-size:13px;color:#1abc9c;font-weight:bold;margin-bottom:8px;">🎬 Відео завантаження (замість тексту KSTZ)</div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-          <input type="text" id="url-loading-video" placeholder="URL або завантаж відео..." autocomplete="off"
-            style="flex:1;min-width:240px;background:#111;border:1px solid #333;border-radius:4px;color:#fff;padding:5px 8px;font-size:12px;">
-          <label style="background:#6610f2;color:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:bold;white-space:nowrap;">
-            📁 Файл
-            <input type="file" accept="video/*,.mov,.webm,.mp4" style="display:none" data-mediakey="loading-video" class="media-file-input">
-          </label>
-          <span id="media-status-loading-video" style="font-size:11px;color:#888;">—</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="text" id="url-loading-video" placeholder="Вставь URL відео (.webm/.mp4)..." autocomplete="off"
+            style="flex:1;background:#111;border:2px solid #333;border-radius:6px;color:#fff;padding:6px 10px;font-size:12px;transition:border-color 0.3s;"
+            onblur="validateLoadingVideo()" onkeydown="if(event.key==='Enter')validateLoadingVideo()">
+          <span id="media-status-loading-video" style="font-size:11px;color:#888;min-width:60px;text-align:right;">—</span>
         </div>
         <div style="font-size:11px;color:#666;margin-top:6px;">Відео буде відтворюватись замість анімації KSTZ при старті. Рекомендовано: 3–5 секунд, з прозорим фоном (webm).</div>
       </div>
@@ -297,22 +319,44 @@
   buildUrlRows(PODIUM_KEYS, 'urlsPodium');
   buildUrlRows(PODIUM_OPEN_KEYS, 'urlsPodiumOpen');
 
-  // Video rows — grouped by trigger, multiple slots, file upload OR URL
+  // Build URL-only media row with green border validation
   function makeMediaRow(key, label, accept, container, isAudio) {
+    const color = isAudio ? '#1abc9c' : '#ffcc00';
     const div = document.createElement('div');
     div.style.cssText = 'background:#1a1a2e;border-radius:8px;padding:10px 12px;';
     div.innerHTML = `
-      <div style="font-size:13px;color:${isAudio?'#1abc9c':'#ffcc00'};font-weight:bold;margin-bottom:6px;">${label}</div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <input type="text" id="url-${key}" placeholder="URL или загрузи файл →" autocomplete="off"
-          style="flex:1;min-width:240px;background:#111;border:1px solid #333;border-radius:4px;color:#fff;padding:5px 8px;font-size:12px;">
-        <label style="background:#6610f2;color:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:bold;white-space:nowrap;">
-          📁 Файл
-          <input type="file" accept="${accept}" style="display:none" data-mediakey="${key}" class="media-file-input">
-        </label>
-        <span id="media-status-${key}" style="font-size:11px;color:#888;min-width:80px;">—</span>
+      <div style="font-size:13px;color:${color};font-weight:bold;margin-bottom:6px;">${label}</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="text" id="url-${key}" placeholder="Вставь URL (.webm/.mp4/.mp3/...)" autocomplete="off"
+          style="flex:1;background:#111;border:2px solid #333;border-radius:6px;color:#fff;padding:6px 10px;font-size:12px;transition:border-color 0.3s;">
+        <span id="media-status-${key}" style="font-size:11px;min-width:60px;text-align:right;">—</span>
       </div>`;
     container.appendChild(div);
+
+    // Validate URL on blur/enter — green if reachable, red if not
+    const inp = div.querySelector(`#url-${key}`);
+    function validateUrl() {
+      const url = inp.value.trim();
+      if (!url) { inp.style.borderColor='#333'; document.getElementById(`media-status-${key}`).textContent='—'; document.getElementById(`media-status-${key}`).style.color='#888'; return; }
+      // Test with a probe element
+      const statusEl = document.getElementById(`media-status-${key}`);
+      statusEl.textContent = '⏳'; statusEl.style.color = '#ffcc00';
+      if (isAudio) {
+        const a = new Audio(); a.preload = 'metadata';
+        a.onloadedmetadata = () => { inp.style.borderColor='#28a745'; statusEl.textContent='✓'; statusEl.style.color='#28a745'; };
+        a.onerror = () => { inp.style.borderColor='#dc3545'; statusEl.textContent='✗'; statusEl.style.color='#dc3545'; };
+        a.src = url;
+      } else {
+        const v = document.createElement('video'); v.preload = 'metadata';
+        v.onloadedmetadata = () => { inp.style.borderColor='#28a745'; statusEl.textContent='✓'; statusEl.style.color='#28a745'; };
+        v.onerror = () => { inp.style.borderColor='#dc3545'; statusEl.textContent='✗'; statusEl.style.color='#dc3545'; };
+        v.src = url;
+      }
+    }
+    inp.addEventListener('blur',   validateUrl);
+    inp.addEventListener('keydown', e => { if(e.key==='Enter') validateUrl(); });
+    // If value already set (loaded from Firebase), validate immediately
+    if (inp.value) setTimeout(validateUrl, 200);
   }
 
   const videoContainer = document.getElementById('urlsVideos');
@@ -335,35 +379,7 @@
     makeMediaRow(key, AUDIO_LABEL[key]||key, 'audio/*,.mp3,.ogg,.wav,.m4a', audioContainer, true);
   });
 
-  // Handle media file uploads → base64 → Firebase
-  document.addEventListener('change', async (e) => {
-    const input = e.target.closest('.media-file-input');
-    if (!input) return;
-    const file = e.target.files[0];
-    if (!file) return;
-    const key = input.dataset.mediakey;
-    const statusEl = document.getElementById(`media-status-${key}`);
-    const urlInp   = document.getElementById(`url-${key}`);
-    statusEl.textContent = '⏳ Читаю...'; statusEl.style.color = '#ffcc00';
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const dataUrl = ev.target.result;
-      const sizeKB  = Math.round(dataUrl.length / 1024);
-      if (sizeKB > 9000) {
-        statusEl.textContent = `⚠ ${sizeKB}KB > 8MB`; statusEl.style.color='#ff6b6b';
-        return;
-      }
-      try {
-        await set(ref(db, 'widgets/assets/' + key), dataUrl);
-        urlInp.value = `[${file.name}]`;
-        urlInp.classList.add('ok');
-        statusEl.textContent = `✓ ${sizeKB}KB`; statusEl.style.color='#28a745';
-      } catch(err) {
-        statusEl.textContent = `✗ ${err.message}`; statusEl.style.color='#ff6b6b';
-      }
-    };
-    reader.readAsDataURL(file);
-  });
+  // File uploads removed — URL only for audio/video
 
   // Handle video file uploads → base64 → stored as URL
   document.querySelectorAll('.vid-file-input').forEach(input => {
@@ -460,12 +476,12 @@
     const btn = document.getElementById('saveAssetsBtn');
     btn.textContent = '⏳ Сохраняю...'; btn.disabled = true;
     const assets = {};
-    [...SCENE_KEYS,...CASE_KEYS,...PODIUM_KEYS,...PODIUM_OPEN_KEYS,...VIDEO_KEYS,...AUDIO_KEYS].forEach(key => {
+    const allMediaKeys = [...SCENE_KEYS,...CASE_KEYS,...PODIUM_KEYS,...PODIUM_OPEN_KEYS,...VIDEO_KEYS,...AUDIO_KEYS,'loading-video'];
+    allMediaKeys.forEach(key => {
       const inp = document.getElementById(`url-${key}`);
       if (!inp) return;
       const val = inp.value.trim();
-      // Skip base64/file placeholders (already saved directly by upload handler)
-      if (val && !val.startsWith('[') && !val.startsWith('[BASE64')) assets[key] = val;
+      if (val && !val.startsWith('[')) assets[key] = val;
     });
     try {
       await set(assetsRef, assets);
@@ -744,6 +760,46 @@
     set(gameRef,{isVisible:currentState.isVisible||false,gameState:'choose_player_case',playerCase:null,bankerOffer:0,showBanker:false,cases:nc,winAmount:0,swapped:false,swappedTo:null,dealTaken:false,pendingWin:null,gameValues:gv});
   };
   restorePrizeSettings();
+
+  // Validate loading-video URL
+  window.validateLoadingVideo = function() {
+    const inp = document.getElementById('url-loading-video');
+    const st  = document.getElementById('media-status-loading-video');
+    const url = inp.value.trim();
+    if (!url) { inp.style.borderColor='#333'; st.textContent='—'; st.style.color='#888'; return; }
+    st.textContent='⏳'; st.style.color='#ffcc00';
+    const v = document.createElement('video'); v.preload='metadata';
+    v.onloadedmetadata = () => { inp.style.borderColor='#28a745'; st.textContent='✓'; st.style.color='#28a745'; };
+    v.onerror = () => { inp.style.borderColor='#dc3545'; st.textContent='✗'; st.style.color='#dc3545'; };
+    v.src = url;
+  };
+
+  // ── Volume controls ──
+  // volRef handled via compat SDK below
+
+  function pct(v) { return Math.round(v * 100) + '%'; }
+
+  function initVolSlider(id, valId, key) {
+    const slider = document.getElementById(id);
+    const valEl  = document.getElementById(valId);
+    // Restore from localStorage
+    const saved = localStorage.getItem('dnd_vol_' + key);
+    if (saved !== null) { slider.value = saved; valEl.textContent = pct(parseFloat(saved)); }
+
+    slider.addEventListener('input', () => {
+      const v = parseFloat(slider.value);
+      valEl.textContent = pct(v);
+      localStorage.setItem('dnd_vol_' + key, v);
+      // Push to Firebase — widget reads in real-time
+      const upd = {};
+      upd[key] = v;
+      db.ref('widgets/dnd_volumes').update(upd).catch(()=>{});
+    });
+  }
+
+  initVolSlider('volVideo', 'volVideoVal', 'video');
+  initVolSlider('volMusic', 'volMusicVal', 'music');
+  initVolSlider('volSfx',   'volSfxVal',   'sfx');
 
   document.getElementById('toggleVisibleBtn').onclick = () => {
     const turnOn = !currentState.isVisible;
