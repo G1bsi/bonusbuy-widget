@@ -58,8 +58,6 @@
     .prize-row label { color:#ffcc00; font-size:13px; min-width:160px; }
     .prize-input { background:#1a1a2e; border:1px solid #444; border-radius:4px; color:#fff; padding:6px 10px; font-size:15px; width:130px; }
     .prize-input:focus { outline:none; border-color:#00ffcc; }
-    .prize-values-grid { display:grid; grid-template-columns:repeat(8,1fr); gap:6px; margin-top:10px; }
-    .prize-val-box { background:#1a1a2e; border:1px solid #444; border-radius:4px; color:#e8d090; font-size:13px; padding:5px 6px; text-align:center; font-weight:600; }
     .slider-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:8px; }
     .slider-row label { color:#ffcc00; font-size:13px; }
     #chanceSlider { width:320px; accent-color:#8855ff; }
@@ -86,14 +84,21 @@
       <button id="calcPrizesBtn" class="btn-info" style="padding:7px 16px">⚡ Рассчитать</button>
       <span id="autoSaveStatus" style="font-size:12px;color:#00ffcc;align-self:center;"></span>
     </div>
-    <div class="slider-row">
+    <div class="slider-row" style="align-items:center;">
       <label>Шанс большого выигрыша:</label>
-      <span style="color:#aaa;font-size:12px">низкий</span>
-      <input type="range" id="chanceSlider" min="0" max="100" value="50">
+      <!-- Tumbler -->
+      <label style="position:relative;display:inline-flex;align-items:center;cursor:pointer;gap:8px;margin:0;">
+        <input type="checkbox" id="chanceEnabled" style="opacity:0;width:0;height:0;position:absolute;">
+        <span id="chanceTumblerTrack" style="display:inline-block;width:44px;height:24px;background:#444;border-radius:999px;transition:background 0.3s;flex-shrink:0;position:relative;">
+          <span id="chanceTumblerThumb" style="position:absolute;top:3px;left:3px;width:18px;height:18px;background:#fff;border-radius:50%;transition:left 0.3s;"></span>
+        </span>
+        <span id="chanceTumblerLabel" style="font-size:12px;color:#888;">ВЫКЛ</span>
+      </label>
+      <span style="color:#aaa;font-size:12px;margin-left:8px;">низкий</span>
+      <input type="range" id="chanceSlider" min="0" max="100" value="50" style="opacity:0.3;pointer-events:none;">
       <span style="color:#aaa;font-size:12px">высокий</span>
-      <span id="chanceLabel">50% — сбалансировано</span>
+      <span id="chanceLabel" style="opacity:0.4;">50% — сбалансировано</span>
     </div>
-    <div class="prize-values-grid" id="prizeValuesGrid"></div>
     <div style="margin-top:10px;font-size:12px;color:#666;">
       ✅ Призы применяются <b style="color:#00ffcc">автоматически</b> — просто меняй значения и они сохранятся
     </div>
@@ -139,6 +144,19 @@
 
     <div class="tab-content active" id="tab-scene">
       <div class="url-grid" id="urlsScene"></div>
+      <div style="margin-top:14px;padding:12px;background:#1a1a2e;border-radius:8px;">
+        <div style="font-size:13px;color:#1abc9c;font-weight:bold;margin-bottom:8px;">🎬 Відео завантаження (замість тексту KSTZ)</div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <input type="text" id="url-loading-video" placeholder="URL або завантаж відео..." autocomplete="off"
+            style="flex:1;min-width:240px;background:#111;border:1px solid #333;border-radius:4px;color:#fff;padding:5px 8px;font-size:12px;">
+          <label style="background:#6610f2;color:#fff;padding:5px 12px;border-radius:5px;cursor:pointer;font-size:12px;font-weight:bold;white-space:nowrap;">
+            📁 Файл
+            <input type="file" accept="video/*,.mov,.webm,.mp4" style="display:none" data-mediakey="loading-video" class="media-file-input">
+          </label>
+          <span id="media-status-loading-video" style="font-size:11px;color:#888;">—</span>
+        </div>
+        <div style="font-size:11px;color:#666;margin-top:6px;">Відео буде відтворюватись замість анімації KSTZ при старті. Рекомендовано: 3–5 секунд, з прозорим фоном (webm).</div>
+      </div>
     </div>
     <div class="tab-content" id="tab-cases">
       <div class="url-grid" id="urlsCases"></div>
@@ -251,11 +269,12 @@
 
   // Video slots: each trigger can have multiple (random pick)
   const VIDEO_SLOTS = [
-    { key:'vid-start',     label:'🎬 Старт гри (показ кейсів)',        count:2 },
-    { key:'vid-pick',      label:'👆 Гравець вибрав кейс',              count:2 },
-    { key:'vid-deal',      label:'🤝 Прийнята пропозиція банкіра',      count:2 },
-    { key:'vid-win-high',  label:'🏆 Великий виграш',                   count:3 },
-    { key:'vid-win-low',   label:'💸 Малий виграш',                     count:3 },
+    { key:'vid-start',           label:'🎬 Старт гри (показ кейсів)',           count:2 },
+    { key:'vid-pick',            label:'👆 Гравець вибрав кейс',                count:2 },
+    { key:'vid-deal',            label:'🤝 Прийнята пропозиція банкіра',        count:2 },
+    { key:'vid-final-reaction',  label:'🎭 Реакція на фіналі (перед виграшем)', count:2 },
+    { key:'vid-win-high',        label:'🏆 Великий виграш',                     count:3 },
+    { key:'vid-win-low',         label:'💸 Малий виграш',                       count:3 },
   ];
   // All video keys flat
   const VIDEO_KEYS = VIDEO_SLOTS.flatMap(s => Array.from({length:s.count},(_,i)=>`${s.key}-${i+1}`));
@@ -477,14 +496,15 @@
     const minV = parseInt(document.getElementById('prizeMin').value) || 2000;
     const maxV = parseInt(document.getElementById('prizeMax').value) || 50000;
     const chance = parseInt(document.getElementById('chanceSlider').value); // 0-100
-    if(maxV <= minV) { alert('Макс должна быть больше мин'); return; }
+    if(maxV <= minV) return;
 
     // Split into two halves: left column (8 small) and right column (8 large)
     // midpoint splits the range, skewed by chance slider
     // chance=50 → mid = (min+max)/2
     // chance>50 → mid moves toward max (more values in upper half)
     // chance<50 → mid moves toward min (more values in lower half)
-    const skewFactor = (chance - 50) / 100; // -0.5..+0.5
+    const chanceOn = document.getElementById('chanceEnabled').checked;
+    const skewFactor = chanceOn ? (chance - 50) / 100 : 0; // 0 = fully random linear
     const range = maxV - minV;
     const mid = Math.round((minV + range * (0.5 + skewFactor * 0.4)) / 500) * 500;
 
@@ -527,11 +547,6 @@
     }
     customValues = all.slice(0,16);
 
-    // Render preview grid (2 columns: left 8 | right 8)
-    const grid = document.getElementById('prizeValuesGrid');
-    grid.innerHTML = '<div style="grid-column:1/-1;font-size:11px;color:#888;margin-bottom:4px;">Ліва колонка (малі) → Права колонка (великі)</div>' +
-      customValues.map((v,i)=>`<div class="prize-val-box" style="${i<8?'border-color:#3498db':'border-color:#9b59b6'}">${v.toLocaleString('ru-RU')} ₽</div>`).join('');
-
     // Auto-save to Firebase + localStorage
     autoSavePrizes();
   };
@@ -542,6 +557,7 @@
     localStorage.setItem('dnd_prizeMin', document.getElementById('prizeMin').value);
     localStorage.setItem('dnd_prizeMax', document.getElementById('prizeMax').value);
     localStorage.setItem('dnd_chance',   document.getElementById('chanceSlider').value);
+    localStorage.setItem('dnd_chanceEnabled', document.getElementById('chanceEnabled').checked);
     localStorage.setItem('dnd_customValues', JSON.stringify(customValues));
     // Save to Firebase
     try {
@@ -551,17 +567,49 @@
     } catch(e) { console.error('autoSavePrizes:', e); }
   }
 
+  // Tumbler logic
+  function updateTumbler(enabled) {
+    const track = document.getElementById('chanceTumblerTrack');
+    const thumb = document.getElementById('chanceTumblerThumb');
+    const lbl   = document.getElementById('chanceTumblerLabel');
+    const slider = document.getElementById('chanceSlider');
+    const clabel = document.getElementById('chanceLabel');
+    if (enabled) {
+      track.style.background = '#8855ff';
+      thumb.style.left = '23px';
+      lbl.style.color  = '#8855ff'; lbl.textContent = 'ВКЛ';
+      slider.style.opacity = '1'; slider.style.pointerEvents = 'auto';
+      clabel.style.opacity = '1';
+    } else {
+      track.style.background = '#444';
+      thumb.style.left = '3px';
+      lbl.style.color  = '#888'; lbl.textContent = 'ВЫКЛ';
+      slider.style.opacity = '0.3'; slider.style.pointerEvents = 'none';
+      clabel.style.opacity = '0.4';
+    }
+  }
+
+  document.getElementById('chanceEnabled').addEventListener('change', function() {
+    updateTumbler(this.checked);
+    document.getElementById('calcPrizesBtn').click();
+  });
+
   // Restore saved settings on load
   function restorePrizeSettings() {
     const min = localStorage.getItem('dnd_prizeMin');
     const max = localStorage.getItem('dnd_prizeMax');
     const ch  = localStorage.getItem('dnd_chance');
+    const ce  = localStorage.getItem('dnd_chanceEnabled');
     const cv  = localStorage.getItem('dnd_customValues');
     if (min) document.getElementById('prizeMin').value = min;
     if (max) document.getElementById('prizeMax').value = max;
     if (ch)  { document.getElementById('chanceSlider').value = ch; document.getElementById('chanceLabel').textContent = chanceLabel(parseInt(ch)); }
+    if (ce !== null) {
+      const enabled = ce === 'true';
+      document.getElementById('chanceEnabled').checked = enabled;
+      updateTumbler(enabled);
+    }
     if (cv)  { try { customValues = JSON.parse(cv); } catch {} }
-    // Auto-trigger calc to show grid
     if (min || max) document.getElementById('calcPrizesBtn').click();
   }
 
