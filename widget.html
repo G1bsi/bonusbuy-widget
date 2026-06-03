@@ -1851,8 +1851,19 @@
       const isHigh   = (d.winAmount||0) >= maxFinal;
       const resultSlot = isHigh ? 'vid-win-high' : 'vid-win-low';
 
-      // Step 1: reaction video → Step 2: show win + result video
+      // Step 1: reaction video → Step 2: open case image + show win + result video
       const revealWin = () => {
+        const winCaseNum = d.swapped ? d.swappedTo : d.playerCase;
+        if (winCaseNum) {
+          document.querySelectorAll('.podium-layer').forEach(p => p.classList.remove('visible'));
+          const po = document.getElementById(`po-${winCaseNum}`);
+          if (po && po.style.backgroundImage && po.style.backgroundImage !== 'none') {
+            po.classList.add('visible');
+          } else {
+            const pl = document.getElementById(`pl-${winCaseNum}`);
+            if (pl) pl.classList.add('visible');
+          }
+        }
         document.getElementById('win-amount').innerText = fmt(d.winAmount);
         document.getElementById('win-popup').classList.add('visible');
         triggerVideo(resultSlot, 3);
