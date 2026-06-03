@@ -699,32 +699,13 @@
           playerCaseValue = cd.value;
         } else if (cd && cd.isOpen) {
           const wasAlreadyOpen = cl.classList.contains('opened');
+          cl.classList.add('opened');
           if (!wasAlreadyOpen) {
-            // Freshly opened — play video first, THEN reveal case image + ghost
-            const caseIdx  = i;
-            const caseVal  = cd.value;
-            const caseEl   = cl;
-            const videoUrl = pickRandom('vid-open', 3);
-
-            if (videoUrl) {
-              // Play open video; show case image + ghost only after video ends
-              playVideo(videoUrl, () => {
-                caseEl.classList.add('opened');
-                showGhostValue(caseIdx, caseVal);
-                const ve = document.querySelector(`.value-slot[data-val="${caseVal}"]`);
-                if (ve) ve.classList.add('eliminated');
-              });
-            } else {
-              // No video — reveal immediately
-              caseEl.classList.add('opened');
-              showGhostValue(caseIdx, caseVal);
-              const ve = document.querySelector(`.value-slot[data-val="${caseVal}"]`);
-              if (ve) ve.classList.add('eliminated');
-            }
+            showGhostValue(i, cd.value);
           }
           openedCount++;
-          const ve2 = document.querySelector(`.value-slot[data-val="${cd.value}"]`);
-          // (eliminated class applied inside callback or immediately above)
+          const ve = document.querySelector(`.value-slot[data-val="${cd.value}"]`);
+          if (ve) ve.classList.add('eliminated');
         } else {
           cl.classList.remove('opened');
           remainingCount++;
@@ -744,8 +725,7 @@
     } else if (isSwapped) {
       const orig = d.playerCase, sw = d.swappedTo;
       document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
-      // Only show opened version if revealWin already fired, otherwise show closed
-      if (d.gameState === 'finished' && caseRevealedByVideo) {
+      if (d.gameState === 'finished') {
         const po = document.getElementById(`po-${sw}`);
         if (po && po.style.backgroundImage && po.style.backgroundImage !== 'none') po.classList.add('visible');
         else { const pl = document.getElementById(`pl-${sw}`); if (pl) pl.classList.add('visible'); }
@@ -756,16 +736,9 @@
       const swCl   = document.getElementById(`cl-${sw}`);   if (swCl)   swCl.classList.add('opened');
     } else if (d.gameState === 'finished' && !isSwapped && d.playerCase) {
       document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
-      // Only switch to opened AFTER reaction video ends (caseRevealedByVideo flag)
-      if (caseRevealedByVideo) {
-        const po = document.getElementById(`po-${d.playerCase}`);
-        if (po && po.style.backgroundImage && po.style.backgroundImage !== 'none') po.classList.add('visible');
-        else { const pl = document.getElementById(`pl-${d.playerCase}`); if (pl) pl.classList.add('visible'); }
-      } else {
-        // Keep showing closed podium until video ends
-        const pl = document.getElementById(`pl-${d.playerCase}`);
-        if (pl) pl.classList.add('visible');
-      }
+      const po = document.getElementById(`po-${d.playerCase}`);
+      if (po && po.style.backgroundImage && po.style.backgroundImage !== 'none') po.classList.add('visible');
+      else { const pl = document.getElementById(`pl-${d.playerCase}`); if (pl) pl.classList.add('visible'); }
     } else if (prevPlayerCase !== d.playerCase) {
       document.querySelectorAll('.podium-layer,.podium-open-layer').forEach(p => p.classList.remove('visible'));
       const pl = document.getElementById(`pl-${d.playerCase}`); if (pl) pl.classList.add('visible');
@@ -824,7 +797,6 @@
     // ══ Media triggers ══
     if (gs === 'choose_player_case' && prevGameStateSnap !== 'choose_player_case') {
       videoPlayed = { start:false, pick:false, deal:false, result:false };
-      caseRevealedByVideo = false;
       document.getElementById('win-popup').classList.remove('visible');
       stopBgAudio();
       videoPlayed.start = true;
@@ -853,7 +825,6 @@
     }
 
     if (gs === 'finished' && d.dealTaken === true && !videoPlayed.deal) {
-      caseRevealedByVideo = false; // deal — no reaction video needed
       videoPlayed.deal = true;
       stopBgAudio();
       triggerVideo('vid-deal', 2);
@@ -879,23 +850,6 @@
 
       // Step 1: reaction video → Step 2: open case image + show win + result video
       const revealWin = () => {
-        caseRevealedByVideo = true; // now safe to show opened case
-        // Switch podium case to opened version
-        const winCaseNum = d.swapped ? d.swappedTo : d.playerCase;
-        if (winCaseNum) {
-          // Hide closed podium layer
-          document.querySelectorAll('.podium-layer').forEach(p => p.classList.remove('visible'));
-          // Show opened version
-          const po = document.getElementById(`po-${winCaseNum}`);
-          if (po && po.style.backgroundImage && po.style.backgroundImage !== 'none') {
-            po.classList.add('visible');
-          } else {
-            // No opened image — keep closed visible as fallback
-            const pl = document.getElementById(`pl-${winCaseNum}`);
-            if (pl) pl.classList.add('visible');
-          }
-        }
-        // Show win popup + result video + audio
         document.getElementById('win-amount').innerText = fmt(d.winAmount);
         document.getElementById('win-popup').classList.add('visible');
         triggerVideo(resultSlot, 3);
