@@ -850,16 +850,16 @@
 
         <!-- Header -->
         <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;border-bottom:1px solid #333;background:#25252c;flex-shrink:0;gap:8px;flex-wrap:wrap;">
-          <h3 style="margin:0;color:#1abc9c;font-size:14px;">📐 Редактор позицій — 1920×1080</h3>
+          <h3 style="margin:0;color:#1abc9c;font-size:14px;">📐 Редактор позиций — 1920×1080</h3>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
             <!-- BG url -->
             <input id="le-bg-url" type="text" placeholder="URL фону (скрін з стріма)..." style="background:#1a1a2e;border:1px solid #444;border-radius:4px;color:#fff;padding:5px 8px;font-size:11px;width:220px;">
             <button onclick="applyLEBg()" style="width:auto;padding:5px 10px;background:#2980b9;border-radius:5px;margin:0;font-size:11px;">🖼 Фон</button>
             <button onclick="clearLEBg()" style="width:auto;padding:5px 8px;background:#444;border-radius:5px;margin:0;font-size:11px;">✕</button>
             <div style="width:1px;height:20px;background:#444;margin:0 4px;"></div>
-            <button onclick="resetLayoutPositions()" style="width:auto;padding:5px 10px;background:#e67e22;border-radius:5px;margin:0;font-size:11px;">↺ Скинути</button>
-            <button onclick="saveLayoutPositions()" style="width:auto;padding:5px 10px;background:#27ae60;border-radius:5px;margin:0;font-size:11px;">💾 Зберегти</button>
-            <button onclick="closeLayoutEditor()" style="width:auto;padding:5px 10px;background:#555;border-radius:5px;margin:0;font-size:11px;">✕ Закрити</button>
+            <button onclick="resetLayoutPositions()" style="width:auto;padding:5px 10px;background:#e67e22;border-radius:5px;margin:0;font-size:11px;">↺ Сброс</button>
+            <button onclick="saveLayoutPositions()" style="width:auto;padding:5px 10px;background:#27ae60;border-radius:5px;margin:0;font-size:11px;">💾 Сохранить</button>
+            <button onclick="closeLayoutEditor()" style="width:auto;padding:5px 10px;background:#555;border-radius:5px;margin:0;font-size:11px;">✕ Закрыть</button>
           </div>
         </div>
 
@@ -891,7 +891,7 @@
             <div id="le-dnd" style="position:absolute;border:2px solid #9b59b6;border-radius:6px;z-index:10;user-select:none;box-shadow:0 0 0 1px rgba(155,89,182,0.3);">
               <div id="le-dnd-move" style="position:absolute;inset:0;background:rgba(155,89,182,0.15);cursor:move;display:flex;align-items:center;justify-content:center;">
                 <div style="text-align:center;pointer-events:none;">
-                  <div style="font-size:11px;font-weight:800;color:#9b59b6;text-shadow:0 1px 3px #000;">🎰 DnD ІГРА</div>
+                  <div style="font-size:11px;font-weight:800;color:#9b59b6;text-shadow:0 1px 3px #000;">🎰 DnD ИГРА</div>
                   <div id="le-dnd-coords" style="font-size:9px;color:#bb8fce;margin-top:2px;"></div>
                 </div>
               </div>
@@ -917,7 +917,7 @@
             <span id="le-d-br" style="color:#fff;font-weight:bold;">—</span>
             <span style="color:#666;"> w:</span><span id="le-d-size" style="color:#aaa;">—</span>
           </div>
-          <div style="font-size:11px;color:#666;margin-left:auto;">🔵 кут = вільний · 🔵 бік = одна вісь · 🔴 верх-право = пропорційно</div>
+          <div style="font-size:11px;color:#666;margin-left:auto;">🔵 угол = свободный · 🔵 сторона = одна ось · 🔴 верх-право = пропорционально</div>
         </div>
 
       </div>
@@ -1079,7 +1079,7 @@
         db.ref('widgets/layout').set(lePositions).then(() => {
           const btn = document.querySelector('[onclick="saveLayoutPositions()"]');
           const orig = btn.textContent;
-          btn.textContent = '✅ Збережено!';
+          btn.textContent = '✅ Сохранено!';
           setTimeout(() => { btn.textContent = orig; }, 1500);
         });
       }
@@ -1110,12 +1110,13 @@
       st.textContent = '⏳ Генерирую...';
       stopTTS();
       try {
-        const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${TTS_VOICE_ID}`, {
+        const selectedVoice = document.getElementById('ttsVoice')?.value || TTS_VOICE_ID;
+      const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${selectedVoice}`, {
           method: 'POST',
           headers: { 'xi-api-key': TTS_API_KEY, 'Content-Type': 'application/json' },
           body: JSON.stringify({
             text,
-            model_id: 'eleven_multilingual_v2',
+            model_id: 'eleven_turbo_v2_5',
             voice_settings: {
               stability:        parseFloat(document.getElementById('ttsStability').value),
               similarity_boost: parseFloat(document.getElementById('ttsSimilarity').value),
@@ -1154,10 +1155,17 @@
     <div id="tts-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);z-index:11000;align-items:center;justify-content:center;">
       <div style="background:#25252c;border:2px solid #1db954;border-radius:12px;width:92vw;max-width:520px;box-shadow:0 0 40px rgba(29,185,84,0.3);overflow:hidden;">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #333;background:#1e1e24;">
-          <h3 style="margin:0;color:#1db954;font-size:15px;">🎙️ TTS — Голос Костизи</h3>
+          <h3 style="margin:0;color:#1db954;font-size:15px;">🎙️ TTS</h3>
           <button onclick="closeTTSPanel()" style="width:auto;padding:5px 12px;background:#555;border-radius:6px;margin:0;font-size:13px;">✕</button>
         </div>
         <div style="padding:16px 18px;">
+          <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
+            <label style="font-size:13px;color:#aaa;white-space:nowrap;">Голос:</label>
+            <select id="ttsVoice" style="flex:1;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:8px;font-size:13px;margin:0;">
+              <option value="rcuqncmGmAfs46d5TL08">МЕЛЛ</option>
+              <option value="6w0Crg4HwjvteRwiC1AB">ПАПИЧ</option>
+            </select>
+          </div>
           <textarea id="ttsText" placeholder="Введи текст для озвучки..." style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:10px;font-size:14px;resize:vertical;min-height:90px;outline:none;box-sizing:border-box;font-family:sans-serif;"></textarea>
           <div style="display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap;">
             <button id="ttsBtn" onclick="speakTTS()" style="background:#1db954;color:#fff;font-weight:bold;padding:10px 22px;border-radius:6px;border:none;cursor:pointer;font-size:14px;width:auto;margin:0;">▶ Озвучить</button>

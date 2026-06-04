@@ -115,7 +115,7 @@
       <span id="chanceLabel" style="opacity:0.4;">50% — сбалансировано</span>
     </div>
     <div style="margin-top:10px;font-size:12px;color:#666;">
-      ✅ Призы применяются <b style="color:#00ffcc">автоматически</b> — просто меняй значения и они сохранятся
+      ✅ Призы применяются <b style="color:#00ffcc">автоматически</b> — просто меняй значения
     </div>
     </div><!-- /panelPrize_body -->
   </div><!-- /panel prize -->
@@ -168,21 +168,21 @@
       <div class="tab" data-tab="cases">💼 Полка (1–16)</div>
       <div class="tab" data-tab="podium">🏆 Подиум закрыт</div>
       <div class="tab" data-tab="podium-open">📂 Подиум открыт</div>
-      <div class="tab" data-tab="videos">🎬 Відео</div>
+      <div class="tab" data-tab="videos">🎬 Видео</div>
       <div class="tab" data-tab="audio">🔊 Аудіо</div>
     </div>
 
     <div class="tab-content active" id="tab-scene">
       <div class="url-grid" id="urlsScene"></div>
       <div style="margin-top:14px;padding:12px;background:#1a1a2e;border-radius:8px;">
-        <div style="font-size:13px;color:#1abc9c;font-weight:bold;margin-bottom:8px;">🎬 Відео завантаження (замість тексту KSTZ)</div>
+        <div style="font-size:13px;color:#1abc9c;font-weight:bold;margin-bottom:8px;">🎬 Видео загрузки (вместо текста KSTZ)</div>
         <div style="display:flex;gap:8px;align-items:center;">
           <input type="text" id="url-loading-video" placeholder="Вставь URL відео (.webm/.mp4)..." autocomplete="off"
             style="flex:1;background:#111;border:2px solid #333;border-radius:6px;color:#fff;padding:6px 10px;font-size:12px;transition:border-color 0.3s;"
             onblur="validateLoadingVideo()" onkeydown="if(event.key==='Enter')validateLoadingVideo()">
           <span id="media-status-loading-video" style="font-size:11px;color:#888;min-width:60px;text-align:right;">—</span>
         </div>
-        <div style="font-size:11px;color:#666;margin-top:6px;">Відео буде відтворюватись замість анімації KSTZ при старті. Рекомендовано: 3–5 секунд, з прозорим фоном (webm).</div>
+        <div style="font-size:11px;color:#666;margin-top:6px;">Видео будет воспроизводиться вместо анимации KSTZ при старте. Рекомендуется: 3–5 секунд, с прозрачным фоном (webm).</div>
       </div>
     </div>
     <div class="tab-content" id="tab-cases">
@@ -208,13 +208,13 @@
       </p>
       <div id="urlsVideos" style="display:flex;flex-direction:column;gap:12px;"></div>
       <div style="margin-top:10px;padding:10px;background:#1a1a2e;border-radius:6px;font-size:13px;color:#aaa;line-height:1.6;">
-        💡 Формат: .webm (з альфа-каналом для прозорості) або .mp4/.mov. Ліміт 8МБ на файл. Для більших — URL.
+        💡 Формат: .webm (с альфа-каналом) или .mp4/.mov. Лимит 8МБ на файл. Для больших — URL.
       </div>
     </div>
 
     <div class="tab-content" id="tab-audio">
       <p class="hint" style="margin-bottom:10px">
-        Аудіо завантажується напряму у Firebase (ліміт 8МБ).<br>
+        Аудио загружается напрямую в Firebase (лимит 8МБ).<br>
         <span>aud-bg</span> — фонова музика (зациклена)<br>
         <span>aud-open</span> — звук відкриття кейсу<br>
         <span>aud-pick</span> — вибір свого кейсу<br>
@@ -297,13 +297,13 @@
 
   // Video slots: each trigger can have multiple (random pick)
   const VIDEO_SLOTS = [
-    { key:'vid-start',           label:'🎬 Старт гри (показ кейсів)',           count:2 },
-    { key:'vid-pick',            label:'👆 Гравець вибрав кейс',                count:2 },
-    { key:'vid-open',            label:'📦 Відкриття кейсу (до reveal суми)',   count:3 },
-    { key:'vid-deal',            label:'🤝 Прийнята пропозиція банкіра',        count:2 },
-    { key:'vid-final-reaction',  label:'🎭 Реакція на фіналі (перед виграшем)', count:2 },
-    { key:'vid-win-high',        label:'🏆 Великий виграш',                     count:3 },
-    { key:'vid-win-low',         label:'💸 Малий виграш',                       count:3 },
+    { key:'vid-start',           label:'🎬 Старт игры (показ кейсов)',           count:2 },
+    { key:'vid-pick',            label:'👆 Игрок выбрал кейс',                count:2 },
+    { key:'vid-open',            label:'📦 Открытие кейса (до показа суммы)',   count:3 },
+    { key:'vid-deal',            label:'🤝 Принято предложение банкира',        count:2 },
+    { key:'vid-final-reaction',  label:'🎭 Реакция на финале (перед выигрышем)', count:2 },
+    { key:'vid-win-high',        label:'🏆 Большой выигрыш',                     count:3 },
+    { key:'vid-win-low',         label:'💸 Малый выигрыш',                       count:3 },
   ];
   // All video keys flat
   const VIDEO_KEYS = VIDEO_SLOTS.flatMap(s => Array.from({length:s.count},(_,i)=>`${s.key}-${i+1}`));
@@ -311,14 +311,14 @@
   // Audio keys
   const AUDIO_KEYS = ['aud-bg','aud-open','aud-pick','aud-banker','aud-deal','aud-win-big','aud-win-small','aud-final'];
   const AUDIO_LABEL = {
-    'aud-bg':       '🎵 Фонова музика (зациклена)',
-    'aud-open':     '📦 Відкриття кейсу',
-    'aud-pick':     '✋ Вибір кейсу гравцем',
-    'aud-banker':   '☎️ Дзвінок банкіра',
-    'aud-deal':     '🤝 Прийнята угода',
-    'aud-win-big':  '🏆 Великий виграш',
-    'aud-win-small':'💸 Малий виграш',
-    'aud-final':    '⚔️ Фінальна сцена',
+    'aud-bg':       '🎵 Фоновая музыка (зациклена)',
+    'aud-open':     '📦 Открытие кейса',
+    'aud-pick':     '✋ Выбор кейса игроком',
+    'aud-banker':   '☎️ Звонок банкира',
+    'aud-deal':     '🤝 Принятая сделка',
+    'aud-win-big':  '🏆 Большой выигрыш',
+    'aud-win-small':'💸 Малый выигрыш',
+    'aud-final':    '⚔️ Финальная сцена',
   };
 
   buildUrlRows(SCENE_KEYS,  'urlsScene');
@@ -376,7 +376,7 @@
     // Slots
     for(let i=1;i<=slot.count;i++){
       const key = `${slot.key}-${i}`;
-      makeMediaRow(key, `Варіант ${i}`, 'video/*,.mov,.webm,.mp4', videoContainer, false);
+      makeMediaRow(key, `Вариант ${i}`, 'video/*,.mov,.webm,.mp4', videoContainer, false);
     }
   });
 
@@ -854,17 +854,17 @@
     </div>
     <div id="vol_body" class="panel-body">
     <div class="vol-row">
-      <label>🎬 Відео</label>
+      <label>🎬 Видео</label>
       <input type="range" class="vol-slider" id="volVideo" min="0" max="1" step="0.05" value="0.85">
       <span class="vol-val" id="volVideoVal">85%</span>
     </div>
     <div class="vol-row">
-      <label>🎵 Фонова музика</label>
+      <label>🎵 Фоновая музыка</label>
       <input type="range" class="vol-slider" id="volMusic" min="0" max="1" step="0.05" value="0.6">
       <span class="vol-val" id="volMusicVal">60%</span>
     </div>
     <div class="vol-row">
-      <label>💥 Звукові ефекти</label>
+      <label>💥 Звуковые эффекты</label>
       <input type="range" class="vol-slider" id="volSfx" min="0" max="1" step="0.05" value="0.8">
       <span class="vol-val" id="volSfxVal">80%</span>
     </div>

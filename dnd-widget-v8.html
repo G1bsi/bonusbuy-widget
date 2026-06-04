@@ -425,8 +425,7 @@
   <!-- Final bottom strip -->
   <div id="final-banner">
     <div class="final-body">
-      Остался <span class="hl">1 КЕЙС НА ПОЛКЕ</span> и <span class="hl">ТВОЙ КЕЙС</span> на подиуме.
-      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> — или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
+      Осталось <span class="hl">2 КЕЙСА</span>. Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
     </div>
   </div>
 
@@ -760,7 +759,7 @@
     }
     else if (gs === 'banker_offer')  { it.innerText = 'ВЫБОР ЗА ТОБОЙ!'; it.classList.add('attention'); }
     else if (gs === 'final_swap')    { it.innerText = 'ОСТАВИТЬ ИЛИ ПОМЕНЯТЬ?'; it.classList.add('attention'); }
-    else if (gs === 'finished')      { it.innerText = isSwapped ? 'ОБМЕН СОВЕРШЕН!' : 'ИГРА ОКОНЧЕНА!'; }
+    else if (gs === 'finished')      { it.innerText = 'ДА БУДЕТ СВЕТ!'; }
     else                               it.innerText = 'ОЖИДАНИЕ ИГРЫ...';
 
     // ── Final strip + buttons ──
