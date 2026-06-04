@@ -73,6 +73,15 @@
     .panel-toggle { font-size:11px; color:#8a8a93; font-weight:bold; }
     .panel-body { margin-top:12px; }
     .panel.collapsed .panel-body { display:none; }
+
+    /* TTS */
+    #ttsText { width:100%; background:#1a1a2e; border:1px solid #444; border-radius:6px; color:#fff; padding:10px; font-size:14px; resize:vertical; min-height:80px; outline:none; box-sizing:border-box; }
+    #ttsText:focus { border-color:#00ffcc; }
+    .tts-controls { display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap; }
+    .tts-status { font-size:13px; color:#aaa; }
+    .btn-tts { background:#1db954; color:#fff; font-weight:bold; padding:10px 20px; border-radius:6px; border:none; cursor:pointer; font-size:14px; }
+    .btn-tts:hover { opacity:0.85; }
+    .btn-tts:disabled { background:#444; cursor:not-allowed; }
   </style>
 </head>
 <body>
@@ -896,6 +905,121 @@ document.addEventListener('DOMContentLoaded', function() {
     if (ar) ar.innerText = '▲';
   });
 });
+</script>
+
+
+  <!-- TTS Panel -->
+  <div class="panel">
+    <div class="panel-header" onclick="toggleMod('tts_body','arrow-tts')">
+      <h2>🎙️ TTS — Голос Костизи</h2>
+      <span id="arrow-tts" class="panel-toggle">▼</span>
+    </div>
+    <div id="tts_body" class="panel-body" style="display:none;">
+      <textarea id="ttsText" placeholder="Введи текст для озвучки..."></textarea>
+      <div class="tts-controls">
+        <button class="btn-tts" id="ttsBtn" onclick="speakTTS()">▶ Озвучить</button>
+        <button style="background:#555;padding:10px 16px;border-radius:6px;font-size:13px;" onclick="stopTTS()">■ Стоп</button>
+        <span class="tts-status" id="ttsStatus">—</span>
+      </div>
+      <div style="margin-top:10px;padding:8px 10px;background:#111;border-radius:6px;font-size:12px;color:#666;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        🔑 Сохранить API ключ в Firebase (один раз):
+        <input type="password" id="elKeyInput" placeholder="вставь API ключ..." style="flex:1;min-width:200px;background:#1a1a2e;border:1px solid #333;border-radius:4px;color:#fff;padding:5px 8px;font-size:12px;">
+        <button onclick="saveElKey()" style="background:#1db954;padding:5px 12px;font-size:12px;border-radius:4px;white-space:nowrap;">💾 Сохранить</button>
+        <span id="elKeySt" style="font-size:11px;color:#aaa;"></span>
+      </div>
+      <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <label style="font-size:12px;color:#aaa;">Стабильность:</label>
+        <input type="range" id="ttsStability" min="0" max="1" step="0.05" value="0.5" style="width:120px;accent-color:#00ffcc;">
+        <span id="ttsStabilityVal" style="font-size:12px;color:#00ffcc;">50%</span>
+        <label style="font-size:12px;color:#aaa;margin-left:10px;">Схожесть:</label>
+        <input type="range" id="ttsSimilarity" min="0" max="1" step="0.05" value="0.8" style="width:120px;accent-color:#1db954;">
+        <span id="ttsSimilarityVal" style="font-size:12px;color:#1db954;">80%</span>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ── ElevenLabs TTS ──
+let ttsAudio = null;
+const VOICE_ID = 'rcuqncmGmAfs46d5TL08';
+let elApiKey = null;
+
+// Загрузить API ключ из Firebase при старте
+db.ref('widgets/config/el_key').once('value').then(snap => {
+  if (snap.val()) elApiKey = snap.val();
+});
+
+document.getElementById('ttsStability').addEventListener('input', function() {
+  document.getElementById('ttsStabilityVal').textContent = Math.round(this.value*100)+'%';
+});
+document.getElementById('ttsSimilarity').addEventListener('input', function() {
+  document.getElementById('ttsSimilarityVal').textContent = Math.round(this.value*100)+'%';
+});
+
+function saveElKey() {
+  const val = document.getElementById('elKeyInput').value.trim();
+  if (!val) return;
+  const st = document.getElementById('elKeySt');
+  db.ref('widgets/config/el_key').set(val)
+    .then(() => { elApiKey = val; st.textContent='✅ Сохранено'; document.getElementById('elKeyInput').value=''; })
+    .catch(e => { st.textContent='❌ '+e.message; });
+}
+
+async function speakTTS() {
+  const text = document.getElementById('ttsText').value.trim();
+  if (!text) return;
+  if (!elApiKey) {
+    document.getElementById('ttsStatus').textContent = '❌ API ключ не найден — сохрани его выше';
+    return;
+  }
+  const btn = document.getElementById('ttsBtn');
+  const st  = document.getElementById('ttsStatus');
+  btn.disabled = true;
+  st.textContent = '⏳ Генерирую...';
+  stopTTS();
+
+  try {
+    const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': elApiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability:        parseFloat(document.getElementById('ttsStability').value),
+          similarity_boost: parseFloat(document.getElementById('ttsSimilarity').value),
+        }
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(()=>({}));
+      st.textContent = '❌ ' + (err.detail?.message || resp.statusText);
+      btn.disabled = false;
+      return;
+    }
+
+    const blob = await resp.blob();
+    const url  = URL.createObjectURL(blob);
+    ttsAudio   = new Audio(url);
+    ttsAudio.onended = () => { st.textContent='✅ Готово'; btn.disabled=false; URL.revokeObjectURL(url); };
+    ttsAudio.onerror = () => { st.textContent='❌ Ошибка воспроизведения'; btn.disabled=false; };
+    st.textContent = '🔊 Воспроизвожу...';
+    ttsAudio.play();
+  } catch(e) {
+    st.textContent = '❌ ' + e.message;
+    btn.disabled = false;
+  }
+}
+
+function stopTTS() {
+  if (ttsAudio) { ttsAudio.pause(); ttsAudio.src=''; ttsAudio=null; }
+  document.getElementById('ttsStatus').textContent = '—';
+  document.getElementById('ttsBtn').disabled = false;
+}
 </script>
 
 </body>
