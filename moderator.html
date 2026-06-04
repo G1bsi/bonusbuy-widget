@@ -109,6 +109,7 @@
             <button onclick="openIconsModal()" style="width: auto; background: #2c2c36; border: 1px solid #555; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0; color: #ccc; border-radius: 5px; cursor: pointer; font-weight: bold;">🖼️ Иконки слотов</button>
             <button onclick="openDnDMod()" style="width: auto; background: #6610f2; border: 1px solid #9b59b6; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0; color: #fff; border-radius: 5px; cursor: pointer; font-weight: bold;">🎰 DnD Модерка</button>
             <button onclick="openLayoutEditor()" style="width: auto; background: #16a085; border: 1px solid #1abc9c; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0; color: #fff; border-radius: 5px; cursor: pointer; font-weight: bold;">📐 Позиции</button>
+            <button onclick="openTTSPanel()" style="width: auto; background: #1db954; border: 1px solid #17a244; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0; color: #fff; border-radius: 5px; cursor: pointer; font-weight: bold;">🎙️ TTS</button>
             <div style="display: flex; gap: 8px; align-items: center; margin-left: auto;">
                 <div style="display: flex; align-items: center; gap: 7px; background: #25252c; border: 1px solid rgba(255,183,3,0.35); border-radius: 8px; padding: 6px 10px;">
                     <span style="font-size: 11px; font-weight: 800; color: #ffb703; white-space: nowrap;">🎡 Колесо</span>
@@ -1083,7 +1084,97 @@
         });
       }
     }
+
+    /* ═══ TTS ═══ */
+    const TTS_VOICE_ID = 'rcuqncmGmAfs46d5TL08';
+    const TTS_API_KEY  = '057abca0cb839e777b56d51160a41261214682fd41de3c2da152b4bc8a55efca';
+    let ttsAudio = null;
+
+    function openTTSPanel()  { document.getElementById('tts-modal').style.display = 'flex'; }
+    function closeTTSPanel() { document.getElementById('tts-modal').style.display = 'none'; }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const stab = document.getElementById('ttsStability');
+      const sim  = document.getElementById('ttsSimilarity');
+      if (stab) stab.addEventListener('input', () => { document.getElementById('ttsStabilityVal').textContent = Math.round(stab.value*100)+'%'; });
+      if (sim)  sim.addEventListener('input',  () => { document.getElementById('ttsSimilarityVal').textContent = Math.round(sim.value*100)+'%'; });
+    });
+
+    async function speakTTS() {
+      const textEl = document.getElementById('ttsText');
+      const text   = textEl ? textEl.value.trim() : '';
+      if (!text) return;
+      const btn = document.getElementById('ttsBtn');
+      const st  = document.getElementById('ttsStatus');
+      btn.disabled = true;
+      st.textContent = '⏳ Генерирую...';
+      stopTTS();
+      try {
+        const resp = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${TTS_VOICE_ID}`, {
+          method: 'POST',
+          headers: { 'xi-api-key': TTS_API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text,
+            model_id: 'eleven_multilingual_v2',
+            voice_settings: {
+              stability:        parseFloat(document.getElementById('ttsStability').value),
+              similarity_boost: parseFloat(document.getElementById('ttsSimilarity').value),
+            }
+          })
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(()=>({}));
+          st.textContent = '❌ ' + (err.detail?.message || resp.statusText);
+          btn.disabled = false; return;
+        }
+        const blob = await resp.blob();
+        const url  = URL.createObjectURL(blob);
+        ttsAudio   = new Audio(url);
+        ttsAudio.onended = () => { st.textContent='✅ Готово'; btn.disabled=false; URL.revokeObjectURL(url); };
+        ttsAudio.onerror = () => { st.textContent='❌ Ошибка'; btn.disabled=false; };
+        st.textContent = '🔊 Воспроизвожу...';
+        ttsAudio.play();
+      } catch(e) {
+        st.textContent = '❌ ' + e.message;
+        btn.disabled = false;
+      }
+    }
+
+    function stopTTS() {
+      if (ttsAudio) { ttsAudio.pause(); ttsAudio.src=''; ttsAudio=null; }
+      const st  = document.getElementById('ttsStatus');
+      const btn = document.getElementById('ttsBtn');
+      if (st)  st.textContent  = '—';
+      if (btn) btn.disabled    = false;
+    }
     </script>
+
+
+    <!-- TTS Modal -->
+    <div id="tts-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.85);z-index:11000;align-items:center;justify-content:center;">
+      <div style="background:#25252c;border:2px solid #1db954;border-radius:12px;width:92vw;max-width:520px;box-shadow:0 0 40px rgba(29,185,84,0.3);overflow:hidden;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #333;background:#1e1e24;">
+          <h3 style="margin:0;color:#1db954;font-size:15px;">🎙️ TTS — Голос Костизи</h3>
+          <button onclick="closeTTSPanel()" style="width:auto;padding:5px 12px;background:#555;border-radius:6px;margin:0;font-size:13px;">✕</button>
+        </div>
+        <div style="padding:16px 18px;">
+          <textarea id="ttsText" placeholder="Введи текст для озвучки..." style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:10px;font-size:14px;resize:vertical;min-height:90px;outline:none;box-sizing:border-box;font-family:sans-serif;"></textarea>
+          <div style="display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap;">
+            <button id="ttsBtn" onclick="speakTTS()" style="background:#1db954;color:#fff;font-weight:bold;padding:10px 22px;border-radius:6px;border:none;cursor:pointer;font-size:14px;width:auto;margin:0;">▶ Озвучить</button>
+            <button onclick="stopTTS()" style="background:#555;padding:10px 16px;border-radius:6px;font-size:13px;width:auto;margin:0;">■ Стоп</button>
+            <span id="ttsStatus" style="font-size:13px;color:#aaa;">—</span>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <label style="font-size:12px;color:#aaa;white-space:nowrap;">Стабильность:</label>
+            <input type="range" id="ttsStability" min="0" max="1" step="0.05" value="0.5" style="width:110px;accent-color:#1db954;border:none;padding:0;margin:0;background:transparent;">
+            <span id="ttsStabilityVal" style="font-size:12px;color:#1db954;min-width:32px;">50%</span>
+            <label style="font-size:12px;color:#aaa;white-space:nowrap;">Схожесть:</label>
+            <input type="range" id="ttsSimilarity" min="0" max="1" step="0.05" value="0.8" style="width:110px;accent-color:#00ffcc;border:none;padding:0;margin:0;background:transparent;">
+            <span id="ttsSimilarityVal" style="font-size:12px;color:#00ffcc;min-width:32px;">80%</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
 </body>
 </html>
