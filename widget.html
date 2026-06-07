@@ -1786,8 +1786,8 @@
   <!-- Final bottom strip -->
   <div id="final-banner">
     <div class="final-body">
-      Осталось <span class="hl">2</span> кейса.
-      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span>  или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
+      Остался <span class="hl">1 КЕЙС НА ПОЛКЕ</span> и <span class="hl">ТВОЙ КЕЙС</span> на подиуме.
+      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> — или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
     </div>
   </div>
 
@@ -2675,6 +2675,9 @@
     // win-popup shown by media engine below
 
     // ══ Media triggers ══
+    // Skip all media on first render (page just loaded in OBS)
+    if (isFirstRender) { isFirstRender = false; prevGameState = gs; prevShowBanker = d.showBanker; prevOpenedCount = openedCount; return; }
+
     if (gs === 'choose_player_case' && prevGameStateSnap !== 'choose_player_case') {
       videoPlayed = { start:false, pick:false, deal:false, result:false };
       document.getElementById('win-popup').classList.remove('visible');
