@@ -2529,22 +2529,25 @@
     if (nowVisible && !wasVisible) {
       root.style.opacity = '1';
       root.style.pointerEvents = 'none';
-      const ls  = document.getElementById('loading-screen');
-      const lb  = document.getElementById('loading-bar');
-      const lve = document.getElementById('loading-video-el');
-      const ltw = document.getElementById('loading-text-wrap');
-      ls.classList.add('visible');
-      const loadUrl = assets['loading-video'];
-      if (loadUrl) {
-        lve.src = loadUrl; lve.style.display = 'block'; ltw.style.display = 'none';
-        lve.load(); lve.play().catch(() => {});
-        lve.onended = hideLoadingScreen;
-        setTimeout(hideLoadingScreen, 8000); // fallback
-      } else {
-        lve.style.display = 'none'; ltw.style.display = 'flex';
-        lb.style.animation = 'none'; void lb.offsetHeight;
-        lb.style.animation = 'loadingBarMove 3s linear forwards, loadingShimmer 1s linear infinite';
-        setTimeout(hideLoadingScreen, 3000);
+      // Skip loading screen on first page load (OBS startup) — only show on actual toggle
+      if (!isFirstRender) {
+        const ls  = document.getElementById('loading-screen');
+        const lb  = document.getElementById('loading-bar');
+        const lve = document.getElementById('loading-video-el');
+        const ltw = document.getElementById('loading-text-wrap');
+        ls.classList.add('visible');
+        const loadUrl = assets['loading-video'];
+        if (loadUrl) {
+          lve.src = loadUrl; lve.style.display = 'block'; ltw.style.display = 'none';
+          lve.load(); lve.play().catch(() => {});
+          lve.onended = hideLoadingScreen;
+          setTimeout(hideLoadingScreen, 8000);
+        } else {
+          lve.style.display = 'none'; ltw.style.display = 'flex';
+          lb.style.animation = 'none'; void lb.offsetHeight;
+          lb.style.animation = 'loadingBarMove 3s linear forwards, loadingShimmer 1s linear infinite';
+          setTimeout(hideLoadingScreen, 3000);
+        }
       }
     } else if (!nowVisible && wasVisible) {
       root.style.opacity = '0';
