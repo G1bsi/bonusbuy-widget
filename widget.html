@@ -2506,12 +2506,13 @@
       lve.pause(); lve.src = ''; lve.style.display = 'none';
       document.getElementById('loading-text-wrap').style.display = 'flex';
       document.getElementById('widget-root').style.pointerEvents = 'all';
-      // Play start video now that loading is done
-      if (pendingStartVideo) {
+      // Play start video now that loading is done (only if not first render)
+      if (pendingStartVideo && !isFirstRender) {
         pendingStartVideo = false;
         triggerVideo('vid-start', 2);
         bgAudioEl = playAudio('aud-bg', true);
       }
+      pendingStartVideo = false;
     }, 400);
   }
 
@@ -2676,7 +2677,7 @@
 
     // ══ Media triggers ══
     // Skip all media on first render (page just loaded in OBS)
-    if (isFirstRender) { isFirstRender = false; prevGameState = gs; prevShowBanker = d.showBanker; prevOpenedCount = openedCount; return; }
+    if (isFirstRender) { isFirstRender = false; pendingStartVideo = false; stopBgAudio(); prevGameState = gs; prevShowBanker = d.showBanker; prevOpenedCount = openedCount; return; }
 
     if (gs === 'choose_player_case' && prevGameStateSnap !== 'choose_player_case') {
       videoPlayed = { start:false, pick:false, deal:false, result:false };
