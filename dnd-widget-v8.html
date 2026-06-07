@@ -794,6 +794,9 @@
     // win-popup shown by media engine below
 
     // ══ Media triggers ══
+    // Skip all media on first render (page just loaded in OBS)
+    if (isFirstRender) { isFirstRender = false; prevGameState = gs; prevShowBanker = d.showBanker; prevOpenedCount = openedCount; return; }
+
     if (gs === 'choose_player_case' && prevGameStateSnap !== 'choose_player_case') {
       videoPlayed = { start:false, pick:false, deal:false, result:false };
       document.getElementById('win-popup').classList.remove('visible');
