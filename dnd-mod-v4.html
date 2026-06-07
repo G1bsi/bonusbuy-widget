@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>DnD Панель Управления</title>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #1e1e24; color: #fff; padding: 20px; }
     h2 { margin-top:0; font-size:18px; color:#ffcc00; }
@@ -48,6 +50,39 @@
     .tab { background:#1a1a2e; border:1px solid #333; padding:8px 18px; cursor:pointer; font-size:13px; border-radius:4px 4px 0 0; color:#aaa; transition:0.2s; }
     .tab.active { background:#2b2b36; color:#00ffcc; border-bottom-color:#2b2b36; }
     .tab-content { display:none; }
+
+    /* Password screen */
+    #pass-screen {
+      position:fixed; inset:0; background:#0a0a12;
+      display:flex; flex-direction:column;
+      align-items:center; justify-content:center;
+      z-index:99999; gap:16px;
+    }
+    #pass-screen h1 { font-size:20px; color:#ffcc00; margin:0; }
+    #pass-screen p  { font-size:13px; color:#666; margin:0; }
+    .pass-wrap { position:relative; }
+    #pass-input {
+      width:260px; padding:13px 40px 13px 16px;
+      background:#1e1e2a; border:2px solid #333;
+      border-radius:10px; color:#fff;
+      font-size:18px; text-align:center;
+      letter-spacing:3px; outline:none;
+      transition:border-color 0.2s;
+    }
+    #pass-input:focus { border-color:#ffcc00; }
+    #pass-input.err  { border-color:#c0392b; animation:shake 0.3s; }
+    .toggle-pass { position:absolute; right:10px; top:50%; transform:translateY(-50%);
+      background:none; border:none; color:#888; cursor:pointer; font-size:16px; padding:0; }
+    #pass-btn {
+      width:260px; padding:13px; background:#ffcc00; color:#000;
+      border:none; border-radius:10px; font-size:16px;
+      font-weight:900; cursor:pointer;
+    }
+    #pass-btn:hover { opacity:0.88; }
+    #pass-err { font-size:13px; color:#c0392b; min-height:18px; }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)}
+    }
     .tab-content.active { display:block; }
     .save-to-db-btn { background:#e67e22; }
     .btn-reveal { background:#9b59b6; }
@@ -76,6 +111,22 @@
   </style>
 </head>
 <body>
+
+  <!-- Password Screen -->
+  <div id="pass-screen">
+    <h1>🎰 DnD — Модерка</h1>
+    <p>Введи пароль для доступа</p>
+    <div class="pass-wrap">
+      <input type="password" id="pass-input" placeholder="••••••" maxlength="64"
+        onkeydown="if(event.key==='Enter')checkDndPass()">
+      <button class="toggle-pass" onclick="toggleDndPassVis()">👁️</button>
+    </div>
+    <button id="pass-btn" onclick="checkDndPass()">ВОЙТИ →</button>
+    <div id="pass-err"></div>
+  </div>
+
+  <!-- Main content (hidden until auth) -->
+  <div id="dnd-main" style="display:none;">
 
   <!-- Game Controls -->
   <div class="panel controls">
@@ -896,6 +947,59 @@ document.addEventListener('DOMContentLoaded', function() {
     if (ar) ar.innerText = '▲';
   });
 });
+</script>
+
+  </div><!-- /dnd-main -->
+<script>
+  // Firebase Auth — same project as moderator
+  const dndFirebaseConfig = {
+    apiKey: "AIzaSyC1Lde9n2SroxE024-5Jned8ItOEuYQGLI",
+    authDomain: "dornod-74e98.firebaseapp.com",
+    projectId: "dornod-74e98",
+  };
+  // Init separate auth app to avoid conflict with modular SDK
+  const dndAuthApp  = firebase.initializeApp(dndFirebaseConfig, 'dnd-auth');
+  const dndAuth     = firebase.auth(dndAuthApp);
+  const STREAMER_EMAIL = "kostezezanos@gmail.com";
+
+  dndAuth.onAuthStateChanged(user => {
+    if (user) {
+      document.getElementById('pass-screen').style.display = 'none';
+      document.getElementById('dnd-main').style.display    = 'block';
+    } else {
+      document.getElementById('pass-screen').style.display = 'flex';
+      document.getElementById('dnd-main').style.display    = 'none';
+    }
+  });
+
+  function checkDndPass() {
+    const inp  = document.getElementById('pass-input');
+    const err  = document.getElementById('pass-err');
+    const btn  = document.getElementById('pass-btn');
+    const pass = inp.value;
+    err.textContent = '';
+    if (!pass) { err.textContent = 'Введи пароль'; return; }
+    btn.textContent = '...';
+    dndAuth.signInWithEmailAndPassword(STREAMER_EMAIL, pass)
+      .catch(() => {
+        inp.classList.add('err');
+        inp.value = '';
+        err.textContent = 'Неправильный пароль';
+        btn.textContent = 'ВОЙТИ →';
+        setTimeout(() => { inp.classList.remove('err'); err.textContent = ''; }, 1500);
+      });
+  }
+
+  function toggleDndPassVis() {
+    const inp = document.getElementById('pass-input');
+    const btn = document.querySelector('.toggle-pass');
+    inp.type   = inp.type === 'password' ? 'text' : 'password';
+    btn.innerText = inp.type === 'password' ? '👁️' : '🙈';
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('pass-input').focus();
+  });
 </script>
 
 </body>
