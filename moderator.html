@@ -216,6 +216,33 @@
                             <tr><td>Депозит:</td><td id="fin-bal-val">0</td></tr>
                         </tbody>
                     </table>
+
+                    <!-- Finance overlay inputs -->
+                    <div style="margin-top:16px;border-top:1px solid #333;padding-top:14px;">
+                      <div style="font-size:12px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">📊 </div>
+                      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                        <div>
+                          <label style="font-size:11px;color:#f39c12;display:block;margin-bottom:4px;">ДЕПОЗИТ</label>
+                          <input type="text" id="fin-deposit" placeholder="1.000.000$"
+                            style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
+                            oninput="saveFinance()">
+                        </div>
+                        <div>
+                          <label style="font-size:11px;color:#e74c3c;display:block;margin-bottom:4px;">ДОДЕП</label>
+                          <input type="text" id="fin-dodeposit" placeholder="123"
+                            style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
+                            oninput="saveFinance()">
+                        </div>
+                        <div>
+                          <label style="font-size:11px;color:#2ecc71;display:block;margin-bottom:4px;">ВЫВОД</label>
+                          <input type="text" id="fin-withdraw" placeholder="дай бог"
+                            style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
+                            oninput="saveFinance()">
+                        </div>
+                      </div>
+                      <div style="font-size:11px;color:#555;margin-top:8px;">легкость</div>
+                    </div>
+
                 </div>
             </div>
             <div class="box" style="border: 1px solid #9b59b6;">
@@ -319,6 +346,33 @@
                         <thead><tr><th>Показатель</th><th>Значение</th></tr></thead>
                         <tbody id="battle-finance-tbody"></tbody>
                     </table>
+
+                    <!-- Finance overlay inputs -->
+                    <div style="margin-top:16px;border-top:1px solid #333;padding-top:14px;">
+                      <div style="font-size:12px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">📊 Стрим-оверлей (виводиться в OBS)</div>
+                      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                        <div>
+                          <label style="font-size:11px;color:#f39c12;display:block;margin-bottom:4px;">ДЕПОЗИТ</label>
+                          <input type="text" id="fin-deposit" placeholder="напр. 400к ₽"
+                            style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
+                            oninput="saveFinance()">
+                        </div>
+                        <div>
+                          <label style="font-size:11px;color:#e74c3c;display:block;margin-bottom:4px;">ДОДЕП</label>
+                          <input type="text" id="fin-dodeposit" placeholder="напр. 50к ₽"
+                            style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
+                            oninput="saveFinance()">
+                        </div>
+                        <div>
+                          <label style="font-size:11px;color:#2ecc71;display:block;margin-bottom:4px;">ВЫВОД</label>
+                          <input type="text" id="fin-withdraw" placeholder="напр. 120к ₽"
+                            style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
+                            oninput="saveFinance()">
+                        </div>
+                      </div>
+                      <div style="font-size:11px;color:#555;margin-top:8px;">Оставь поле пустым — надпись не появится на стриме</div>
+                    </div>
+
                 </div>
             </div>
             <div class="box" style="border: 1px solid #e74c3c;">
@@ -900,6 +954,17 @@
               <div class="le-handle" data-block="dnd" data-dir="s"     style="position:absolute;bottom:-5px;left:50%;transform:translateX(-50%);width:24px;height:10px;background:#9b59b6;border-radius:2px;cursor:s-resize;z-index:11;opacity:0.7;" title="Висота"></div>
               <div class="le-handle" data-block="dnd" data-dir="scale" style="position:absolute;right:-5px;top:-5px;width:14px;height:14px;background:#e74c3c;border-radius:50%;cursor:ne-resize;z-index:11;" title="Пропорційний масштаб (→)"></div>
             </div>
+
+            <!-- Finance block -->
+            <div id="le-finance" style="position:absolute;border:2px solid #e67e22;border-radius:6px;z-index:10;user-select:none;min-height:30px;">
+              <div id="le-finance-move" style="position:absolute;inset:0;background:rgba(230,126,34,0.2);cursor:move;display:flex;align-items:center;justify-content:center;">
+                <div style="text-align:center;pointer-events:none;">
+                  <div style="font-size:11px;font-weight:800;color:#e67e22;text-shadow:0 1px 3px #000;">📊 ФИНАНСЫ</div>
+                  <div id="le-finance-coords" style="font-size:9px;color:#f0a070;margin-top:2px;"></div>
+                </div>
+              </div>
+              <div class="le-handle" data-block="finance" data-dir="scale" style="position:absolute;right:-5px;top:-5px;width:14px;height:14px;background:#e74c3c;border-radius:50%;cursor:ne-resize;z-index:11;" title="Пропорциональный масштаб (→)"></div>
+            </div>
           </div>
         </div>
 
@@ -927,8 +992,9 @@
     const CANVAS_W = 1920, CANVAS_H = 1080;
 
     const defaultPositions = {
-      widget: { x:0, y:0, w:580, h:506 },
-      dnd:    { x:0, y:0, w:1297, h:728 }
+      widget:  { x:0, y:0, w:580, h:506 },
+      dnd:     { x:0, y:0, w:1297, h:728 },
+      finance: { x:710, y:900, w:500, h:60, scale:1.0 }
     };
 
     let lePositions = {};
@@ -937,7 +1003,7 @@
     function pct(v, max) { return (v/max*100).toFixed(4)+'%'; }
 
     function renderLEBlocks() {
-      ['widget','dnd'].forEach(key => {
+      ['widget','dnd','finance'].forEach(key => {
         const pos = lePositions[key];
         const el  = document.getElementById('le-'+key);
         el.style.left   = pct(pos.x, CANVAS_W);
@@ -952,10 +1018,21 @@
           document.getElementById('le-w-tl').textContent   = `(${pos.x}, ${pos.y})`;
           document.getElementById('le-w-br').textContent   = `(${pos.x+pos.w}, ${pos.y+pos.h})`;
           document.getElementById('le-w-size').textContent = `${pos.w}×${pos.h}`;
-        } else {
+        } else if(key==='dnd') {
           document.getElementById('le-d-tl').textContent   = `(${pos.x}, ${pos.y})`;
           document.getElementById('le-d-br').textContent   = `(${pos.x+pos.w}, ${pos.y+pos.h})`;
           document.getElementById('le-d-size').textContent = `${pos.w}×${pos.h}`;
+        } else if(key==='finance') {
+          const sc  = pos.scale || 1.0;
+          const natW = 500, natH = 60; // natural size in 1920x1080
+          // Set visual size in canvas proportionally
+          el.style.width  = pct(natW * sc, CANVAS_W);
+          el.style.height = pct(natH * sc, CANVAS_H);
+          document.getElementById('le-f-tl').textContent   = `(${pos.x}, ${pos.y})`;
+          document.getElementById('le-f-br').textContent   = `scale: ${sc.toFixed(2)}x`;
+          document.getElementById('le-f-size').textContent = `${sc.toFixed(2)}x`;
+          const cEl = document.getElementById('le-finance-coords');
+          if(cEl) cEl.textContent = `${pos.x},${pos.y}  ${sc.toFixed(2)}x`;
         }
       });
     }
@@ -972,34 +1049,33 @@
       };
     }
 
-    function initBlock(key) {
-      const moveEl  = document.getElementById('le-'+key+'-move');
-      const handles = document.querySelectorAll(`.le-handle[data-block="${key}"]`);
+    var leAbortControllers = {};
 
-      // Remove old listeners by cloning
-      const newMove = moveEl.cloneNode(true);
-      moveEl.parentNode.replaceChild(newMove, moveEl);
-      handles.forEach(h => {
-        const nh = h.cloneNode(true);
-        h.parentNode.replaceChild(nh, h);
-      });
+    function initBlock(key) {
+      // Cancel previous listeners for this key
+      if (leAbortControllers[key]) leAbortControllers[key].abort();
+      leAbortControllers[key] = new AbortController();
+      const sig = leAbortControllers[key].signal;
+
+      const moveEl = document.getElementById('le-'+key+'-move');
 
       // Move
-      document.getElementById('le-'+key+'-move').addEventListener('mousedown', e => {
+      if (moveEl) moveEl.addEventListener('mousedown', e => {
         e.preventDefault(); e.stopPropagation();
+        selectBlock(key);
         const r = getCanvasRect();
         const sx = e.clientX, sy = e.clientY;
         const ox = lePositions[key].x, oy = lePositions[key].y;
         const onM = e2 => {
           const dx = Math.round((e2.clientX-sx)/r.width*CANVAS_W);
           const dy = Math.round((e2.clientY-sy)/r.height*CANVAS_H);
-          lePositions[key].x = Math.max(0, Math.min(CANVAS_W-lePositions[key].w, ox+dx));
-          lePositions[key].y = Math.max(0, Math.min(CANVAS_H-lePositions[key].h, oy+dy));
+          lePositions[key].x = ox+dx;
+          lePositions[key].y = oy+dy;
           renderLEBlocks();
         };
         const onU = () => { document.removeEventListener('mousemove',onM); document.removeEventListener('mouseup',onU); };
         document.addEventListener('mousemove',onM); document.addEventListener('mouseup',onU);
-      });
+      }, {signal: sig});
 
       // Resize handles
       document.querySelectorAll(`.le-handle[data-block="${key}"]`).forEach(h => {
@@ -1009,33 +1085,40 @@
           const r = getCanvasRect();
           const sx = e.clientX, sy = e.clientY;
           const ow = lePositions[key].w, oh = lePositions[key].h;
-          const aspect = ow / oh; // for proportional scale
+          const aspect = ow / oh;
+          // Store start scale for finance linear scaling
+          if (dir === 'scale' && key === 'finance') {
+            h.dataset.startScale = lePositions[key].scale || 1.0;
+          }
           const onM = e2 => {
             const dx = Math.round((e2.clientX-sx)/r.width*CANVAS_W);
             const dy = Math.round((e2.clientY-sy)/r.height*CANVAS_H);
             if(dir==='e') {
-              // Width only
-              lePositions[key].w = Math.max(80, ow+dx);
+              lePositions[key].w = Math.max(20, ow+dx);
             } else if(dir==='s') {
-              // Height only
-              lePositions[key].h = Math.max(50, oh+dy);
+              lePositions[key].h = Math.max(10, oh+dy);
             } else if(dir==='se') {
-              // Free resize both axes independently (no forced aspect)
-              lePositions[key].w = Math.max(80, ow+dx);
-              lePositions[key].h = Math.max(50, oh+dy);
+              lePositions[key].w = Math.max(20, ow+dx);
+              lePositions[key].h = Math.max(10, oh+dy);
             } else if(dir==='scale') {
-              // Proportional scale (locked aspect ratio)
-              const factor = 1 + dx / CANVAS_W;
-              lePositions[key].w = Math.max(80, Math.round(ow * factor));
-              lePositions[key].h = Math.round(lePositions[key].w / aspect);
+              if (key === 'finance') {
+                // Linear: every 100px of drag = 0.5 scale change
+                // Use initial scale (os) + linear delta from start
+                const os = parseFloat(h.dataset.startScale || lePositions[key].scale || 1.0);
+                const newScale = os + dx / 200;
+                lePositions[key].scale = Math.max(0.2, Math.min(6, newScale));
+              } else {
+                const factor = 1 + dx / CANVAS_W;
+                lePositions[key].w = Math.max(80, Math.round(ow * factor));
+                lePositions[key].h = Math.round(lePositions[key].w / aspect);
+              }
             }
-            lePositions[key].w = Math.min(CANVAS_W-lePositions[key].x, lePositions[key].w);
-            lePositions[key].h = Math.min(CANVAS_H-lePositions[key].y, lePositions[key].h);
+            // no boundary clamp — allow going off-screen
             renderLEBlocks();
           };
           const onU = () => { document.removeEventListener('mousemove',onM); document.removeEventListener('mouseup',onU); };
           document.addEventListener('mousemove',onM); document.addEventListener('mouseup',onU);
-        });
+        }, {signal: sig});
       });
     }
 
@@ -1060,14 +1143,50 @@
       document.getElementById('layout-modal').style.display = 'flex';
       initBlock('widget');
       initBlock('dnd');
+      initBlock('finance');
       setTimeout(renderLEBlocks, 50);
     }
 
-    function closeLayoutEditor() { document.getElementById('layout-modal').style.display = 'none'; }
+    // Track selected block for arrow keys
+    let leSelectedKey = 'widget';
+
+    // Highlight selected block
+    function selectBlock(key) {
+      leSelectedKey = key;
+      ['widget','dnd','finance'].forEach(k => {
+        const el = document.getElementById('le-'+k);
+        if (!el) return;
+        const colors = { widget:'#3498db', dnd:'#9b59b6', finance:'#e67e22' };
+        el.style.borderColor = k === key ? colors[k] : colors[k]+'80';
+        el.style.boxShadow = k === key ? '0 0 0 2px '+colors[k]+'44' : 'none';
+      });
+    }
+
+    function closeLayoutEditor() {
+      document.getElementById('layout-modal').style.display = 'none';
+    }
+
+    // Arrow keys move selected block by 1px
+    document.addEventListener('keydown', function(e) {
+      const modal = document.getElementById('layout-modal');
+      if (!modal || modal.style.display === 'none') return;
+      if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(e.key)) return;
+      e.preventDefault();
+      const key = leSelectedKey;
+      if (!lePositions[key]) return;
+      const step = e.shiftKey ? 10 : 1; // Shift = 10px
+      if (e.key === 'ArrowLeft')  lePositions[key].x -= step;
+      if (e.key === 'ArrowRight') lePositions[key].x += step;
+      if (e.key === 'ArrowUp')    lePositions[key].y -= step;
+      if (e.key === 'ArrowDown')  lePositions[key].y += step;
+      renderLEBlocks();
+    });
 
     function resetLayoutPositions() {
       lePositions = JSON.parse(JSON.stringify(defaultPositions));
       renderLEBlocks();
+      // Clear localStorage so fresh defaults apply
+      localStorage.removeItem('kstz_layout');
     }
 
     function saveLayoutPositions() {
@@ -1148,6 +1267,34 @@
       if (st)  st.textContent  = '—';
       if (btn) btn.disabled    = false;
     }
+
+    /* ═══ Finance overlay ═══ */
+    var finSaveTimer = null;
+    function saveFinance() {
+      clearTimeout(finSaveTimer);
+      finSaveTimer = setTimeout(function() {
+        var dep  = document.getElementById('fin-deposit').value.trim();
+        var ddep = document.getElementById('fin-dodeposit').value.trim();
+        var wdr  = document.getElementById('fin-withdraw').value.trim();
+        var data = {};
+        if (dep)  data.deposit   = dep;
+        if (ddep) data.dodeposit = ddep;
+        if (wdr)  data.withdraw  = wdr;
+        // Clear keys that are empty
+        if (!dep)  data.deposit   = null;
+        if (!ddep) data.dodeposit = null;
+        if (!wdr)  data.withdraw  = null;
+        db.ref('widgets/finance').update(data);
+      }, 500);
+    }
+
+    // Load saved finance values on init
+    db.ref('widgets/finance').once('value', function(snap) {
+      var d = snap.val() || {};
+      if (d.deposit)   document.getElementById('fin-deposit').value   = d.deposit;
+      if (d.dodeposit) document.getElementById('fin-dodeposit').value = d.dodeposit;
+      if (d.withdraw)  document.getElementById('fin-withdraw').value  = d.withdraw;
+    });
     </script>
 
 
