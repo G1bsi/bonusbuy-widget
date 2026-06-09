@@ -223,28 +223,28 @@
 
                     <!-- Finance overlay inputs -->
                     <div style="margin-top:16px;border-top:1px solid #333;padding-top:14px;">
-                      <div style="font-size:12px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">📊 </div>
+                      <div style="font-size:12px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">📊 Стрим-оверлей (виводиться в OBS)</div>
                       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
                         <div>
                           <label style="font-size:11px;color:#f39c12;display:block;margin-bottom:4px;">ДЕПОЗИТ</label>
-                          <input type="text" id="fin-deposit" placeholder="1.000.000$"
+                          <input type="text" id="fin-deposit" placeholder="напр. 400к ₽"
                             style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
                             oninput="saveFinance()">
                         </div>
                         <div>
                           <label style="font-size:11px;color:#e74c3c;display:block;margin-bottom:4px;">ДОДЕП</label>
-                          <input type="text" id="fin-dodeposit" placeholder="есть"
+                          <input type="text" id="fin-dodeposit" placeholder="напр. 50к ₽"
                             style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
                             oninput="saveFinance()">
                         </div>
                         <div>
                           <label style="font-size:11px;color:#2ecc71;display:block;margin-bottom:4px;">ВЫВОД</label>
-                          <input type="text" id="fin-withdraw" placeholder="дай бог"
+                          <input type="text" id="fin-withdraw" placeholder="напр. 120к ₽"
                             style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
                             oninput="saveFinance()">
                         </div>
                       </div>
-                      <div style="font-size:11px;color:#555;margin-top:8px;">123</div>
+                      <div style="font-size:11px;color:#555;margin-top:8px;">Оставь поле пустым — надпись не появится на стриме</div>
                     </div>
 
                 </div>
@@ -353,28 +353,28 @@
 
                     <!-- Finance overlay inputs -->
                     <div style="margin-top:16px;border-top:1px solid #333;padding-top:14px;">
-                      <div style="font-size:12px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">📊 Стрим-оверлей (виводиться в OBS)</div>
+                      <div style="font-size:12px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">📊</div>
                       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
                         <div>
                           <label style="font-size:11px;color:#f39c12;display:block;margin-bottom:4px;">ДЕПОЗИТ</label>
-                          <input type="text" id="fin-deposit" placeholder="напр. 400к ₽"
+                          <input type="text" id="fin-deposit" placeholder="лям баксов"
                             style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
                             oninput="saveFinance()">
                         </div>
                         <div>
                           <label style="font-size:11px;color:#e74c3c;display:block;margin-bottom:4px;">ДОДЕП</label>
-                          <input type="text" id="fin-dodeposit" placeholder="напр. 50к ₽"
+                          <input type="text" id="fin-dodeposit" placeholder="есть"
                             style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
                             oninput="saveFinance()">
                         </div>
                         <div>
                           <label style="font-size:11px;color:#2ecc71;display:block;margin-bottom:4px;">ВЫВОД</label>
-                          <input type="text" id="fin-withdraw" placeholder="напр. 120к ₽"
+                          <input type="text" id="fin-withdraw" placeholder="дай бог"
                             style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
                             oninput="saveFinance()">
                         </div>
                       </div>
-                      <div style="font-size:11px;color:#555;margin-top:8px;">Оставь поле пустым — надпись не появится на стриме</div>
+                      <div style="font-size:11px;color:#555;margin-top:8px;">легкость</div>
                     </div>
 
                 </div>
@@ -1260,6 +1260,19 @@
         ttsAudio.onerror = () => { st.textContent='❌ Ошибка'; btn.disabled=false; };
         st.textContent = '🔊 Воспроизвожу...';
         ttsAudio.play();
+
+        // Also send to OBS widget via Firebase (base64)
+        try {
+          const reader = new FileReader();
+          reader.onload = function() {
+            const b64 = reader.result; // data:audio/mpeg;base64,...
+            db.ref('widgets/tts_play').set({
+              audio: b64,
+              ts: Date.now()
+            });
+          };
+          reader.readAsDataURL(blob);
+        } catch(e) { console.warn('TTS Firebase send:', e); }
       } catch(e) {
         st.textContent = '❌ ' + e.message;
         btn.disabled = false;
