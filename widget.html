@@ -1271,12 +1271,19 @@
       fw.style.display = visible.length ? 'inline-flex' : 'none';
     });
 
-    // TTS playback from Firebase
-    var lastTtsTs = 0;
+    // TTS playback from Firebase — ignore value on first load
+    var lastTtsTs = Date.now(); // set to now so existing value is ignored
+    var ttsFirstLoad = true;
     db.ref('widgets/tts_play').on('value', function(snap) {
       var d = snap.val();
       if (!d || !d.audio || !d.ts) return;
-      if (d.ts <= lastTtsTs) return; // ignore old
+      if (ttsFirstLoad) {
+        // Skip whatever is currently in Firebase on page load
+        lastTtsTs = d.ts;
+        ttsFirstLoad = false;
+        return;
+      }
+      if (d.ts <= lastTtsTs) return;
       lastTtsTs = d.ts;
       try {
         var audio = new Audio(d.audio);
@@ -1839,7 +1846,7 @@
   <div id="final-banner">
     <div class="final-body">
       Осталось <span class="hl">2</span> кейса.
-      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span>  или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
+      Можешь <span class="hl">ОСТАВИТЬ СВОЙ</span> или <span class="hl">ПОМЕНЯТЬСЯ</span> на тот, что на полке. Решение только за тобой!
     </div>
   </div>
 
