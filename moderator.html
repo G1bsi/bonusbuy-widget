@@ -8,8 +8,12 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #1c1c21; color: #fff; padding: 20px; }
-        .box { background: #25252c; padding: 15px; border-radius: 8px; margin-bottom: 15px; max-width: 420px; box-sizing: border-box; }
+        body { font-family: sans-serif; background: #1c1c21; color: #fff; padding: 20px; margin: 0; }
+        /* Center all content, responsive width */
+        #mod-wrapper { max-width: 460px; margin: 0 auto; width: 100%; }
+        @media (min-width: 900px)  { #mod-wrapper { max-width: 520px; } }
+        @media (min-width: 1400px) { #mod-wrapper { max-width: 600px; } }
+        .box { background: #25252c; padding: 15px; border-radius: 8px; margin-bottom: 15px; width: 100%; box-sizing: border-box; }
         .box-header { cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
         .box-header h3 { margin: 0; font-size: 16px; }
         .arrow-indicator { font-size: 11px; color: #8a8a93; font-weight: bold; }
@@ -49,7 +53,7 @@
         .password-wrapper input { padding-right: 40px; }
         .toggle-password-btn { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none !important; border: none !important; color: #8a8a93; cursor: pointer; width: auto !important; padding: 0 !important; margin: 0 !important; font-size: 18px; user-select: none; transition: color 0.2s; }
         .toggle-password-btn:hover { color: #fff; }
-        .global-mode-switcher { display: flex; gap: 10px; max-width: 420px; margin-bottom: 20px; }
+        .global-mode-switcher { display: flex; gap: 10px; width: 100%; margin-bottom: 20px; }
         .global-mode-btn { flex: 1; padding: 12px; text-align: center; background: #25252c; border-radius: 8px; cursor: pointer; font-weight: bold; border: 2px solid #444; transition: 0.3s; }
         .global-mode-btn.active-solo { background: #3498db; border-color: #fff; color: #fff; box-shadow: 0 4px 12px rgba(52, 152, 219, 0.4); }
         .global-mode-btn.active-battle { background: #e74c3c; border-color: #fff; color: #fff; box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4); }
@@ -117,7 +121,8 @@
         </div>
     </div>
     <div id="main-content" style="display: none;">
-        <div style="max-width: 420px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+  <div id="mod-wrapper">
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
             <!-- Ряд 1: утилиты -->
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: nowrap;">
                 <button onclick="handleLogout()" style="width: auto; background: #555; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0;">Выйти 🚪</button>
@@ -237,28 +242,28 @@
 
                     <!-- Finance overlay inputs -->
                     <div style="margin-top:16px;border-top:1px solid #333;padding-top:14px;">
-                      <div style="font-size:12px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">📊</div>
+                      <div style="font-size:12px;color:#888;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;">📊 Стрим-оверлей (виводиться в OBS)</div>
                       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
                         <div>
                           <label style="font-size:11px;color:#f39c12;display:block;margin-bottom:4px;">ДЕПОЗИТ</label>
-                          <input type="text" id="fin-deposit" placeholder="лям уе"
+                          <input type="text" id="fin-deposit" placeholder="напр. 400к ₽"
                             style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
                             oninput="saveFinance()">
                         </div>
                         <div>
                           <label style="font-size:11px;color:#e74c3c;display:block;margin-bottom:4px;">ДОДЕП</label>
-                          <input type="text" id="fin-dodeposit" placeholder="есть"
+                          <input type="text" id="fin-dodeposit" placeholder="напр. 50к ₽"
                             style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
                             oninput="saveFinance()">
                         </div>
                         <div>
                           <label style="font-size:11px;color:#2ecc71;display:block;margin-bottom:4px;">ВЫВОД</label>
-                          <input type="text" id="fin-withdraw" placeholder="дай бог"
+                          <input type="text" id="fin-withdraw" placeholder="напр. 120к ₽"
                             style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:7px 10px;font-size:13px;outline:none;"
                             oninput="saveFinance()">
                         </div>
                       </div>
-                      <div style="font-size:11px;color:#555;margin-top:8px;">легкость</div>
+                      <div style="font-size:11px;color:#555;margin-top:8px;">Оставь поле пустым — надпись не появится на стриме</div>
                     </div>
 
                 </div>
@@ -886,6 +891,8 @@
 </script>
 
     <!-- DnD Moderator Modal -->
+  </div><!-- /mod-wrapper -->
+
     <div id="dnd-mod-modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.85); z-index:10000; align-items:center; justify-content:center;">
       <div style="background:#1c1c21; border:2px solid #6610f2; border-radius:12px; width:92vw; max-width:900px; max-height:90vh; display:flex; flex-direction:column; overflow:hidden; box-shadow:0 0 40px rgba(100,50,255,0.4);">
         <div style="display:flex; justify-content:space-between; align-items:center; padding:14px 20px; border-bottom:1px solid #333; background:#25252c; flex-shrink:0;">
