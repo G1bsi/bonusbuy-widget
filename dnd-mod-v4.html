@@ -696,18 +696,30 @@
     if (min || max) document.getElementById('calcPrizesBtn').click();
   }
 
-  // Auto-recalc on prize input change — debounced so it waits for user to finish typing
+  // Recalc on input (live preview), auto new game on BLUR (focus lost)
   let calcDebounce = null;
   ['prizeMin','prizeMax'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => {
+    const el = document.getElementById(id);
+    // Live recalc while typing (no new game yet)
+    el.addEventListener('input', () => {
       clearTimeout(calcDebounce);
       calcDebounce = setTimeout(() => {
         document.getElementById('calcPrizesBtn').click();
-      }, 600); // wait 600ms after last keystroke
+      }, 400);
+    });
+    // Start new game when field loses focus
+    el.addEventListener('blur', () => {
+      document.getElementById('calcPrizesBtn').click();
+      setTimeout(startNewGame, 100);
     });
   });
   document.getElementById('chanceSlider').addEventListener('input', () => {
     document.getElementById('calcPrizesBtn').click();
+  });
+  // New game when slider released
+  document.getElementById('chanceSlider').addEventListener('change', () => {
+    document.getElementById('calcPrizesBtn').click();
+    setTimeout(startNewGame, 100);
   });
 
   // ── Game logic ──
@@ -826,12 +838,15 @@
   };
 
   // revealCaseBtn removed — keep/swap now finish game directly
-  document.getElementById('newGameBtn').onclick = ()=>{
-    if(!confirm('Точно начать новую игру?')) return;
+  function startNewGame() {
     const sv=shuffle(customValues||VALUES),nc={};
     for(let i=1;i<=TOTAL_CASES;i++) nc[i]={value:sv[i-1],isOpen:false};
     const gv = customValues || [2000,3000,4000,5000,7000,9000,12000,15000,18000,22000,26000,30000,35000,40000,45000,50000];
     set(gameRef,{isVisible:currentState.isVisible||false,gameState:'choose_player_case',playerCase:null,bankerOffer:0,showBanker:false,cases:nc,winAmount:0,swapped:false,swappedTo:null,dealTaken:false,pendingWin:null,gameValues:gv});
+  }
+  document.getElementById('newGameBtn').onclick = ()=>{
+    if(!confirm('Точно начать новую игру?')) return;
+    startNewGame();
   };
   restorePrizeSettings();
 
