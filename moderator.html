@@ -13,6 +13,25 @@
         #mod-wrapper { max-width: 460px; margin: 0 auto; width: 100%; }
         @media (min-width: 900px)  { #mod-wrapper { max-width: 520px; } }
         @media (min-width: 1400px) { #mod-wrapper { max-width: 600px; } }
+
+        #panel-solo { display: block; }
+        #panel-battle { display: block; }
+        /* Two-column masonry layout for wide screens */
+        @media (min-width: 1000px) {
+          #mod-wrapper { max-width: 1000px; }
+          #panel-solo, #panel-battle {
+            column-count: 2;
+            column-gap: 20px;
+          }
+          #panel-solo > .box, #panel-battle > .box {
+            break-inside: avoid;
+            -webkit-column-break-inside: avoid;
+            page-break-inside: avoid;
+            display: inline-block;
+            width: 100%;
+          }
+        }
+
         .box { background: #25252c; padding: 15px; border-radius: 8px; margin-bottom: 15px; width: 100%; box-sizing: border-box; }
         .box-header { cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
         .box-header h3 { margin: 0; font-size: 16px; }
@@ -122,7 +141,7 @@
     </div>
     <div id="main-content" style="display: none;">
   <div id="mod-wrapper">
-        <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
+        <div class="top-controls" style="width: 100%; display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
             <!-- Ряд 1: утилиты -->
             <div style="display: flex; gap: 8px; align-items: center; flex-wrap: nowrap;">
                 <button onclick="handleLogout()" style="width: auto; background: #555; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0;">Выйти 🚪</button>
@@ -155,7 +174,7 @@
             <div id="btn-battle" class="global-mode-btn" onclick="setGlobalMode('battle')">⚔️ БИТВА СЛОТОВ</div>
         </div>
 
-        <!-- ═══ WHEEL BOX — завжди видимий (не залежить від solo/battle) ═══ -->
+        <!-- ═══ WHEEL BOX ═══ -->
         <div class="box" style="border: 1px solid rgba(255,183,3,0.4); box-shadow: 0 0 20px rgba(255,183,3,0.06);">
             <div class="box-header" onclick="toggleBox('box-wheel', 'arrow-wheel')">
                 <h3 style="color:#ffb703;">🎡 КОЛЕСО (Розыгрыш)</h3>
@@ -212,8 +231,9 @@
             </div>
         </div>
 
+
         <div id="panel-solo">
-            <div class="box" style="border: 1px solid #e67e22;">
+            <div class="box col-1" style="border: 1px solid #e67e22;">
                 <div class="box-header" onclick="toggleBox('box-fin', 'arrow-fin')">
                     <h3 style="color:#e67e22;">📊 Финансы</h3>
                     <span id="arrow-fin" class="arrow-indicator">▼</span>
@@ -268,7 +288,7 @@
 
                 </div>
             </div>
-            <div class="box" style="border: 1px solid #9b59b6;">
+            <div class="box col-1" style="border: 1px solid #9b59b6;">
                 <div class="box-header" onclick="toggleBox('box-modes', 'arrow-modes')">
                     <h3 style="color:#9b59b6;">📺 Режим отображения в OBS</h3>
                     <span id="arrow-modes" class="arrow-indicator">▼</span>
@@ -281,7 +301,7 @@
                     </div>
                 </div>
             </div>
-            <div class="box">
+            <div class="box col-1">
                 <div class="box-header" onclick="toggleBox('box-add', 'arrow-add')">
                     <h3>1. Добавить слот в queue</h3>
                     <span id="arrow-add" class="arrow-indicator">▼</span>
@@ -308,7 +328,7 @@
                     <button onclick="addSlot()">Добавить в список</button>
                 </div>
             </div>
-            <div class="box">
+            <div class="box col-2">
                 <div class="box-header" onclick="toggleBox('box-current', 'arrow-current')">
                     <h3><span>2. Текущий слот: </span><span id="current-slot-title">—</span></h3>
                     <span id="arrow-current" class="arrow-indicator">▼</span>
@@ -322,7 +342,7 @@
                     </div>
                 </div>
             </div>
-            <div class="box" style="border: 1px solid #3498db;">
+            <div class="box col-2" style="border: 1px solid #3498db;">
                 <div class="box-header" onclick="toggleBox('box-sort', 'arrow-sort')">
                     <h3 style="color:#3498db;">↕️ Очередь и сортировка</h3>
                     <span id="arrow-sort" class="arrow-indicator">▼</span>
@@ -331,7 +351,7 @@
                     <div id="drag-container" class="drag-list"></div>
                 </div>
             </div>
-            <div class="box" style="border: 1px solid #2ecc71;">
+            <div class="box col-2" style="border: 1px solid #2ecc71;">
                 <div class="box-header" onclick="toggleBox('box-archive', 'arrow-archive')">
                     <h3 style="color:#2ecc71;">🗄️ Архив прошлых стримов</h3>
                     <span id="arrow-archive" class="arrow-indicator">▼</span>
@@ -340,7 +360,7 @@
                     <div id="archives-list" style="max-height: 250px; overflow-y: auto;"></div>
                 </div>
             </div>
-            <div class="box" style="border: 1px solid #ff4a5a;">
+            <div class="box col-2" style="border: 1px solid #ff4a5a;">
                 <button style="background:#ff4a5a;" onclick="resetAll()">💥 Закрыть стрим и сохранить в архив</button>
             </div>
         </div>
@@ -618,8 +638,8 @@
             const globalMode = data.global_mode || 'solo';
             document.getElementById('btn-solo').className = 'global-mode-btn ' + (globalMode==='solo'?'active-solo':'');
             document.getElementById('btn-battle').className = 'global-mode-btn ' + (globalMode==='battle'?'active-battle':'');
-            document.getElementById('panel-solo').style.display = globalMode==='solo'?'block':'none';
-            document.getElementById('panel-battle').style.display = globalMode==='battle'?'block':'none';
+            document.getElementById('panel-solo').style.display = globalMode==='solo'?'':'none';
+            document.getElementById('panel-battle').style.display = globalMode==='battle'?'':'none';
 
             /* Синхронізація колеса */
             const wheel = data.wheel || {};
