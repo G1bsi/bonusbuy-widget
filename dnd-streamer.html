@@ -327,12 +327,17 @@
   if (savedMax) document.getElementById('prizeMax').value = savedMax;
   if (savedCV)  { try { customValues = JSON.parse(savedCV); } catch {} }
 
-  // Auto-calc on input change
+  // Live recalc on input, auto new game on blur (focus lost)
   let calcDebounce = null;
   ['prizeMin','prizeMax'].forEach(id => {
-    document.getElementById(id).addEventListener('input', () => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => {
       clearTimeout(calcDebounce);
-      calcDebounce = setTimeout(calcPrizes, 600);
+      calcDebounce = setTimeout(calcPrizes, 400);
+    });
+    el.addEventListener('blur', () => {
+      calcPrizes();
+      setTimeout(startNewGame, 100);
     });
   });
 
@@ -490,8 +495,7 @@
     }
   };
 
-  document.getElementById('newGameBtn').onclick = async () => {
-    if (!confirm('Начать новую игру?')) return;
+  async function startNewGame() {
     const vals = shuffle(customValues || DEFAULT_VALUES);
     const nc   = {};
     for (let i = 1; i <= TOTAL; i++) nc[i] = { value: vals[i-1], isOpen: false };
@@ -502,6 +506,10 @@
       cases: nc, winAmount: 0, swapped: false, swappedTo: null,
       dealTaken: false, pendingWin: null, gameValues: gv
     });
+  }
+  document.getElementById('newGameBtn').onclick = async () => {
+    if (!confirm('Начать новую игру?')) return;
+    await startNewGame();
   };
 
   document.getElementById('forceBankerBtn').onclick = () => {
