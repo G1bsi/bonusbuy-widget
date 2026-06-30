@@ -1440,28 +1440,33 @@
           '</div>';
       }).join('');
 
-      // Attach joystick drag
-      list.querySelectorAll('.img-joy-dot').forEach(function(dot) {
-        dot.addEventListener('mousedown', function(e) {
+      // Attach joystick drag (round thumbstick)
+      list.querySelectorAll('.img-joy-base').forEach(function(base) {
+        var stick = base.querySelector('.img-joy-stick');
+        var id = base.dataset.layer;
+        function moveToEvent(e2) {
+          var r = base.getBoundingClientRect();
+          var px = Math.max(0, Math.min(100, Math.round((e2.clientX - r.left) / r.width * 100)));
+          var py = Math.max(0, Math.min(100, Math.round((e2.clientY - r.top) / r.height * 100)));
+          stick.style.left = px + '%';
+          stick.style.top  = py + '%';
+          liveLayerXY(id, px, py);
+        }
+        function startDrag(e) {
           e.preventDefault(); e.stopPropagation();
-          var id = dot.dataset.layer;
-          var pad = dot.parentElement;
-          var move = function(e2) {
-            var r = pad.getBoundingClientRect();
-            var px = Math.max(0, Math.min(100, Math.round((e2.clientX - r.left) / r.width * 100)));
-            var py = Math.max(0, Math.min(100, Math.round((e2.clientY - r.top) / r.height * 100)));
-            dot.style.left = px + '%';
-            dot.style.top  = py + '%';
-            liveLayerXY(id, px, py);
-          };
+          stick.style.cursor = 'grabbing';
+          moveToEvent(e); // jump to click position immediately
+          var move = function(e2){ moveToEvent(e2); };
           var up = function() {
             document.removeEventListener('mousemove', move);
             document.removeEventListener('mouseup', up);
+            stick.style.cursor = 'grab';
             endLayerDrag();
           };
           document.addEventListener('mousemove', move);
           document.addEventListener('mouseup', up);
-        });
+        }
+        base.addEventListener('mousedown', startDrag);
       });
     });
 
@@ -1630,12 +1635,12 @@
             '<button onclick="bringLayerFront(\''+id+'\')" style="width:auto;padding:6px 9px;background:#6610f2;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">⬆️</button>' +
             '<button onclick="removeLayer(\''+id+'\')" style="width:auto;padding:6px 9px;background:#c0392b;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">🗑️</button>' +
           '</div>' +
-          // Joystick pad (X + Y)
-          '<div class="img-joy-pad" data-layer="'+id+'" style="position:relative;width:100%;height:120px;background:#0a0a14;border:1px solid #333;border-radius:8px;margin-bottom:8px;cursor:crosshair;overflow:hidden;">' +
-            '<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.08);"></div>' +
-            '<div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,0.08);"></div>' +
-            '<div class="img-joy-dot" data-layer="'+id+'" style="position:absolute;width:22px;height:22px;background:#00e5ff;border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);cursor:move;left:'+xp+'%;top:'+yp+'%;box-shadow:0 0 10px rgba(0,229,255,0.7);"></div>' +
-            '<div style="position:absolute;bottom:3px;right:6px;font-size:9px;color:#444;pointer-events:none;">двигай точку</div>' +
+          // Round joystick (like a thumbstick)
+          '<div style="display:flex;justify-content:center;margin-bottom:10px;">' +
+            '<div class="img-joy-base" data-layer="'+id+'" style="position:relative;width:130px;height:130px;background:radial-gradient(circle,#15151f 0%,#0a0a14 70%);border:2px solid #2a2a3a;border-radius:50%;cursor:pointer;box-shadow:inset 0 4px 12px rgba(0,0,0,0.6);">' +
+              '<div style="position:absolute;left:50%;top:50%;width:4px;height:4px;background:#333;border-radius:50%;transform:translate(-50%,-50%);"></div>' +
+              '<div class="img-joy-stick" data-layer="'+id+'" style="position:absolute;width:46px;height:46px;background:radial-gradient(circle at 35% 30%,#00e5ff,#0088aa);border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);cursor:grab;left:'+xp+'%;top:'+yp+'%;box-shadow:0 4px 10px rgba(0,0,0,0.5),0 0 14px rgba(0,229,255,0.5);"></div>' +
+            '</div>' +
           '</div>' +
         '</div>';
       }).join('');
