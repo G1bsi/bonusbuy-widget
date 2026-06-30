@@ -1135,11 +1135,7 @@
       0%   { transform: translateY(0) rotate(0deg); }
       50%  { transform: translateY(-12px) rotate(0.5deg); }
       100% { transform: translateY(0) rotate(0deg); }
-    } to{opacity:0;transform:perspective(600px) rotateY(90deg);} }
-
-
-
-
+    }
 
   </style>
 </head>
@@ -1322,9 +1318,10 @@
       Object.keys(layers).forEach(function(id) {
         var L = layers[id];
         var el = container.querySelector('[data-id="'+id+'"]');
-        if (!el) {
+        var isNew = !el;
+        if (isNew) {
           el = document.createElement('div');
-          el.className = 'img-layer';
+          el.className = 'img-layer'; // starts hidden (below screen)
           el.dataset.id = id;
           el.innerHTML = '<div class="img-float-inner"><img src=""></div>';
           container.appendChild(el);
@@ -1333,11 +1330,20 @@
         if (img.src !== L.src) img.src = L.src;
         el.style.width  = (L.size || 400) + 'px';
         el.style.zIndex = L.z || 1;
-        // X position: xPercent 0=left edge, 50=center, 100=right edge
         var xp = (L.xPercent != null) ? L.xPercent : 50;
         el.style.left = xp + '%';
-        if (L.visible) el.classList.add('visible');
-        else el.classList.remove('visible');
+
+        if (isNew && L.visible) {
+          // Force browser to register hidden state, THEN slide in
+          void el.offsetHeight; // reflow
+          requestAnimationFrame(function() {
+            requestAnimationFrame(function() { el.classList.add('visible'); });
+          });
+        } else if (L.visible) {
+          el.classList.add('visible');
+        } else {
+          el.classList.remove('visible');
+        }
       });
     });
 
