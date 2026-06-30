@@ -1505,80 +1505,6 @@
     });
 
     /* ═══ Image Layers ═══ */
-    var imgLayers = {};  // {id: {src, x, y, size, visible, z}}
-    var imgPasteBase64 = null;
-
-
-    // Paste handler
-    
-    function addLayerFromUrl() {
-      var url = document.getElementById('img-url-input').value.trim();
-      if (!url) return;
-      addLayer(url);
-      document.getElementById('img-url-input').value = '';
-    }
-
-    function addLayer(src) {
-      var id = 'layer_' + Date.now() + '_' + Math.floor(Math.random()*1000);
-      var maxZ = 0;
-      Object.values(imgLayers).forEach(function(l){ if(l.z > maxZ) maxZ = l.z; });
-      imgLayers[id] = { src: src, x: 760, y: 400, size: 400, visible: true, z: maxZ + 1 };
-      db.ref('widgets/image_layers/' + id).set(imgLayers[id]);
-    }
-
-    function removeLayer(id) {
-      delete imgLayers[id];
-      db.ref('widgets/image_layers/' + id).remove();
-    }
-
-    function toggleLayerVisible(id) {
-      if (!imgLayers[id]) return;
-      imgLayers[id].visible = !imgLayers[id].visible;
-      db.ref('widgets/image_layers/' + id + '/visible').set(imgLayers[id].visible);
-    }
-
-    function setLayerSize(id, size) {
-      if (!imgLayers[id]) return;
-      imgLayers[id].size = parseInt(size);
-      db.ref('widgets/image_layers/' + id + '/size').set(parseInt(size));
-    }
-
-    function renderLayersList() {
-      var list = document.getElementById('img-layers-list');
-      if (!list) return;
-      var ids = Object.keys(imgLayers).sort(function(a,b){ return imgLayers[b].z - imgLayers[a].z; });
-      if (!ids.length) {
-        list.innerHTML = '<div style="font-size:12px;color:#555;padding:10px 0;text-align:center;">Нет слоёв — вставь картинку</div>';
-        return;
-      }
-      list.innerHTML = ids.map(function(id) {
-        var l = imgLayers[id];
-        return '<div style="display:flex;gap:10px;align-items:center;background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:8px;">' +
-          '<img src="' + l.src + '" style="width:48px;height:48px;object-fit:cover;border-radius:5px;border:1px solid #444;flex-shrink:0;">' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="display:flex;gap:6px;align-items:center;margin-bottom:5px;">' +
-              '<button onclick="toggleLayerVisible(\'' + id + '\')" style="padding:3px 8px;font-size:11px;border-radius:4px;border:none;cursor:pointer;width:auto;margin:0;background:' + (l.visible ? '#1db954' : '#555') + ';color:#fff;">' + (l.visible ? '👁 Виден' : '🚫 Скрыт') + '</button>' +
-              '<span style="font-size:10px;color:#666;">Z:' + l.z + '</span>' +
-            '</div>' +
-            '<div style="display:flex;gap:6px;align-items:center;">' +
-              '<span style="font-size:10px;color:#888;">Размер</span>' +
-              '<input type="range" min="80" max="1200" value="' + l.size + '" oninput="setLayerSize(\'' + id + '\', this.value)" style="flex:1;height:4px;">' +
-            '</div>' +
-          '</div>' +
-          '<button onclick="removeLayer(\'' + id + '\')" style="padding:6px 10px;font-size:12px;border-radius:5px;border:none;cursor:pointer;width:auto;margin:0;background:#c0392b;color:#fff;flex-shrink:0;">🗑</button>' +
-        '</div>';
-      }).join('');
-    }
-
-    // Sync layers from Firebase
-    db.ref('widgets/image_layers').on('value', function(snap) {
-      imgLayers = snap.val() || {};
-      renderLayersList();
-    }););
-      db.ref('widgets/image_overlay/pos').set(pos);
-    }
-
-    /* ═══ Image Layers ═══ */
     var imgLayers = {}; // {id: {src, size, x, y, visible, z}}
 
     function openImageModal()  { document.getElementById('image-modal').style.display = 'flex'; setTimeout(function(){var z=document.getElementById('img-paste-zone'); if(z) z.focus();}, 100); }
@@ -1613,11 +1539,20 @@
       db.ref('widgets/image_layers/' + id).set({
         src: src,
         size: 400,
-        x: 710,   // center-ish in 1920
+        x: 710,
         y: 500,
         visible: true,
-        z: maxZ + 1
+        z: maxZ + 1,
+        animIn:  'slideUp',
+        animOut: 'slideDown'
       });
+    }
+
+    function setLayerAnim(id, which, value) {
+      db.ref('widgets/image_layers/' + id + '/' + which).set(value);
+    }
+    function setLayerSize(id, size) {
+      db.ref('widgets/image_layers/' + id + '/size').set(parseInt(size));
     }
 
     function removeLayer(id) {
@@ -1648,20 +1583,67 @@
       }
       // Sort by z descending (top layer first)
       ids.sort(function(a,b){ return (imgLayers[b].z||0) - (imgLayers[a].z||0); });
+      var animOpts = [['slideUp','↑ Снизу'],['slideDown','↓ Сверху'],['slideLeft','← Слева'],['slideRight','→ Справа'],['fade','✦ Плавно'],['zoom','⊕ Зум'],['bounce','⛐ Прыжок'],['flip','⟳ Флип']];
+      function animSelect(id, which, cur) {
+        return '<select onchange="setLayerAnim(\''+id+'\',\''+which+'\',this.value)" style="background:#0f0f1a;border:1px solid #444;border-radius:4px;color:#fff;padding:3px 5px;font-size:11px;margin:0;width:auto;">' +
+          animOpts.map(function(o){ return '<option value="'+o[0]+'"'+(cur===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('') + '</select>';
+      }
       list.innerHTML = ids.map(function(id, idx) {
         var L = imgLayers[id];
         var num = ids.length - idx;
-        return '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:#1a1a2e;border-radius:8px;margin-bottom:8px;border:1px solid '+(L.visible?'#00b8d4':'#333')+';">' +
-          '<img src="'+L.src+'" style="width:48px;height:48px;object-fit:cover;border-radius:5px;border:1px solid #444;">' +
-          '<div style="flex:1;min-width:0;">' +
-            '<div style="font-size:12px;color:#00e5ff;font-weight:700;">Слой ' + num + '</div>' +
-            '<div style="font-size:11px;color:#666;">размер: '+L.size+'px · поз: '+L.x+','+L.y+'</div>' +
+        return '<div style="padding:10px;background:#1a1a2e;border-radius:10px;margin-bottom:10px;border:1px solid '+(L.visible?'#00b8d4':'#333')+';">' +
+          // Top row: thumb + title + buttons
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
+            '<img src="'+L.src+'" style="width:42px;height:42px;object-fit:cover;border-radius:5px;border:1px solid #444;">' +
+            '<div style="flex:1;min-width:0;"><div style="font-size:12px;color:#00e5ff;font-weight:700;">Слой ' + num + '</div>' +
+              '<div style="font-size:10px;color:#666;">поз: '+L.x+','+L.y+' · '+L.size+'px</div></div>' +
+            '<button onclick="toggleLayer(\''+id+'\')" style="width:auto;padding:6px 9px;background:'+(L.visible?'#1db954':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">'+(L.visible?'👁️':'🚫')+'</button>' +
+            '<button onclick="bringLayerFront(\''+id+'\')" style="width:auto;padding:6px 9px;background:#6610f2;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">⬆️</button>' +
+            '<button onclick="removeLayer(\''+id+'\')" style="width:auto;padding:6px 9px;background:#c0392b;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">🗑️</button>' +
           '</div>' +
-          '<button onclick="toggleLayer(\''+id+'\')" title="Показать/скрыть" style="width:auto;padding:6px 9px;background:'+(L.visible?'#1db954':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">'+(L.visible?'👁️':'🚫')+'</button>' +
-          '<button onclick="bringLayerFront(\''+id+'\')" title="Наверх" style="width:auto;padding:6px 9px;background:#6610f2;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">⬆️</button>' +
-          '<button onclick="removeLayer(\''+id+'\')" title="Удалить" style="width:auto;padding:6px 9px;background:#c0392b;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">🗑️</button>' +
+          // Drag pad (mini canvas representing 1920x1080)
+          '<div class="img-drag-pad" data-layer="'+id+'" style="position:relative;width:100%;height:90px;background:#0a0a14;border:1px solid #333;border-radius:6px;margin-bottom:8px;cursor:crosshair;overflow:hidden;">' +
+            '<div class="img-drag-dot" data-layer="'+id+'" style="position:absolute;width:20px;height:20px;background:#00e5ff;border:2px solid #fff;border-radius:4px;transform:translate(-50%,-50%);cursor:move;left:'+(L.x/1920*100)+'%;top:'+(L.y/1080*100)+'%;box-shadow:0 0 8px rgba(0,229,255,0.6);"></div>' +
+            '<div style="position:absolute;bottom:2px;right:5px;font-size:9px;color:#444;pointer-events:none;">перетаскивай точку</div>' +
+          '</div>' +
+          // Size slider
+          '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">' +
+            '<span style="font-size:11px;color:#888;">Размер</span>' +
+            '<input type="range" min="80" max="1000" value="'+L.size+'" oninput="setLayerSize(\''+id+'\',this.value)" style="flex:1;">' +
+          '</div>' +
+          // Animation presets
+          '<div style="display:flex;gap:8px;align-items:center;font-size:11px;color:#888;">' +
+            '<span>Вход:</span>' + animSelect(id,'animIn',L.animIn||'slideUp') +
+            '<span style="margin-left:6px;">Выход:</span>' + animSelect(id,'animOut',L.animOut||'slideDown') +
+          '</div>' +
         '</div>';
       }).join('');
+
+      // Attach drag to pads
+      list.querySelectorAll('.img-drag-dot').forEach(function(dot) {
+        dot.addEventListener('mousedown', function(e) {
+          e.preventDefault(); e.stopPropagation();
+          var id = dot.dataset.layer;
+          var pad = dot.parentElement;
+          var onM = function(e2) {
+            var r = pad.getBoundingClientRect();
+            var px = Math.max(0, Math.min(1, (e2.clientX - r.left) / r.width));
+            var py = Math.max(0, Math.min(1, (e2.clientY - r.top) / r.height));
+            dot.style.left = (px*100)+'%';
+            dot.style.top  = (py*100)+'%';
+            imgLayers[id].x = Math.round(px*1920);
+            imgLayers[id].y = Math.round(py*1080);
+          };
+          var onU = function() {
+            document.removeEventListener('mousemove',onM);
+            document.removeEventListener('mouseup',onU);
+            db.ref('widgets/image_layers/'+id+'/x').set(imgLayers[id].x);
+            db.ref('widgets/image_layers/'+id+'/y').set(imgLayers[id].y);
+          };
+          document.addEventListener('mousemove',onM);
+          document.addEventListener('mouseup',onU);
+        });
+      });
     });
 
     /* ═══ Image layers in position editor ═══ */
