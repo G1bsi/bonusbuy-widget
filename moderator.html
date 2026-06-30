@@ -971,7 +971,7 @@
             <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px);background-size:5.208% 5.556%;pointer-events:none;z-index:1;"></div>
 
             <!-- Widget block -->
-            <div id="le-widget" style="position:absolute;border:2px solid #3498db;border-radius:6px;z-index:10;user-select:none;box-shadow:0 0 0 1px rgba(52,152,219,0.3);">
+            <div id="le-widget" style="position:absolute;border:2px solid #3498db;border-radius:6px;z-index:5;user-select:none;box-shadow:0 0 0 1px rgba(52,152,219,0.3);">
               <div id="le-widget-move" style="position:absolute;inset:0;background:rgba(52,152,219,0.15);cursor:move;display:flex;align-items:center;justify-content:center;">
                 <div style="text-align:center;pointer-events:none;">
                   <div style="font-size:11px;font-weight:800;color:#3498db;text-shadow:0 1px 3px #000;">📊 ВИДЖЕТ</div>
@@ -987,7 +987,7 @@
             </div>
 
             <!-- DnD block -->
-            <div id="le-dnd" style="position:absolute;border:2px solid #9b59b6;border-radius:6px;z-index:10;user-select:none;box-shadow:0 0 0 1px rgba(155,89,182,0.3);">
+            <div id="le-dnd" style="position:absolute;border:2px solid #9b59b6;border-radius:6px;z-index:4;user-select:none;box-shadow:0 0 0 1px rgba(155,89,182,0.3);">
               <div id="le-dnd-move" style="position:absolute;inset:0;background:rgba(155,89,182,0.15);cursor:move;display:flex;align-items:center;justify-content:center;">
                 <div style="text-align:center;pointer-events:none;">
                   <div style="font-size:11px;font-weight:800;color:#9b59b6;text-shadow:0 1px 3px #000;">🎰 DnD ИГРА</div>
@@ -1001,7 +1001,7 @@
             </div>
 
             <!-- Finance block -->
-            <div id="le-finance" style="position:absolute;border:2px solid #e67e22;border-radius:6px;z-index:10;user-select:none;min-height:30px;">
+            <div id="le-finance" style="position:absolute;border:2px solid #e67e22;border-radius:6px;z-index:15;user-select:none;min-height:30px;">
               <div id="le-finance-move" style="position:absolute;inset:0;background:rgba(230,126,34,0.2);cursor:move;display:flex;align-items:center;justify-content:center;">
                 <div style="text-align:center;pointer-events:none;">
                   <div style="font-size:11px;font-weight:800;color:#e67e22;text-shadow:0 1px 3px #000;">📊 ФИНАНСЫ</div>
@@ -1012,7 +1012,7 @@
             </div>
 
             <!-- Stats block (same structure as finance) -->
-            <div id="le-stats" style="position:absolute;border:2px solid #ffb703;border-radius:6px;z-index:10;user-select:none;min-height:30px;">
+            <div id="le-stats" style="position:absolute;border:2px solid #ffb703;border-radius:6px;z-index:16;user-select:none;min-height:30px;">
               <div id="le-stats-move" style="position:absolute;inset:0;background:rgba(255,183,3,0.15);cursor:move;display:flex;align-items:center;justify-content:center;">
                 <div style="text-align:center;pointer-events:none;">
                   <div style="font-size:11px;font-weight:800;color:#ffb703;text-shadow:0 1px 3px #000;">📊 СТАТИСТИКА</div>
@@ -1138,14 +1138,11 @@
 
       // Use document-level delegation so it survives DOM changes
       document.addEventListener('mousedown', function(e) {
-        // Only act when layout modal is open
-        const modal = document.getElementById('layout-modal');
-        if (!modal || modal.style.display === 'none') return;
         // Only act when clicking inside the canvas
         const canvas = document.getElementById('layout-canvas-wrap');
-        if (!canvas || !canvas.contains(e.target)) return;
-        var moveEl = e.target.id && e.target.id.endsWith('-move') ? e.target : e.target.closest ? e.target.closest('[id$="-move"]') : null;
-        var handle = e.target.classList.contains('le-handle') ? e.target : e.target.closest ? e.target.closest('.le-handle') : null;
+        if (!canvas || !canvas.contains(e.target)) { return; }
+        var moveEl = e.target.id && e.target.id.endsWith('-move') ? e.target : (e.target.closest ? e.target.closest('[id$="-move"]') : null);
+        var handle = e.target.classList.contains('le-handle') ? e.target : (e.target.closest ? e.target.closest('.le-handle') : null);
 
         if (moveEl) {
           var key = moveEl.id.replace('le-','').replace('-move','');
