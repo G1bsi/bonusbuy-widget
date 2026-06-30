@@ -11,17 +11,22 @@
         body { font-family: sans-serif; background: #1c1c21; color: #fff; padding: 20px; margin: 0; }
         /* Center all content, responsive width */
         #mod-wrapper { max-width: 460px; margin: 0 auto; width: 100%; }
-        @media (min-width: 900px)  { #mod-wrapper { max-width: 520px; } }
-        @media (min-width: 1400px) { #mod-wrapper { max-width: 600px; } }
+        @media (min-width: 1000px) { #mod-wrapper { max-width: 1100px; } }
+        @media (min-width: 1500px) { #mod-wrapper { max-width: 1300px; } }
 
         #panel-solo { display: block; }
         #panel-battle { display: block; }
         /* Two-column masonry layout for wide screens */
         @media (min-width: 1000px) {
-          #mod-wrapper { max-width: 1000px; }
           #panel-solo, #panel-battle {
             column-count: 2;
-            column-gap: 20px;
+            column-gap: 24px;
+          }
+        }
+        @media (min-width: 1600px) {
+          #panel-solo, #panel-battle {
+            column-count: 3;
+            column-gap: 24px;
           }
           #panel-solo > .box, #panel-battle > .box {
             break-inside: avoid;
@@ -1023,8 +1028,6 @@
               <div class="le-handle" data-block="stats" data-dir="scale" style="position:absolute;right:-5px;top:-5px;width:14px;height:14px;background:#e74c3c;border-radius:50%;cursor:ne-resize;z-index:11;"></div>
             </div>
 
-            <!-- Dynamic image layer blocks injected here -->
-            <div id="le-img-layers-container"></div>
           </div>
         </div>
 
@@ -1539,20 +1542,27 @@
       db.ref('widgets/image_layers/' + id).set({
         src: src,
         size: 400,
-        x: 710,
-        y: 500,
-        visible: true,
-        z: maxZ + 1,
-        animIn:  'slideUp',
-        animOut: 'slideDown'
+        xPercent: 50,   // 0 = left, 50 = center, 100 = right
+        visible: false, // hidden until user clicks show
+        z: maxZ + 1
       });
     }
 
-    function setLayerAnim(id, which, value) {
-      db.ref('widgets/image_layers/' + id + '/' + which).set(value);
-    }
     function setLayerSize(id, size) {
       db.ref('widgets/image_layers/' + id + '/size').set(parseInt(size));
+    }
+    var imgDragging = false;
+    var imgDragTimer = null;
+    function liveLayerX(id, x) {
+      imgDragging = true;
+      // Update local cache + Firebase live (widget reads it), but don't re-render list
+      if (imgLayers[id]) imgLayers[id].xPercent = parseInt(x);
+      db.ref('widgets/image_layers/' + id + '/xPercent').set(parseInt(x));
+    }
+    function setLayerX(id, x) {
+      db.ref('widgets/image_layers/' + id + '/xPercent').set(parseInt(x));
+      clearTimeout(imgDragTimer);
+      imgDragTimer = setTimeout(function(){ imgDragging = false; }, 300);
     }
 
     function removeLayer(id) {
@@ -1573,9 +1583,9 @@
     // Render layers list
     db.ref('widgets/image_layers').on('value', function(snap) {
       imgLayers = snap.val() || {};
-      if(document.getElementById('layout-modal') && document.getElementById('layout-modal').style.display==='flex') renderImageLayerBlocks();
       var list = document.getElementById('img-layers-list');
       if (!list) return;
+      if (imgDragging) return; // don't re-render while user drags a slider
       var ids = Object.keys(imgLayers);
       if (!ids.length) {
         list.innerHTML = '<div style="font-size:13px;color:#555;padding:12px 0;text-align:center;">Нет активных слоёв</div>';
@@ -1583,156 +1593,29 @@
       }
       // Sort by z descending (top layer first)
       ids.sort(function(a,b){ return (imgLayers[b].z||0) - (imgLayers[a].z||0); });
-      var animOpts = [['slideUp','↑ Снизу'],['slideDown','↓ Сверху'],['slideLeft','← Слева'],['slideRight','→ Справа'],['fade','✦ Плавно'],['zoom','⊕ Зум'],['bounce','⛐ Прыжок'],['flip','⟳ Флип']];
-      function animSelect(id, which, cur) {
-        return '<select onchange="setLayerAnim(\''+id+'\',\''+which+'\',this.value)" style="background:#0f0f1a;border:1px solid #444;border-radius:4px;color:#fff;padding:3px 5px;font-size:11px;margin:0;width:auto;">' +
-          animOpts.map(function(o){ return '<option value="'+o[0]+'"'+(cur===o[0]?' selected':'')+'>'+o[1]+'</option>'; }).join('') + '</select>';
-      }
       list.innerHTML = ids.map(function(id, idx) {
         var L = imgLayers[id];
         var num = ids.length - idx;
+        var xp = (L.xPercent != null) ? L.xPercent : 50;
         return '<div style="padding:10px;background:#1a1a2e;border-radius:10px;margin-bottom:10px;border:1px solid '+(L.visible?'#00b8d4':'#333')+';">' +
-          // Top row: thumb + title + buttons
-          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">' +
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
             '<img src="'+L.src+'" style="width:42px;height:42px;object-fit:cover;border-radius:5px;border:1px solid #444;">' +
             '<div style="flex:1;min-width:0;"><div style="font-size:12px;color:#00e5ff;font-weight:700;">Слой ' + num + '</div>' +
-              '<div style="font-size:10px;color:#666;">поз: '+L.x+','+L.y+' · '+L.size+'px</div></div>' +
+              '<div style="font-size:10px;color:#666;">'+xp+'% по X</div></div>' +
             '<button onclick="toggleLayer(\''+id+'\')" style="width:auto;padding:6px 9px;background:'+(L.visible?'#1db954':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">'+(L.visible?'👁️':'🚫')+'</button>' +
             '<button onclick="bringLayerFront(\''+id+'\')" style="width:auto;padding:6px 9px;background:#6610f2;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">⬆️</button>' +
             '<button onclick="removeLayer(\''+id+'\')" style="width:auto;padding:6px 9px;background:#c0392b;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">🗑️</button>' +
           '</div>' +
-          // Drag pad (mini canvas representing 1920x1080)
-          '<div class="img-drag-pad" data-layer="'+id+'" style="position:relative;width:100%;height:90px;background:#0a0a14;border:1px solid #333;border-radius:6px;margin-bottom:8px;cursor:crosshair;overflow:hidden;">' +
-            '<div class="img-drag-dot" data-layer="'+id+'" style="position:absolute;width:20px;height:20px;background:#00e5ff;border:2px solid #fff;border-radius:4px;transform:translate(-50%,-50%);cursor:move;left:'+(L.x/1920*100)+'%;top:'+(L.y/1080*100)+'%;box-shadow:0 0 8px rgba(0,229,255,0.6);"></div>' +
-            '<div style="position:absolute;bottom:2px;right:5px;font-size:9px;color:#444;pointer-events:none;">перетаскивай точку</div>' +
-          '</div>' +
-          // Size slider
+          // X position slider (left ◄──► right)
           '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">' +
-            '<span style="font-size:11px;color:#888;">Размер</span>' +
-            '<input type="range" min="80" max="1000" value="'+L.size+'" oninput="setLayerSize(\''+id+'\',this.value)" style="flex:1;">' +
-          '</div>' +
-          // Animation presets
-          '<div style="display:flex;gap:8px;align-items:center;font-size:11px;color:#888;">' +
-            '<span>Вход:</span>' + animSelect(id,'animIn',L.animIn||'slideUp') +
-            '<span style="margin-left:6px;">Выход:</span>' + animSelect(id,'animOut',L.animOut||'slideDown') +
+            '<span style="font-size:13px;">◄</span>' +
+            '<input type="range" min="0" max="100" value="'+xp+'" oninput="liveLayerX(\''+id+'\',this.value)" onchange="setLayerX(\''+id+'\',this.value)" style="flex:1;" title="Позиция по горизонтали">' +
+            '<span style="font-size:13px;">►</span>' +
           '</div>' +
         '</div>';
       }).join('');
-
-      // Attach drag to pads
-      list.querySelectorAll('.img-drag-dot').forEach(function(dot) {
-        dot.addEventListener('mousedown', function(e) {
-          e.preventDefault(); e.stopPropagation();
-          var id = dot.dataset.layer;
-          var pad = dot.parentElement;
-          var onM = function(e2) {
-            var r = pad.getBoundingClientRect();
-            var px = Math.max(0, Math.min(1, (e2.clientX - r.left) / r.width));
-            var py = Math.max(0, Math.min(1, (e2.clientY - r.top) / r.height));
-            dot.style.left = (px*100)+'%';
-            dot.style.top  = (py*100)+'%';
-            imgLayers[id].x = Math.round(px*1920);
-            imgLayers[id].y = Math.round(py*1080);
-          };
-          var onU = function() {
-            document.removeEventListener('mousemove',onM);
-            document.removeEventListener('mouseup',onU);
-            db.ref('widgets/image_layers/'+id+'/x').set(imgLayers[id].x);
-            db.ref('widgets/image_layers/'+id+'/y').set(imgLayers[id].y);
-          };
-          document.addEventListener('mousemove',onM);
-          document.addEventListener('mouseup',onU);
-        });
-      });
     });
 
-    /* ═══ Image layers in position editor ═══ */
-    var imgLayersLayout = {}; // local positions {id:{x,y,size}}
-
-    db.ref('widgets/image_layers_layout').on('value', function(snap) {
-      imgLayersLayout = snap.val() || {};
-    });
-
-    function renderImageLayerBlocks() {
-      var container = document.getElementById('le-img-layers-container');
-      if (!container) return;
-      var ids = Object.keys(imgLayers || {});
-      // Remove blocks for deleted layers
-      Array.prototype.slice.call(container.children).forEach(function(c) {
-        if (!imgLayers[c.dataset.layerId]) c.remove();
-      });
-      ids.forEach(function(id, idx) {
-        var L = imgLayers[id];
-        if (!L.visible) {
-          var existing = container.querySelector('[data-layer-id="'+id+'"]');
-          if (existing) existing.remove();
-          return;
-        }
-        // Use layout position if exists, else layer's own
-        var pos = imgLayersLayout[id] || { x: L.x, y: L.y, size: L.size };
-        var block = container.querySelector('[data-layer-id="'+id+'"]');
-        if (!block) {
-          block = document.createElement('div');
-          block.dataset.layerId = id;
-          block.style.cssText = 'position:absolute;border:2px solid #00e5ff;border-radius:6px;z-index:18;user-select:none;cursor:move;background:rgba(0,229,255,0.1);overflow:hidden;';
-          block.innerHTML = '<img src="'+L.src+'" style="width:100%;height:100%;object-fit:contain;pointer-events:none;opacity:0.85;">' +
-            '<div style="position:absolute;top:2px;left:4px;font-size:9px;font-weight:800;color:#00e5ff;text-shadow:0 1px 2px #000;pointer-events:none;">🖼️ '+(idx+1)+'</div>' +
-            '<div class="le-img-scale" style="position:absolute;right:-5px;top:-5px;width:14px;height:14px;background:#e74c3c;border-radius:50%;cursor:ne-resize;z-index:21;"></div>';
-          container.appendChild(block);
-          attachImageLayerDrag(block, id);
-        }
-        // Update position/size
-        var natW = pos.size || 400;
-        var natH = natW * 0.6; // approximate aspect for editor
-        block.style.left   = pctNum(pos.x, 1920) + '%';
-        block.style.top    = pctNum(pos.y, 1080) + '%';
-        block.style.width  = pctNum(natW, 1920) + '%';
-        block.style.height = pctNum(natH, 1080) + '%';
-      });
-    }
-    function pctNum(v, max) { return (v/max*100).toFixed(4); }
-
-    function attachImageLayerDrag(block, id) {
-      block.addEventListener('mousedown', function(e) {
-        var scaleHandle = e.target.classList.contains('le-img-scale');
-        e.preventDefault(); e.stopPropagation();
-        var canvas = document.getElementById('layout-canvas-wrap');
-        var cw = canvas.offsetWidth, ch = canvas.offsetHeight || (cw*0.5625);
-        var sx = e.clientX, sy = e.clientY;
-        var pos = imgLayersLayout[id] || { x: imgLayers[id].x, y: imgLayers[id].y, size: imgLayers[id].size };
-        var ox = pos.x, oy = pos.y, osize = pos.size || 400;
-
-        if (scaleHandle) {
-          var onM = function(e2) {
-            var dx = Math.round((e2.clientX - sx) / cw * 1920);
-            var newSize = Math.max(50, osize + dx);
-            imgLayersLayout[id] = { x: ox, y: oy, size: newSize };
-            renderImageLayerBlocks();
-          };
-          var onU = function() {
-            document.removeEventListener('mousemove', onM);
-            document.removeEventListener('mouseup', onU);
-            db.ref('widgets/image_layers_layout/' + id).set(imgLayersLayout[id]);
-          };
-          document.addEventListener('mousemove', onM);
-          document.addEventListener('mouseup', onU);
-        } else {
-          var onM2 = function(e2) {
-            var dx = Math.round((e2.clientX - sx) / cw * 1920);
-            var dy = Math.round((e2.clientY - sy) / ch * 1080);
-            imgLayersLayout[id] = { x: ox + dx, y: oy + dy, size: osize };
-            renderImageLayerBlocks();
-          };
-          var onU2 = function() {
-            document.removeEventListener('mousemove', onM2);
-            document.removeEventListener('mouseup', onU2);
-            db.ref('widgets/image_layers_layout/' + id).set(imgLayersLayout[id]);
-          };
-          document.addEventListener('mousemove', onM2);
-          document.addEventListener('mouseup', onU2);
-        }
-      });
-    }
     </script>
 
 
@@ -1832,14 +1715,14 @@
     <div id="image-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);z-index:11000;align-items:center;justify-content:center;">
       <div style="background:#25252c;border:2px solid #00b8d4;border-radius:12px;width:94vw;max-width:600px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px rgba(0,184,212,0.2);">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #333;background:#1e1e24;flex-shrink:0;">
-          <h3 style="margin:0;color:#00e5ff;font-size:15px;">🖼️ Картинки на стрим (слои)</h3>
+          <h3 style="margin:0;color:#00e5ff;font-size:15px;">🖼️ Картинки</h3>
           <button onclick="closeImageModal()" style="width:auto;padding:5px 12px;background:#555;border-radius:6px;margin:0;font-size:13px;">✕</button>
         </div>
         <div style="padding:16px 18px;overflow-y:auto;flex:1;">
 
           <!-- Add new layer -->
           <div id="img-paste-zone" tabindex="0" style="border:2px dashed #00b8d4;border-radius:10px;padding:24px 20px;text-align:center;cursor:pointer;background:#1a1a2e;margin-bottom:10px;outline:none;">
-            <div style="font-size:13px;color:#aaa;">Кликни и нажми <b style="color:#00e5ff;">Ctrl+V</b> чтобы добавить новый слой</div>
+            <div style="font-size:13px;color:#aaa;">Вставить картинку — кликни и нажми <b style="color:#00e5ff;">Ctrl+V</b></div>
           </div>
           <div style="display:flex;gap:8px;margin-bottom:16px;">
             <input type="text" id="img-url-input" placeholder="или вставь ссылку (URL)..." 
@@ -1849,7 +1732,7 @@
           </div>
 
           <!-- Layers list -->
-          <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Активные слои (перетаскивай в Позициях)</div>
+          <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">СЛОИ</div>
           <div id="img-layers-list">
             <div style="font-size:13px;color:#555;padding:12px 0;text-align:center;">Нет активных слоёв</div>
           </div>
