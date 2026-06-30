@@ -1235,8 +1235,11 @@
     db.ref('widgets/layout').on('value', function(lay) {
       if(!lay) return; const d=lay.val(); if(!d) return;
       const tw=document.getElementById('tracker-wrap'), dw=document.getElementById('dnd-outer-wrap');
+      const fw=document.getElementById('finance-overlay'), sv=document.getElementById('stats-overlay');
       if(tw&&d.widget){tw.style.left=d.widget.x+'px';tw.style.top=d.widget.y+'px';tw.style.transform='scale('+(d.widget.w/580)+')';}
       if(dw&&d.dnd){dw.style.left=d.dnd.x+'px';dw.style.top=d.dnd.y+'px';dw.style.width=d.dnd.w+'px';dw.style.height=d.dnd.h+'px';const sw=document.getElementById('dnd-scale-wrap');if(sw)sw.style.transform='scale('+(d.dnd.h/1080)+')';}
+      if(fw&&d.finance){fw.style.left=d.finance.x+'px';fw.style.top=d.finance.y+'px';fw.style.transform='scale('+(d.finance.scale||1.0)+')';}
+      if(sv&&d.stats){sv.style.left=d.stats.x+'px';sv.style.top=d.stats.y+'px';sv.style.transform='scale('+(d.stats.scale||1.0)+')';}
     });
     db.ref('widgets/finance').on('value', function(snap) {
       var d=snap.val()||{}; var fw=document.getElementById('finance-overlay'); if(!fw) return;
