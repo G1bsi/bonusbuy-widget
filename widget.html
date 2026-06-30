@@ -1116,36 +1116,29 @@
     #stats-overlay .sov-line2 .sov-label-part{color:#ffffff;}
     #stats-overlay .sov-line2 .sov-num-part{color:#ffb703;}
 
-    #image-overlay {
-      position: fixed;
-      bottom: 60px;          /* отступ снизу */
-      left: 50%;
-      transform: translate(-50%, calc(100% + 80px));  /* скрыта ниже экрана */
-      z-index: 100;
-      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* Image layers container */
+    #image-layers { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
+    .img-layer {
+      position: absolute;
+      transform-origin: center bottom;
+      transition: opacity 0.5s, transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+      opacity: 0;
       pointer-events: none;
     }
-    #image-overlay.visible { transform: translate(-50%, 0); }
-    #image-overlay.pos-left   { left: 40px; transform: translate(0, calc(100% + 80px)); }
-    #image-overlay.pos-left.visible   { transform: translate(0, 0); }
-    #image-overlay.pos-right  { left: auto; right: 40px; transform: translate(0, calc(100% + 80px)); }
-    #image-overlay.pos-right.visible  { transform: translate(0, 0); }
-
-    /* Floating animation when visible — smooth & gentle */
-    #image-overlay.visible .img-float {
-      animation: imgFloat 6s ease-in-out infinite;
-    }
+    .img-layer.visible { opacity: 1; }
+    .img-layer .img-float-inner { animation: imgFloat 6s ease-in-out infinite; }
     @keyframes imgFloat {
       0%   { transform: translateY(0) rotate(0deg); }
       50%  { transform: translateY(-12px) rotate(0.5deg); }
       100% { transform: translateY(0) rotate(0deg); }
     }
-    #image-overlay img {
-      display: block;
-      max-width: 100%;
-      height: auto;
+    .img-layer img {
+      display: block; max-width: 100%; height: auto;
       filter: drop-shadow(0 10px 30px rgba(0,0,0,0.5));
     }
+
+
+
 
 
   </style>
@@ -1273,6 +1266,18 @@
       if(fw&&d.finance){fw.style.left=d.finance.x+'px';fw.style.top=d.finance.y+'px';fw.style.transform='scale('+(d.finance.scale||1.0)+')';}
       if(sv&&d.stats){sv.style.left=d.stats.x+'px';sv.style.top=d.stats.y+'px';sv.style.transform='scale('+(d.stats.scale||1.0)+')';}
     });
+    // Image layers positions from layout editor
+    db.ref('widgets/image_layers_layout').on('value', function(snap) {
+      var layout = snap.val() || {};
+      Object.keys(layout).forEach(function(id) {
+        var el = document.querySelector('.img-layer[data-id="'+id+'"]');
+        if (el && layout[id]) {
+          el.style.left  = layout[id].x + 'px';
+          el.style.top   = layout[id].y + 'px';
+          el.style.width = (layout[id].size || 400) + 'px';
+        }
+      });
+    });
     db.ref('widgets/finance').on('value', function(snap) {
       var d=snap.val()||{}; var fw=document.getElementById('finance-overlay'); if(!fw) return;
       fw.innerHTML='';
@@ -1313,19 +1318,35 @@
       if(d.ts<=lastTtsTs) return; lastTtsTs=d.ts;
       try{var a=new Audio(d.audio);a.play().catch(function(){});}catch(e){}
     });
-    // Image overlay (slides up from bottom)
-    var imgOvFirstLoad = true;
-    db.ref('widgets/image_overlay').on('value', function(snap) {
-      var d = snap.val();
-      var ov = document.getElementById('image-overlay');
-      var im = document.getElementById('image-overlay-img');
-      if (!ov || !im || !d) return;
-      // Set source
-      if (d.src && im.src !== d.src) im.src = d.src;
-      // Set size
-      if (d.size) im.style.width = d.size + 'px';
-      // Set position class
-      ov.className = (d.pos === 'left' ? 'pos-left' : d.pos === 'right' ? 'pos-right' : '') + (d.visible ? ' visible' : '');
+    // Image layers (multi-layer, positioned via layout editor)
+    db.ref('widgets/image_layers').on('value', function(snap) {
+      var layers = snap.val() || {};
+      var container = document.getElementById('image-layers');
+      if (!container) return;
+      // Remove layers no longer present
+      Array.prototype.slice.call(container.children).forEach(function(child) {
+        if (!layers[child.dataset.id]) child.remove();
+      });
+      // Add/update layers
+      Object.keys(layers).forEach(function(id) {
+        var L = layers[id];
+        var el = container.querySelector('[data-id="'+id+'"]');
+        if (!el) {
+          el = document.createElement('div');
+          el.className = 'img-layer';
+          el.dataset.id = id;
+          el.innerHTML = '<div class="img-float-inner"><img src=""></div>';
+          container.appendChild(el);
+        }
+        var img = el.querySelector('img');
+        if (img.src !== L.src) img.src = L.src;
+        el.style.left   = (L.x || 0) + 'px';
+        el.style.top    = (L.y || 0) + 'px';
+        el.style.width  = (L.size || 400) + 'px';
+        el.style.zIndex = L.z || 1;
+        if (L.visible) el.classList.add('visible');
+        else el.classList.remove('visible');
+      });
     });
 
     db.ref('/').on('value', function(snapshot) {
@@ -2326,7 +2347,7 @@
   });
 </script>
 
-  <div id="image-overlay"><div class="img-float"><img id="image-overlay-img" src=""></div></div>
+  <div id="image-layers"></div>
   <div id="finance-overlay" style="display:none;"></div>
   <div id="stats-overlay">
     <span class="sov-line1" id="sov-line1">Разыграно в прошлом</span>
