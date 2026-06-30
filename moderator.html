@@ -1022,6 +1022,9 @@
               </div>
               <div class="le-handle" data-block="stats" data-dir="scale" style="position:absolute;right:-5px;top:-5px;width:14px;height:14px;background:#e74c3c;border-radius:50%;cursor:ne-resize;z-index:11;"></div>
             </div>
+
+            <!-- Dynamic image layer blocks injected here -->
+            <div id="le-img-layers-container"></div>
           </div>
         </div>
 
@@ -1501,15 +1504,88 @@
       if (inp) inp.addEventListener('keydown', function(e){ if(e.key==='Enter') statsAddAmount(); });
     });
 
-    /* ═══ Image Overlay ═══ */
-    var imgCurrentBase64 = null;
-    var imgPos = 'center';
+    /* ═══ Image Layers ═══ */
+    var imgLayers = {};  // {id: {src, x, y, size, visible, z}}
+    var imgPasteBase64 = null;
+
+
+    // Paste handler
+    
+    function addLayerFromUrl() {
+      var url = document.getElementById('img-url-input').value.trim();
+      if (!url) return;
+      addLayer(url);
+      document.getElementById('img-url-input').value = '';
+    }
+
+    function addLayer(src) {
+      var id = 'layer_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+      var maxZ = 0;
+      Object.values(imgLayers).forEach(function(l){ if(l.z > maxZ) maxZ = l.z; });
+      imgLayers[id] = { src: src, x: 760, y: 400, size: 400, visible: true, z: maxZ + 1 };
+      db.ref('widgets/image_layers/' + id).set(imgLayers[id]);
+    }
+
+    function removeLayer(id) {
+      delete imgLayers[id];
+      db.ref('widgets/image_layers/' + id).remove();
+    }
+
+    function toggleLayerVisible(id) {
+      if (!imgLayers[id]) return;
+      imgLayers[id].visible = !imgLayers[id].visible;
+      db.ref('widgets/image_layers/' + id + '/visible').set(imgLayers[id].visible);
+    }
+
+    function setLayerSize(id, size) {
+      if (!imgLayers[id]) return;
+      imgLayers[id].size = parseInt(size);
+      db.ref('widgets/image_layers/' + id + '/size').set(parseInt(size));
+    }
+
+    function renderLayersList() {
+      var list = document.getElementById('img-layers-list');
+      if (!list) return;
+      var ids = Object.keys(imgLayers).sort(function(a,b){ return imgLayers[b].z - imgLayers[a].z; });
+      if (!ids.length) {
+        list.innerHTML = '<div style="font-size:12px;color:#555;padding:10px 0;text-align:center;">Нет слоёв — вставь картинку</div>';
+        return;
+      }
+      list.innerHTML = ids.map(function(id) {
+        var l = imgLayers[id];
+        return '<div style="display:flex;gap:10px;align-items:center;background:#1a1a2e;border:1px solid #333;border-radius:8px;padding:8px;">' +
+          '<img src="' + l.src + '" style="width:48px;height:48px;object-fit:cover;border-radius:5px;border:1px solid #444;flex-shrink:0;">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="display:flex;gap:6px;align-items:center;margin-bottom:5px;">' +
+              '<button onclick="toggleLayerVisible(\'' + id + '\')" style="padding:3px 8px;font-size:11px;border-radius:4px;border:none;cursor:pointer;width:auto;margin:0;background:' + (l.visible ? '#1db954' : '#555') + ';color:#fff;">' + (l.visible ? '👁 Виден' : '🚫 Скрыт') + '</button>' +
+              '<span style="font-size:10px;color:#666;">Z:' + l.z + '</span>' +
+            '</div>' +
+            '<div style="display:flex;gap:6px;align-items:center;">' +
+              '<span style="font-size:10px;color:#888;">Размер</span>' +
+              '<input type="range" min="80" max="1200" value="' + l.size + '" oninput="setLayerSize(\'' + id + '\', this.value)" style="flex:1;height:4px;">' +
+            '</div>' +
+          '</div>' +
+          '<button onclick="removeLayer(\'' + id + '\')" style="padding:6px 10px;font-size:12px;border-radius:5px;border:none;cursor:pointer;width:auto;margin:0;background:#c0392b;color:#fff;flex-shrink:0;">🗑</button>' +
+        '</div>';
+      }).join('');
+    }
+
+    // Sync layers from Firebase
+    db.ref('widgets/image_layers').on('value', function(snap) {
+      imgLayers = snap.val() || {};
+      renderLayersList();
+    }););
+      db.ref('widgets/image_overlay/pos').set(pos);
+    }
+
+    /* ═══ Image Layers ═══ */
+    var imgLayers = {}; // {id: {src, size, x, y, visible, z}}
 
     function openImageModal()  { document.getElementById('image-modal').style.display = 'flex'; setTimeout(function(){var z=document.getElementById('img-paste-zone'); if(z) z.focus();}, 100); }
     function closeImageModal() { document.getElementById('image-modal').style.display = 'none'; }
 
-    // Paste handler for image modal
-    var imgModalPasteHandler = function(e) {
+    // Paste handler
+    window.addEventListener('paste', function(e) {
       if (document.getElementById('image-modal').style.display !== 'flex') return;
       var items = (e.clipboardData || e.originalEvent.clipboardData).items;
       for (var i in items) {
@@ -1517,61 +1593,163 @@
         if (item.kind === 'file' && item.type.indexOf('image') !== -1) {
           var blob = item.getAsFile();
           var reader = new FileReader();
-          reader.onload = function(ev) {
-            imgCurrentBase64 = ev.target.result;
-            showImagePreview(imgCurrentBase64);
-          };
+          reader.onload = function(ev) { addLayer(ev.target.result); };
           reader.readAsDataURL(blob);
           e.preventDefault();
         }
       }
-    };
-    window.addEventListener('paste', imgModalPasteHandler);
+    });
 
-    function showImagePreview(src) {
-      document.getElementById('img-preview').src = src;
-      document.getElementById('img-preview-wrap').style.display = 'block';
-    }
-
-    function showImageFromUrl() {
+    function addLayerFromUrl() {
       var url = document.getElementById('img-url-input').value.trim();
       if (!url) return;
-      imgCurrentBase64 = url;
-      showImagePreview(url);
+      addLayer(url);
+      document.getElementById('img-url-input').value = '';
     }
 
-    function showImageOnStream() {
-      if (!imgCurrentBase64) { alert('Сначала вставь картинку'); return; }
-      var size = parseInt(document.getElementById('img-size').value);
-      db.ref('widgets/image_overlay').set({
-        src: imgCurrentBase64,
+    function addLayer(src) {
+      var id = 'L' + Date.now();
+      var maxZ = Object.keys(imgLayers).reduce(function(m,k){ return Math.max(m, imgLayers[k].z||0); }, 0);
+      db.ref('widgets/image_layers/' + id).set({
+        src: src,
+        size: 400,
+        x: 710,   // center-ish in 1920
+        y: 500,
         visible: true,
-        size: size,
-        pos: imgPos,
-        ts: Date.now()
+        z: maxZ + 1
       });
     }
 
-    function hideImageOnStream() {
-      db.ref('widgets/image_overlay/visible').set(false);
+    function removeLayer(id) {
+      db.ref('widgets/image_layers/' + id).remove();
     }
 
-    function updateImageSize() {
-      var size = document.getElementById('img-size').value;
-      document.getElementById('img-size-val').textContent = size + 'px';
-      // Live update if currently shown
-      db.ref('widgets/image_overlay/size').set(parseInt(size));
+    function toggleLayer(id) {
+      var cur = imgLayers[id];
+      if (!cur) return;
+      db.ref('widgets/image_layers/' + id + '/visible').set(!cur.visible);
     }
 
-    function setImagePos(pos) {
-      imgPos = pos;
-      document.querySelectorAll('.img-pos-btn').forEach(function(b) {
-        var active = b.dataset.pos === pos;
-        b.style.background = active ? '#00b8d4' : '#1a1a2e';
-        b.style.borderColor = active ? '#00e5ff' : '#444';
-        b.style.color = active ? '#fff' : '#ccc';
+    function bringLayerFront(id) {
+      var maxZ = Object.keys(imgLayers).reduce(function(m,k){ return Math.max(m, imgLayers[k].z||0); }, 0);
+      db.ref('widgets/image_layers/' + id + '/z').set(maxZ + 1);
+    }
+
+    // Render layers list
+    db.ref('widgets/image_layers').on('value', function(snap) {
+      imgLayers = snap.val() || {};
+      if(document.getElementById('layout-modal') && document.getElementById('layout-modal').style.display==='flex') renderImageLayerBlocks();
+      var list = document.getElementById('img-layers-list');
+      if (!list) return;
+      var ids = Object.keys(imgLayers);
+      if (!ids.length) {
+        list.innerHTML = '<div style="font-size:13px;color:#555;padding:12px 0;text-align:center;">Нет активных слоёв</div>';
+        return;
+      }
+      // Sort by z descending (top layer first)
+      ids.sort(function(a,b){ return (imgLayers[b].z||0) - (imgLayers[a].z||0); });
+      list.innerHTML = ids.map(function(id, idx) {
+        var L = imgLayers[id];
+        var num = ids.length - idx;
+        return '<div style="display:flex;align-items:center;gap:10px;padding:8px;background:#1a1a2e;border-radius:8px;margin-bottom:8px;border:1px solid '+(L.visible?'#00b8d4':'#333')+';">' +
+          '<img src="'+L.src+'" style="width:48px;height:48px;object-fit:cover;border-radius:5px;border:1px solid #444;">' +
+          '<div style="flex:1;min-width:0;">' +
+            '<div style="font-size:12px;color:#00e5ff;font-weight:700;">Слой ' + num + '</div>' +
+            '<div style="font-size:11px;color:#666;">размер: '+L.size+'px · поз: '+L.x+','+L.y+'</div>' +
+          '</div>' +
+          '<button onclick="toggleLayer(\''+id+'\')" title="Показать/скрыть" style="width:auto;padding:6px 9px;background:'+(L.visible?'#1db954':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">'+(L.visible?'👁️':'🚫')+'</button>' +
+          '<button onclick="bringLayerFront(\''+id+'\')" title="Наверх" style="width:auto;padding:6px 9px;background:#6610f2;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">⬆️</button>' +
+          '<button onclick="removeLayer(\''+id+'\')" title="Удалить" style="width:auto;padding:6px 9px;background:#c0392b;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">🗑️</button>' +
+        '</div>';
+      }).join('');
+    });
+
+    /* ═══ Image layers in position editor ═══ */
+    var imgLayersLayout = {}; // local positions {id:{x,y,size}}
+
+    db.ref('widgets/image_layers_layout').on('value', function(snap) {
+      imgLayersLayout = snap.val() || {};
+    });
+
+    function renderImageLayerBlocks() {
+      var container = document.getElementById('le-img-layers-container');
+      if (!container) return;
+      var ids = Object.keys(imgLayers || {});
+      // Remove blocks for deleted layers
+      Array.prototype.slice.call(container.children).forEach(function(c) {
+        if (!imgLayers[c.dataset.layerId]) c.remove();
       });
-      db.ref('widgets/image_overlay/pos').set(pos);
+      ids.forEach(function(id, idx) {
+        var L = imgLayers[id];
+        if (!L.visible) {
+          var existing = container.querySelector('[data-layer-id="'+id+'"]');
+          if (existing) existing.remove();
+          return;
+        }
+        // Use layout position if exists, else layer's own
+        var pos = imgLayersLayout[id] || { x: L.x, y: L.y, size: L.size };
+        var block = container.querySelector('[data-layer-id="'+id+'"]');
+        if (!block) {
+          block = document.createElement('div');
+          block.dataset.layerId = id;
+          block.style.cssText = 'position:absolute;border:2px solid #00e5ff;border-radius:6px;z-index:18;user-select:none;cursor:move;background:rgba(0,229,255,0.1);overflow:hidden;';
+          block.innerHTML = '<img src="'+L.src+'" style="width:100%;height:100%;object-fit:contain;pointer-events:none;opacity:0.85;">' +
+            '<div style="position:absolute;top:2px;left:4px;font-size:9px;font-weight:800;color:#00e5ff;text-shadow:0 1px 2px #000;pointer-events:none;">🖼️ '+(idx+1)+'</div>' +
+            '<div class="le-img-scale" style="position:absolute;right:-5px;top:-5px;width:14px;height:14px;background:#e74c3c;border-radius:50%;cursor:ne-resize;z-index:21;"></div>';
+          container.appendChild(block);
+          attachImageLayerDrag(block, id);
+        }
+        // Update position/size
+        var natW = pos.size || 400;
+        var natH = natW * 0.6; // approximate aspect for editor
+        block.style.left   = pctNum(pos.x, 1920) + '%';
+        block.style.top    = pctNum(pos.y, 1080) + '%';
+        block.style.width  = pctNum(natW, 1920) + '%';
+        block.style.height = pctNum(natH, 1080) + '%';
+      });
+    }
+    function pctNum(v, max) { return (v/max*100).toFixed(4); }
+
+    function attachImageLayerDrag(block, id) {
+      block.addEventListener('mousedown', function(e) {
+        var scaleHandle = e.target.classList.contains('le-img-scale');
+        e.preventDefault(); e.stopPropagation();
+        var canvas = document.getElementById('layout-canvas-wrap');
+        var cw = canvas.offsetWidth, ch = canvas.offsetHeight || (cw*0.5625);
+        var sx = e.clientX, sy = e.clientY;
+        var pos = imgLayersLayout[id] || { x: imgLayers[id].x, y: imgLayers[id].y, size: imgLayers[id].size };
+        var ox = pos.x, oy = pos.y, osize = pos.size || 400;
+
+        if (scaleHandle) {
+          var onM = function(e2) {
+            var dx = Math.round((e2.clientX - sx) / cw * 1920);
+            var newSize = Math.max(50, osize + dx);
+            imgLayersLayout[id] = { x: ox, y: oy, size: newSize };
+            renderImageLayerBlocks();
+          };
+          var onU = function() {
+            document.removeEventListener('mousemove', onM);
+            document.removeEventListener('mouseup', onU);
+            db.ref('widgets/image_layers_layout/' + id).set(imgLayersLayout[id]);
+          };
+          document.addEventListener('mousemove', onM);
+          document.addEventListener('mouseup', onU);
+        } else {
+          var onM2 = function(e2) {
+            var dx = Math.round((e2.clientX - sx) / cw * 1920);
+            var dy = Math.round((e2.clientY - sy) / ch * 1080);
+            imgLayersLayout[id] = { x: ox + dx, y: oy + dy, size: osize };
+            renderImageLayerBlocks();
+          };
+          var onU2 = function() {
+            document.removeEventListener('mousemove', onM2);
+            document.removeEventListener('mouseup', onU2);
+            db.ref('widgets/image_layers_layout/' + id).set(imgLayersLayout[id]);
+          };
+          document.addEventListener('mousemove', onM2);
+          document.addEventListener('mouseup', onU2);
+        }
+      });
     }
     </script>
 
@@ -1667,47 +1845,31 @@
     </div>
 
 
-    <!-- Image Overlay Modal -->
+
+    <!-- Image Layers Modal -->
     <div id="image-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);z-index:11000;align-items:center;justify-content:center;">
-      <div style="background:#25252c;border:2px solid #00b8d4;border-radius:12px;width:92vw;max-width:520px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px rgba(0,184,212,0.2);">
+      <div style="background:#25252c;border:2px solid #00b8d4;border-radius:12px;width:94vw;max-width:600px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px rgba(0,184,212,0.2);">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #333;background:#1e1e24;flex-shrink:0;">
-          <h3 style="margin:0;color:#00e5ff;font-size:15px;">🖼️ Картинка на стрим</h3>
+          <h3 style="margin:0;color:#00e5ff;font-size:15px;">🖼️ Картинки на стрим (слои)</h3>
           <button onclick="closeImageModal()" style="width:auto;padding:5px 12px;background:#555;border-radius:6px;margin:0;font-size:13px;">✕</button>
         </div>
         <div style="padding:16px 18px;overflow-y:auto;flex:1;">
 
-          <!-- Paste area -->
-          <div id="img-paste-zone" tabindex="0" style="border:2px dashed #00b8d4;border-radius:10px;padding:30px 20px;text-align:center;cursor:pointer;background:#1a1a2e;margin-bottom:14px;outline:none;">
-            <div style="font-size:13px;color:#aaa;">Кликни сюда и нажми <b style="color:#00e5ff;">Ctrl+V</b><br>чтобы вставить картинку из буфера</div>
-            <div style="font-size:11px;color:#666;margin-top:6px;">или вставь ссылку ниже</div>
+          <!-- Add new layer -->
+          <div id="img-paste-zone" tabindex="0" style="border:2px dashed #00b8d4;border-radius:10px;padding:24px 20px;text-align:center;cursor:pointer;background:#1a1a2e;margin-bottom:10px;outline:none;">
+            <div style="font-size:13px;color:#aaa;">Кликни и нажми <b style="color:#00e5ff;">Ctrl+V</b> чтобы добавить новый слой</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <input type="text" id="img-url-input" placeholder="или вставь ссылку (URL)..." 
+              style="flex:1;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:9px 12px;font-size:13px;outline:none;"
+              onkeydown="if(event.key==='Enter')addLayerFromUrl()">
+            <button onclick="addLayerFromUrl()" style="background:#00b8d4;color:#fff;font-weight:700;padding:9px 16px;border-radius:6px;border:none;cursor:pointer;width:auto;margin:0;font-size:13px;">+ Слой</button>
           </div>
 
-          <input type="text" id="img-url-input" placeholder="https://... (ссылка на картинку/гиф)" 
-            style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:9px 12px;font-size:13px;outline:none;box-sizing:border-box;margin-bottom:12px;"
-            onkeydown="if(event.key==='Enter')showImageFromUrl()">
-
-          <!-- Preview -->
-          <div id="img-preview-wrap" style="display:none;margin-bottom:14px;text-align:center;">
-            <img id="img-preview" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #444;">
-          </div>
-
-          <!-- Controls -->
-          <div style="display:flex;gap:8px;margin-bottom:12px;">
-            <button onclick="showImageOnStream()" id="img-show-btn" style="flex:1;background:#1db954;color:#fff;font-weight:800;padding:11px;border-radius:8px;border:none;cursor:pointer;width:auto;margin:0;font-size:14px;">▲ Показать на стриме</button>
-            <button onclick="hideImageOnStream()" style="flex:1;background:#c0392b;color:#fff;font-weight:800;padding:11px;border-radius:8px;border:none;cursor:pointer;width:auto;margin:0;font-size:14px;">▼ Скрыть</button>
-          </div>
-
-          <!-- Size + position -->
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-            <label style="font-size:12px;color:#aaa;">Размер:</label>
-            <input type="range" id="img-size" min="100" max="900" value="400" style="flex:1;" oninput="updateImageSize()">
-            <span id="img-size-val" style="font-size:12px;color:#00e5ff;min-width:48px;">400px</span>
-          </div>
-          <div style="display:flex;gap:10px;align-items:center;margin-top:8px;">
-            <label style="font-size:12px;color:#aaa;">Позиция:</label>
-            <button onclick="setImagePos('left')"   class="img-pos-btn" data-pos="left"   style="flex:1;padding:6px;background:#1a1a2e;border:1px solid #444;border-radius:5px;color:#ccc;cursor:pointer;font-size:12px;">◄ Слева</button>
-            <button onclick="setImagePos('center')" class="img-pos-btn" data-pos="center" style="flex:1;padding:6px;background:#00b8d4;border:1px solid #00e5ff;border-radius:5px;color:#fff;cursor:pointer;font-size:12px;">● Центр</button>
-            <button onclick="setImagePos('right')"  class="img-pos-btn" data-pos="right"  style="flex:1;padding:6px;background:#1a1a2e;border:1px solid #444;border-radius:5px;color:#ccc;cursor:pointer;font-size:12px;">Справа ►</button>
+          <!-- Layers list -->
+          <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Активные слои (перетаскивай в Позициях)</div>
+          <div id="img-layers-list">
+            <div style="font-size:13px;color:#555;padding:12px 0;text-align:center;">Нет активных слоёв</div>
           </div>
 
         </div>
