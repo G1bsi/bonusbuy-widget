@@ -1120,12 +1120,11 @@
     #image-layers { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
     .img-layer {
       position: fixed;
-      bottom: 60px;
-      transform: translate(-50%, calc(100% + 120px));  /* hidden below screen */
+      transform: translate(-50%, -50%) translateY(calc(50vh + 200px));  /* hidden below */
       transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
       pointer-events: none;
     }
-    .img-layer.visible { transform: translate(-50%, 0); }
+    .img-layer.visible { transform: translate(-50%, -50%); }
     .img-layer img {
       display: block; max-width: 100%; height: auto;
       filter: drop-shadow(0 10px 30px rgba(0,0,0,0.5));
@@ -1331,7 +1330,9 @@
         el.style.width  = (L.size || 400) + 'px';
         el.style.zIndex = L.z || 1;
         var xp = (L.xPercent != null) ? L.xPercent : 50;
+        var yp = (L.yPercent != null) ? L.yPercent : 80;
         el.style.left = xp + '%';
+        el.style.top  = yp + '%';
 
         if (isNew && L.visible) {
           // Force browser to register hidden state, THEN slide in
