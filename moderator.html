@@ -1439,6 +1439,30 @@
           (e.note ? '<span style="color:#666;font-size:11px;">' + e.note + '</span>' : '') +
           '</div>';
       }).join('');
+
+      // Attach joystick drag
+      list.querySelectorAll('.img-joy-dot').forEach(function(dot) {
+        dot.addEventListener('mousedown', function(e) {
+          e.preventDefault(); e.stopPropagation();
+          var id = dot.dataset.layer;
+          var pad = dot.parentElement;
+          var move = function(e2) {
+            var r = pad.getBoundingClientRect();
+            var px = Math.max(0, Math.min(100, Math.round((e2.clientX - r.left) / r.width * 100)));
+            var py = Math.max(0, Math.min(100, Math.round((e2.clientY - r.top) / r.height * 100)));
+            dot.style.left = px + '%';
+            dot.style.top  = py + '%';
+            liveLayerXY(id, px, py);
+          };
+          var up = function() {
+            document.removeEventListener('mousemove', move);
+            document.removeEventListener('mouseup', up);
+            endLayerDrag();
+          };
+          document.addEventListener('mousemove', move);
+          document.addEventListener('mouseup', up);
+        });
+      });
     });
 
     function openStatsModal()  { document.getElementById('stats-modal').style.display = 'flex'; }
@@ -1543,7 +1567,8 @@
         src: src,
         size: 400,
         xPercent: 50,   // 0 = left, 50 = center, 100 = right
-        visible: false, // hidden until user clicks show
+        yPercent: 80,   // 0 = top, 100 = bottom
+        visible: false,
         z: maxZ + 1
       });
     }
@@ -1553,14 +1578,12 @@
     }
     var imgDragging = false;
     var imgDragTimer = null;
-    function liveLayerX(id, x) {
+    function liveLayerXY(id, x, y) {
       imgDragging = true;
-      // Update local cache + Firebase live (widget reads it), but don't re-render list
-      if (imgLayers[id]) imgLayers[id].xPercent = parseInt(x);
-      db.ref('widgets/image_layers/' + id + '/xPercent').set(parseInt(x));
+      if (imgLayers[id]) { imgLayers[id].xPercent = x; imgLayers[id].yPercent = y; }
+      db.ref('widgets/image_layers/' + id).update({ xPercent: x, yPercent: y });
     }
-    function setLayerX(id, x) {
-      db.ref('widgets/image_layers/' + id + '/xPercent').set(parseInt(x));
+    function endLayerDrag() {
       clearTimeout(imgDragTimer);
       imgDragTimer = setTimeout(function(){ imgDragging = false; }, 300);
     }
@@ -1597,20 +1620,22 @@
         var L = imgLayers[id];
         var num = ids.length - idx;
         var xp = (L.xPercent != null) ? L.xPercent : 50;
+        var yp = (L.yPercent != null) ? L.yPercent : 80;
         return '<div style="padding:10px;background:#1a1a2e;border-radius:10px;margin-bottom:10px;border:1px solid '+(L.visible?'#00b8d4':'#333')+';">' +
           '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">' +
             '<img src="'+L.src+'" style="width:42px;height:42px;object-fit:cover;border-radius:5px;border:1px solid #444;">' +
             '<div style="flex:1;min-width:0;"><div style="font-size:12px;color:#00e5ff;font-weight:700;">Слой ' + num + '</div>' +
-              '<div style="font-size:10px;color:#666;">'+xp+'% по X</div></div>' +
+              '<div style="font-size:10px;color:#666;">X:'+xp+'% Y:'+yp+'%</div></div>' +
             '<button onclick="toggleLayer(\''+id+'\')" style="width:auto;padding:6px 9px;background:'+(L.visible?'#1db954':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">'+(L.visible?'👁️':'🚫')+'</button>' +
             '<button onclick="bringLayerFront(\''+id+'\')" style="width:auto;padding:6px 9px;background:#6610f2;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">⬆️</button>' +
             '<button onclick="removeLayer(\''+id+'\')" style="width:auto;padding:6px 9px;background:#c0392b;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">🗑️</button>' +
           '</div>' +
-          // X position slider (left ◄──► right)
-          '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">' +
-            '<span style="font-size:13px;">◄</span>' +
-            '<input type="range" min="0" max="100" value="'+xp+'" oninput="liveLayerX(\''+id+'\',this.value)" onchange="setLayerX(\''+id+'\',this.value)" style="flex:1;" title="Позиция по горизонтали">' +
-            '<span style="font-size:13px;">►</span>' +
+          // Joystick pad (X + Y)
+          '<div class="img-joy-pad" data-layer="'+id+'" style="position:relative;width:100%;height:120px;background:#0a0a14;border:1px solid #333;border-radius:8px;margin-bottom:8px;cursor:crosshair;overflow:hidden;">' +
+            '<div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.08);"></div>' +
+            '<div style="position:absolute;top:50%;left:0;right:0;height:1px;background:rgba(255,255,255,0.08);"></div>' +
+            '<div class="img-joy-dot" data-layer="'+id+'" style="position:absolute;width:22px;height:22px;background:#00e5ff;border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);cursor:move;left:'+xp+'%;top:'+yp+'%;box-shadow:0 0 10px rgba(0,229,255,0.7);"></div>' +
+            '<div style="position:absolute;bottom:3px;right:6px;font-size:9px;color:#444;pointer-events:none;">двигай точку</div>' +
           '</div>' +
         '</div>';
       }).join('');
