@@ -1119,57 +1119,23 @@
     /* Image layers container */
     #image-layers { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
     .img-layer {
-      position: absolute;
+      position: fixed;
+      bottom: 60px;
+      transform: translate(-50%, calc(100% + 120px));  /* hidden below screen */
+      transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
       pointer-events: none;
-      opacity: 0;
-      transform-origin: center center;
     }
+    .img-layer.visible { transform: translate(-50%, 0); }
     .img-layer img {
       display: block; max-width: 100%; height: auto;
       filter: drop-shadow(0 10px 30px rgba(0,0,0,0.5));
     }
-    .img-layer .img-float-inner { animation: imgFloat 6s ease-in-out infinite; }
+    .img-layer.visible .img-float-inner { animation: imgFloat 6s ease-in-out infinite; }
     @keyframes imgFloat {
       0%   { transform: translateY(0) rotate(0deg); }
       50%  { transform: translateY(-12px) rotate(0.5deg); }
       100% { transform: translateY(0) rotate(0deg); }
-    }
-
-    /* ── IN animations ── */
-    .img-layer.in-slideUp    { animation: aInSlideUp 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-    .img-layer.in-slideDown  { animation: aInSlideDown 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-    .img-layer.in-slideLeft  { animation: aInSlideLeft 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-    .img-layer.in-slideRight { animation: aInSlideRight 0.7s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-    .img-layer.in-fade       { animation: aInFade 0.6s ease forwards; }
-    .img-layer.in-zoom       { animation: aInZoom 0.6s cubic-bezier(0.34,1.56,0.64,1) forwards; }
-    .img-layer.in-bounce     { animation: aInBounce 0.8s forwards; }
-    .img-layer.in-flip       { animation: aInFlip 0.7s ease forwards; }
-    @keyframes aInSlideUp    { from{opacity:0;transform:translateY(120px);} to{opacity:1;transform:translateY(0);} }
-    @keyframes aInSlideDown  { from{opacity:0;transform:translateY(-120px);} to{opacity:1;transform:translateY(0);} }
-    @keyframes aInSlideLeft  { from{opacity:0;transform:translateX(-150px);} to{opacity:1;transform:translateX(0);} }
-    @keyframes aInSlideRight { from{opacity:0;transform:translateX(150px);} to{opacity:1;transform:translateX(0);} }
-    @keyframes aInFade       { from{opacity:0;} to{opacity:1;} }
-    @keyframes aInZoom       { from{opacity:0;transform:scale(0.3);} to{opacity:1;transform:scale(1);} }
-    @keyframes aInBounce     { 0%{opacity:0;transform:translateY(150px);} 60%{opacity:1;transform:translateY(-25px);} 80%{transform:translateY(10px);} 100%{transform:translateY(0);} }
-    @keyframes aInFlip       { from{opacity:0;transform:perspective(600px) rotateY(90deg);} to{opacity:1;transform:perspective(600px) rotateY(0);} }
-
-    /* ── OUT animations ── */
-    .img-layer.out-slideUp    { animation: aOutSlideUp 0.6s ease forwards; }
-    .img-layer.out-slideDown  { animation: aOutSlideDown 0.6s ease forwards; }
-    .img-layer.out-slideLeft  { animation: aOutSlideLeft 0.6s ease forwards; }
-    .img-layer.out-slideRight { animation: aOutSlideRight 0.6s ease forwards; }
-    .img-layer.out-fade       { animation: aOutFade 0.5s ease forwards; }
-    .img-layer.out-zoom       { animation: aOutZoom 0.5s ease forwards; }
-    .img-layer.out-bounce     { animation: aOutBounce 0.6s ease forwards; }
-    .img-layer.out-flip       { animation: aOutFlip 0.6s ease forwards; }
-    @keyframes aOutSlideUp    { from{opacity:1;transform:translateY(0);} to{opacity:0;transform:translateY(-120px);} }
-    @keyframes aOutSlideDown  { from{opacity:1;transform:translateY(0);} to{opacity:0;transform:translateY(120px);} }
-    @keyframes aOutSlideLeft  { from{opacity:1;transform:translateX(0);} to{opacity:0;transform:translateX(-150px);} }
-    @keyframes aOutSlideRight { from{opacity:1;transform:translateX(0);} to{opacity:0;transform:translateX(150px);} }
-    @keyframes aOutFade       { from{opacity:1;} to{opacity:0;} }
-    @keyframes aOutZoom       { from{opacity:1;transform:scale(1);} to{opacity:0;transform:scale(0.3);} }
-    @keyframes aOutBounce     { 0%{transform:translateY(0);} 30%{transform:translateY(15px);} 100%{opacity:0;transform:translateY(150px);} }
-    @keyframes aOutFlip       { from{opacity:1;transform:perspective(600px) rotateY(0);} to{opacity:0;transform:perspective(600px) rotateY(90deg);} }
+    } to{opacity:0;transform:perspective(600px) rotateY(90deg);} }
 
 
 
@@ -1300,18 +1266,7 @@
       if(fw&&d.finance){fw.style.left=d.finance.x+'px';fw.style.top=d.finance.y+'px';fw.style.transform='scale('+(d.finance.scale||1.0)+')';}
       if(sv&&d.stats){sv.style.left=d.stats.x+'px';sv.style.top=d.stats.y+'px';sv.style.transform='scale('+(d.stats.scale||1.0)+')';}
     });
-    // Image layers positions from layout editor
-    db.ref('widgets/image_layers_layout').on('value', function(snap) {
-      var layout = snap.val() || {};
-      Object.keys(layout).forEach(function(id) {
-        var el = document.querySelector('.img-layer[data-id="'+id+'"]');
-        if (el && layout[id]) {
-          el.style.left  = layout[id].x + 'px';
-          el.style.top   = layout[id].y + 'px';
-          el.style.width = (layout[id].size || 400) + 'px';
-        }
-      });
-    });
+
     db.ref('widgets/finance').on('value', function(snap) {
       var d=snap.val()||{}; var fw=document.getElementById('finance-overlay'); if(!fw) return;
       fw.innerHTML='';
@@ -1352,56 +1307,37 @@
       if(d.ts<=lastTtsTs) return; lastTtsTs=d.ts;
       try{var a=new Audio(d.audio);a.play().catch(function(){});}catch(e){}
     });
-    // Image layers with in/out animation presets
-    var imgLayerVisState = {}; // track previous visible state
+    // Image layers — always slide from bottom, X position via xPercent
     db.ref('widgets/image_layers').on('value', function(snap) {
       var layers = snap.val() || {};
       var container = document.getElementById('image-layers');
       if (!container) return;
-      // Remove deleted layers (with out animation)
+      // Remove deleted layers (slide down first)
       Array.prototype.slice.call(container.children).forEach(function(child) {
         if (!layers[child.dataset.id]) {
-          var id = child.dataset.id;
-          var outAnim = imgLayerVisState[id] && imgLayerVisState[id].animOut || 'fade';
-          child.className = 'img-layer out-' + outAnim;
+          child.classList.remove('visible');
           setTimeout(function(){ if(child.parentNode) child.remove(); }, 650);
-          delete imgLayerVisState[id];
         }
       });
       Object.keys(layers).forEach(function(id) {
         var L = layers[id];
         var el = container.querySelector('[data-id="'+id+'"]');
-        var isNew = !el;
-        if (isNew) {
+        if (!el) {
           el = document.createElement('div');
+          el.className = 'img-layer';
           el.dataset.id = id;
           el.innerHTML = '<div class="img-float-inner"><img src=""></div>';
           container.appendChild(el);
         }
         var img = el.querySelector('img');
         if (img.src !== L.src) img.src = L.src;
-        el.style.left   = (L.x || 0) + 'px';
-        el.style.top    = (L.y || 0) + 'px';
         el.style.width  = (L.size || 400) + 'px';
         el.style.zIndex = L.z || 1;
-
-        var wasVisible = imgLayerVisState[id] ? imgLayerVisState[id].visible : false;
-        var animIn  = L.animIn  || 'slideUp';
-        var animOut = L.animOut || 'slideDown';
-
-        if (L.visible && !wasVisible) {
-          // Appearing — play IN animation
-          el.className = 'img-layer in-' + animIn;
-        } else if (!L.visible && wasVisible) {
-          // Disappearing — play OUT animation
-          el.className = 'img-layer out-' + animOut;
-        } else if (L.visible) {
-          el.className = 'img-layer in-' + animIn;
-        } else {
-          el.className = 'img-layer';
-          el.style.opacity = '0';
-        }
-        imgLayerVisState[id] = { visible: L.visible, animOut: animOut };
+        // X position: xPercent 0=left edge, 50=center, 100=right edge
+        var xp = (L.xPercent != null) ? L.xPercent : 50;
+        el.style.left = xp + '%';
+        if (L.visible) el.classList.add('visible');
+        else el.classList.remove('visible');
       });
     });
 
