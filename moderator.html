@@ -150,6 +150,7 @@
                 <button onclick="openLayoutEditor()" style="width: auto; background: #16a085; border: 1px solid #1abc9c; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0; color: #fff; border-radius: 5px; cursor: pointer; font-weight: bold;">📐 Позиции</button>
                 <button onclick="openTTSPanel()" style="width: auto; background: #1db954; border: 1px solid #17a244; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0; color: #fff; border-radius: 5px; cursor: pointer; font-weight: bold;">🎙️ TTS</button>
                 <button onclick="openStatsModal()" style="width: auto; background: #e67e22; border: 1px solid #f39c12; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0; color: #fff; border-radius: 5px; cursor: pointer; font-weight: bold;">📊 Статы</button>
+                <button onclick="openImageModal()" style="width: auto; background: #00b8d4; border: 1px solid #00e5ff; padding: 6px 12px; font-size: 11px; margin: 0; flex-shrink: 0; color: #fff; border-radius: 5px; cursor: pointer; font-weight: bold;">🖼️ Картинка</button>
             </div>
             <!-- Ряд 2: тумблеры -->
             <div style="display: flex; gap: 8px; align-items: center;">
@@ -1499,6 +1500,79 @@
       var inp = document.getElementById('stats-add-input');
       if (inp) inp.addEventListener('keydown', function(e){ if(e.key==='Enter') statsAddAmount(); });
     });
+
+    /* ═══ Image Overlay ═══ */
+    var imgCurrentBase64 = null;
+    var imgPos = 'center';
+
+    function openImageModal()  { document.getElementById('image-modal').style.display = 'flex'; setTimeout(function(){var z=document.getElementById('img-paste-zone'); if(z) z.focus();}, 100); }
+    function closeImageModal() { document.getElementById('image-modal').style.display = 'none'; }
+
+    // Paste handler for image modal
+    var imgModalPasteHandler = function(e) {
+      if (document.getElementById('image-modal').style.display !== 'flex') return;
+      var items = (e.clipboardData || e.originalEvent.clipboardData).items;
+      for (var i in items) {
+        var item = items[i];
+        if (item.kind === 'file' && item.type.indexOf('image') !== -1) {
+          var blob = item.getAsFile();
+          var reader = new FileReader();
+          reader.onload = function(ev) {
+            imgCurrentBase64 = ev.target.result;
+            showImagePreview(imgCurrentBase64);
+          };
+          reader.readAsDataURL(blob);
+          e.preventDefault();
+        }
+      }
+    };
+    window.addEventListener('paste', imgModalPasteHandler);
+
+    function showImagePreview(src) {
+      document.getElementById('img-preview').src = src;
+      document.getElementById('img-preview-wrap').style.display = 'block';
+    }
+
+    function showImageFromUrl() {
+      var url = document.getElementById('img-url-input').value.trim();
+      if (!url) return;
+      imgCurrentBase64 = url;
+      showImagePreview(url);
+    }
+
+    function showImageOnStream() {
+      if (!imgCurrentBase64) { alert('Сначала вставь картинку'); return; }
+      var size = parseInt(document.getElementById('img-size').value);
+      db.ref('widgets/image_overlay').set({
+        src: imgCurrentBase64,
+        visible: true,
+        size: size,
+        pos: imgPos,
+        ts: Date.now()
+      });
+    }
+
+    function hideImageOnStream() {
+      db.ref('widgets/image_overlay/visible').set(false);
+    }
+
+    function updateImageSize() {
+      var size = document.getElementById('img-size').value;
+      document.getElementById('img-size-val').textContent = size + 'px';
+      // Live update if currently shown
+      db.ref('widgets/image_overlay/size').set(parseInt(size));
+    }
+
+    function setImagePos(pos) {
+      imgPos = pos;
+      document.querySelectorAll('.img-pos-btn').forEach(function(b) {
+        var active = b.dataset.pos === pos;
+        b.style.background = active ? '#00b8d4' : '#1a1a2e';
+        b.style.borderColor = active ? '#00e5ff' : '#444';
+        b.style.color = active ? '#fff' : '#ccc';
+      });
+      db.ref('widgets/image_overlay/pos').set(pos);
+    }
     </script>
 
 
@@ -1586,6 +1660,54 @@
             <div id="stats-log-list">
               <div style="font-size:12px;color:#555;padding:8px 0;">Загрузка...</div>
             </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Image Overlay Modal -->
+    <div id="image-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);z-index:11000;align-items:center;justify-content:center;">
+      <div style="background:#25252c;border:2px solid #00b8d4;border-radius:12px;width:92vw;max-width:520px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px rgba(0,184,212,0.2);">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #333;background:#1e1e24;flex-shrink:0;">
+          <h3 style="margin:0;color:#00e5ff;font-size:15px;">🖼️ Картинка на стрим</h3>
+          <button onclick="closeImageModal()" style="width:auto;padding:5px 12px;background:#555;border-radius:6px;margin:0;font-size:13px;">✕</button>
+        </div>
+        <div style="padding:16px 18px;overflow-y:auto;flex:1;">
+
+          <!-- Paste area -->
+          <div id="img-paste-zone" tabindex="0" style="border:2px dashed #00b8d4;border-radius:10px;padding:30px 20px;text-align:center;cursor:pointer;background:#1a1a2e;margin-bottom:14px;outline:none;">
+            <div style="font-size:13px;color:#aaa;">Кликни сюда и нажми <b style="color:#00e5ff;">Ctrl+V</b><br>чтобы вставить картинку из буфера</div>
+            <div style="font-size:11px;color:#666;margin-top:6px;">или вставь ссылку ниже</div>
+          </div>
+
+          <input type="text" id="img-url-input" placeholder="https://... (ссылка на картинку/гиф)" 
+            style="width:100%;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:9px 12px;font-size:13px;outline:none;box-sizing:border-box;margin-bottom:12px;"
+            onkeydown="if(event.key==='Enter')showImageFromUrl()">
+
+          <!-- Preview -->
+          <div id="img-preview-wrap" style="display:none;margin-bottom:14px;text-align:center;">
+            <img id="img-preview" style="max-width:100%;max-height:200px;border-radius:8px;border:1px solid #444;">
+          </div>
+
+          <!-- Controls -->
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <button onclick="showImageOnStream()" id="img-show-btn" style="flex:1;background:#1db954;color:#fff;font-weight:800;padding:11px;border-radius:8px;border:none;cursor:pointer;width:auto;margin:0;font-size:14px;">▲ Показать на стриме</button>
+            <button onclick="hideImageOnStream()" style="flex:1;background:#c0392b;color:#fff;font-weight:800;padding:11px;border-radius:8px;border:none;cursor:pointer;width:auto;margin:0;font-size:14px;">▼ Скрыть</button>
+          </div>
+
+          <!-- Size + position -->
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <label style="font-size:12px;color:#aaa;">Размер:</label>
+            <input type="range" id="img-size" min="100" max="900" value="400" style="flex:1;" oninput="updateImageSize()">
+            <span id="img-size-val" style="font-size:12px;color:#00e5ff;min-width:48px;">400px</span>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:8px;">
+            <label style="font-size:12px;color:#aaa;">Позиция:</label>
+            <button onclick="setImagePos('left')"   class="img-pos-btn" data-pos="left"   style="flex:1;padding:6px;background:#1a1a2e;border:1px solid #444;border-radius:5px;color:#ccc;cursor:pointer;font-size:12px;">◄ Слева</button>
+            <button onclick="setImagePos('center')" class="img-pos-btn" data-pos="center" style="flex:1;padding:6px;background:#00b8d4;border:1px solid #00e5ff;border-radius:5px;color:#fff;cursor:pointer;font-size:12px;">● Центр</button>
+            <button onclick="setImagePos('right')"  class="img-pos-btn" data-pos="right"  style="flex:1;padding:6px;background:#1a1a2e;border:1px solid #444;border-radius:5px;color:#ccc;cursor:pointer;font-size:12px;">Справа ►</button>
           </div>
 
         </div>
