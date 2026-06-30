@@ -1080,26 +1080,26 @@
           el.style.height = pct(pos.h, CANVAS_H);
         }
 
-        const cEl = document.getElementById('le-'+key+'-coords');
-        if(cEl) cEl.textContent = `${pos.x},${pos.y}  ${pos.w}×${pos.h}`;
+        var cElG = document.getElementById('le-'+key+'-coords');
+        if(cElG) cElG.textContent = `${pos.x},${pos.y}  ${pos.w}×${pos.h}`;
 
         if(key==='widget') {
-          document.getElementById('le-w-tl').textContent   = `(${pos.x}, ${pos.y})`;
-          document.getElementById('le-w-br').textContent   = `(${pos.x+pos.w}, ${pos.y+pos.h})`;
-          document.getElementById('le-w-size').textContent = `${pos.w}×${pos.h}`;
+          var wTl=document.getElementById('le-w-tl'); if(wTl) wTl.textContent=`(${pos.x}, ${pos.y})`;
+          var wBr=document.getElementById('le-w-br'); if(wBr) wBr.textContent=`(${pos.x+pos.w}, ${pos.y+pos.h})`;
+          var wSz=document.getElementById('le-w-size'); if(wSz) wSz.textContent=`${pos.w}×${pos.h}`;
         } else if(key==='dnd') {
-          document.getElementById('le-d-tl').textContent   = `(${pos.x}, ${pos.y})`;
-          document.getElementById('le-d-br').textContent   = `(${pos.x+pos.w}, ${pos.y+pos.h})`;
-          document.getElementById('le-d-size').textContent = `${pos.w}×${pos.h}`;
+          var dTl=document.getElementById('le-d-tl'); if(dTl) dTl.textContent=`(${pos.x}, ${pos.y})`;
+          var dBr=document.getElementById('le-d-br'); if(dBr) dBr.textContent=`(${pos.x+pos.w}, ${pos.y+pos.h})`;
+          var dSz=document.getElementById('le-d-size'); if(dSz) dSz.textContent=`${pos.w}×${pos.h}`;
         } else if(key==='finance') {
           const sc  = pos.scale || 1.0;
           const natW = 500, natH = 60; // natural size in 1920x1080
           // Set visual size in canvas proportionally
           el.style.width  = pct(natW * sc, CANVAS_W);
           el.style.height = pct(natH * sc, CANVAS_H);
-          document.getElementById('le-f-tl').textContent   = `(${pos.x}, ${pos.y})`;
-          document.getElementById('le-f-br').textContent   = `scale: ${sc.toFixed(2)}x`;
-          document.getElementById('le-f-size').textContent = `${sc.toFixed(2)}x`;
+          var fTl=document.getElementById('le-f-tl'); if(fTl) fTl.textContent=`(${pos.x}, ${pos.y})`;
+          var fBr=document.getElementById('le-f-br'); if(fBr) fBr.textContent=`scale: ${sc.toFixed(2)}x`;
+          var fSz=document.getElementById('le-f-size'); if(fSz) fSz.textContent=`${sc.toFixed(2)}x`;
           const cEl = document.getElementById('le-finance-coords');
           if(cEl) cEl.textContent = `${pos.x},${pos.y}  ${sc.toFixed(2)}x`;
         } else if(key==='stats') {
@@ -1227,7 +1227,6 @@
         var cw = document.getElementById('layout-canvas-wrap');
         if (cw) cw.style.height = Math.round(cw.offsetWidth * 0.5625) + 'px';
         renderLEBlocks();
-        // stats handled by delegation like finance
       }, 100);
     }
 
