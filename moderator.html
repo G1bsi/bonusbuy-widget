@@ -1547,6 +1547,7 @@
         yPercent: 80,
         visible: false,
         locked: false,
+        float: true,
         z: maxZ + 1
       });
     }
@@ -1568,6 +1569,7 @@
         yPercent: 80,
         visible: false,
         locked: false,
+        float: true,
         z: maxZ + 1
       });
       document.getElementById('img-text-input').value = '';
@@ -1581,6 +1583,20 @@
       db.ref('widgets/image_layers/' + id + '/fontSize').set(parseInt(size));
       clearTimeout(imgDragTimer);
       imgDragTimer = setTimeout(function(){ imgDragging = false; }, 300);
+    }
+    function toggleFloat(id) {
+      var cur = imgLayers[id];
+      if (!cur) return;
+      var newVal = (cur.float === false) ? true : false; // default true
+      db.ref('widgets/image_layers/' + id + '/float').set(newVal);
+    }
+    function editText(id) {
+      var cur = imgLayers[id];
+      if (!cur) return;
+      var newText = prompt('Редактировать текст:', cur.text || '');
+      if (newText !== null && newText.trim() !== '') {
+        db.ref('widgets/image_layers/' + id + '/text').set(newText.trim());
+      }
     }
     function toggleLock(id) {
       var cur = imgLayers[id];
@@ -1634,6 +1650,7 @@
         var yp = (L.yPercent != null) ? L.yPercent : 80;
         var isText = L.type === 'text';
         var locked = !!L.locked;
+        var floatOn = (L.float !== false); // default true
         // Thumbnail — image or text preview
         var thumb = isText
           ? '<div style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid #444;background:#0a0a14;color:'+(L.color||'#fff')+';font-size:9px;font-weight:800;overflow:hidden;text-align:center;padding:2px;">'+(L.text||'').substring(0,12)+'</div>'
@@ -1644,10 +1661,12 @@
             thumb +
             '<div style="flex:1;min-width:0;"><div style="font-size:12px;color:#00e5ff;font-weight:700;">'+titleLabel+'</div>' +
               '<div style="font-size:10px;color:#666;">X:'+xp+'% Y:'+yp+'%'+(locked?' 🔒':'')+'</div></div>' +
-            '<button onclick="toggleLayer(\''+id+'\')" style="width:auto;padding:6px 8px;background:'+(L.visible?'#1db954':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">'+(L.visible?'👁️':'🚫')+'</button>' +
+            '<button onclick="toggleLayer(\''+id+'\')" title="Показать/скрыть" style="width:auto;padding:6px 8px;background:'+(L.visible?'#1db954':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">'+(L.visible?'👁️':'🚫')+'</button>' +
+            (isText ? '<button onclick="editText(\''+id+'\')" title="Редактировать текст" style="width:auto;padding:6px 8px;background:#3498db;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">✏️</button>' : '') +
+            '<button onclick="toggleFloat(\''+id+'\')" title="Движение (шейк)" style="width:auto;padding:6px 8px;background:'+(floatOn?'#16a085':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">'+(floatOn?'〰️':'➖')+'</button>' +
             '<button onclick="toggleLock(\''+id+'\')" title="Заблокировать" style="width:auto;padding:6px 8px;background:'+(locked?'#e67e22':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">'+(locked?'🔒':'🔓')+'</button>' +
-            '<button onclick="bringLayerFront(\''+id+'\')" style="width:auto;padding:6px 8px;background:#6610f2;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">⬆️</button>' +
-            '<button onclick="removeLayer(\''+id+'\')" style="width:auto;padding:6px 8px;background:#c0392b;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">🗑️</button>' +
+            '<button onclick="bringLayerFront(\''+id+'\')" title="Наверх" style="width:auto;padding:6px 8px;background:#6610f2;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">⬆️</button>' +
+            '<button onclick="removeLayer(\''+id+'\')" title="Удалить" style="width:auto;padding:6px 8px;background:#c0392b;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">🗑️</button>' +
           '</div>' +
           // Round joystick — stick always centered, moves toward mouse
           '<div style="display:flex;justify-content:center;margin-bottom:10px;">' +
