@@ -1608,6 +1608,9 @@
     function liveLayerXY(id, x, y) {
       imgDragging = true;
       if (imgLayers[id]) { imgLayers[id].xPercent = x; imgLayers[id].yPercent = y; }
+      // Update preview item live
+      var pv = document.querySelector('#img-preview-canvas [data-prev="'+id+'"]');
+      if (pv) { pv.style.left = x + '%'; pv.style.top = y + '%'; }
       db.ref('widgets/image_layers/' + id).update({ xPercent: x, yPercent: y });
     }
     function endLayerDrag() {
@@ -1631,8 +1634,36 @@
     }
 
     // Render layers list
+    // Render mini preview of all layers on 16:9 canvas
+    function renderPreviewCanvas() {
+      var pc = document.getElementById('img-preview-canvas');
+      if (!pc) return;
+      var ids = Object.keys(imgLayers || {});
+      // Remove old preview items
+      Array.prototype.slice.call(pc.children).forEach(function(c){ if(c.dataset && c.dataset.prev) c.remove(); });
+      ids.sort(function(a,b){ return (imgLayers[a].z||0) - (imgLayers[b].z||0); });
+      ids.forEach(function(id) {
+        var L = imgLayers[id];
+        if (!L.visible) return; // only show visible layers
+        var xp = (L.xPercent != null) ? L.xPercent : 50;
+        var yp = (L.yPercent != null) ? L.yPercent : 80;
+        var item = document.createElement('div');
+        item.dataset.prev = id;
+        item.style.cssText = 'position:absolute;left:'+xp+'%;top:'+yp+'%;transform:translate(-50%,-50%);pointer-events:none;';
+        if (L.type === 'text') {
+          item.innerHTML = '<span style="color:'+(L.color||'#fff')+';font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:900;font-size:'+Math.max(6,(L.fontSize||60)/1920*100*3)+'px;white-space:nowrap;text-shadow:0 1px 3px #000;">'+(L.text||'')+'</span>';
+        } else {
+          var w = (L.size||400) / 1920 * 100; // % of canvas width
+          item.innerHTML = '<img src="'+L.src+'" style="width:'+w+'%;min-width:20px;display:block;">';
+          item.style.width = w + '%';
+        }
+        pc.appendChild(item);
+      });
+    }
+
     db.ref('widgets/image_layers').on('value', function(snap) {
       imgLayers = snap.val() || {};
+      renderPreviewCanvas();
       var list = document.getElementById('img-layers-list');
       if (!list) return;
       if (imgDragging) return; // don't re-render while user drags a slider
@@ -1844,6 +1875,10 @@
           <button onclick="closeImageModal()" style="width:auto;padding:5px 12px;background:#555;border-radius:6px;margin:0;font-size:13px;">✕</button>
         </div>
         <div style="padding:16px 18px;overflow-y:auto;flex:1;">
+
+          <!-- Live preview 16:9 -->
+          <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Предпросмотр (где будут слои)</div>
+          <div id="img-preview-canvas" style="position:relative;width:100%;aspect-ratio:16/9;background-image:url('https://github.com/G1bsi/DORNOD/blob/main/test%20(2).png?raw=true');background-size:cover;background-position:center;border:1px solid #333;border-radius:8px;margin-bottom:12px;overflow:hidden;"></div>
 
           <!-- Add new layer -->
           <div id="img-paste-zone" tabindex="0" style="border:2px dashed #00b8d4;border-radius:10px;padding:24px 20px;text-align:center;cursor:pointer;background:#1a1a2e;margin-bottom:10px;outline:none;">
