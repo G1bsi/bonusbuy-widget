@@ -14,6 +14,7 @@
         @media (min-width: 1000px) { #mod-wrapper { max-width: 1100px; } }
         @media (min-width: 1500px) { #mod-wrapper { max-width: 1300px; } }
 
+
         #panel-solo { display: block; }
         #panel-battle { display: block; }
         /* Two-column masonry layout for wide screens */
@@ -22,18 +23,18 @@
             column-count: 2;
             column-gap: 24px;
           }
-        }
-        @media (min-width: 1600px) {
-          #panel-solo, #panel-battle {
-            column-count: 3;
-            column-gap: 24px;
-          }
           #panel-solo > .box, #panel-battle > .box {
             break-inside: avoid;
             -webkit-column-break-inside: avoid;
             page-break-inside: avoid;
             display: inline-block;
             width: 100%;
+            margin-top: 0;
+          }
+        }
+        @media (min-width: 1600px) {
+          #panel-solo, #panel-battle {
+            column-count: 3;
           }
         }
 
@@ -972,7 +973,7 @@
         <div style="flex:1;padding:12px;background:#141418;overflow:hidden;min-height:0;">
           <div id="layout-canvas-wrap" style="position:relative;width:100%;border-radius:8px;border:1px solid #444;overflow:hidden;background:#0a0a10;">
             <!-- BG image -->
-            <div id="le-bg" style="position:absolute;inset:0;background-size:cover;background-position:center;opacity:0.55;pointer-events:none;z-index:0;"></div>
+            <div id="le-bg" style="position:absolute;inset:0;background-size:100% 100%;background-position:center;opacity:0.55;pointer-events:none;z-index:0;"></div>
             <!-- Grid -->
             <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px);background-size:5.208% 5.556%;pointer-events:none;z-index:1;"></div>
 
@@ -1510,7 +1511,7 @@
     /* ═══ Image Layers ═══ */
     var imgLayers = {}; // {id: {src, size, x, y, visible, z}}
 
-    function openImageModal()  { document.getElementById('image-modal').style.display = 'flex'; setTimeout(function(){var z=document.getElementById('img-paste-zone'); if(z) z.focus();}, 100); }
+    function openImageModal()  { document.getElementById('image-modal').style.display = 'flex'; setTimeout(function(){var z=document.getElementById('img-paste-zone'); if(z) z.focus(); renderPreviewCanvas();}, 100); }
     function closeImageModal() { document.getElementById('image-modal').style.display = 'none'; }
 
     // Paste handler
@@ -1639,37 +1640,139 @@
       var pc = document.getElementById('img-preview-canvas');
       if (!pc) return;
       var ids = Object.keys(imgLayers || {});
-      // Remove old preview items
       Array.prototype.slice.call(pc.children).forEach(function(c){ if(c.dataset && c.dataset.prev) c.remove(); });
       ids.sort(function(a,b){ return (imgLayers[a].z||0) - (imgLayers[b].z||0); });
+      var pcW = pc.getBoundingClientRect().width || pc.offsetWidth || 0;
+      if (pcW < 10) { requestAnimationFrame(renderPreviewCanvas); return; }
+      var scale = pcW / 1920;
       ids.forEach(function(id) {
         var L = imgLayers[id];
-        if (!L.visible) return; // only show visible layers
+        if (!L.visible) return;
         var xp = (L.xPercent != null) ? L.xPercent : 50;
         var yp = (L.yPercent != null) ? L.yPercent : 80;
         var item = document.createElement('div');
         item.dataset.prev = id;
-        item.style.cssText = 'position:absolute;left:'+xp+'%;top:'+yp+'%;transform:translate(-50%,-50%);pointer-events:none;';
+        var selected = (pvSelectedId === id);
+        item.style.cssText = 'position:absolute;left:'+xp+'%;top:'+yp+'%;transform:translate(-50%,-50%);cursor:move;'+(selected?'outline:2px solid #00e5ff;outline-offset:2px;':'');
+        var inner = '';
         if (L.type === 'text') {
-          item.innerHTML = '<span style="color:'+(L.color||'#fff')+';font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:900;font-size:'+Math.max(6,(L.fontSize||60)/1920*100*3)+'px;white-space:nowrap;text-shadow:0 1px 3px #000;">'+(L.text||'')+'</span>';
+          var fs = (L.fontSize || 60) * scale;
+          inner = '<span style="color:'+(L.color||'#fff')+';font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:900;font-size:'+fs+'px;white-space:nowrap;text-shadow:0 1px 3px #000;pointer-events:none;">'+(L.text||'')+'</span>';
         } else {
-          var w = (L.size||400) / 1920 * 100; // % of canvas width
-          item.innerHTML = '<img src="'+L.src+'" style="width:'+w+'%;min-width:20px;display:block;">';
-          item.style.width = w + '%';
+          var w = (L.size || 400) * scale;
+          inner = '<img src="'+L.src+'" style="width:'+w+'px;display:block;pointer-events:none;">';
         }
+        // Add resize handles (corners) when selected
+        var handles = '';
+        if (selected) {
+          var hs = 'position:absolute;width:12px;height:12px;background:#00e5ff;border:2px solid #fff;border-radius:2px;';
+          handles =
+            '<div class="pv-handle" data-corner="tl" style="'+hs+'left:-6px;top:-6px;cursor:nwse-resize;"></div>' +
+            '<div class="pv-handle" data-corner="tr" style="'+hs+'right:-6px;top:-6px;cursor:nesw-resize;"></div>' +
+            '<div class="pv-handle" data-corner="bl" style="'+hs+'left:-6px;bottom:-6px;cursor:nesw-resize;"></div>' +
+            '<div class="pv-handle" data-corner="br" style="'+hs+'right:-6px;bottom:-6px;cursor:nwse-resize;"></div>';
+        }
+        item.innerHTML = inner + handles;
         pc.appendChild(item);
+        attachPreviewInteract(item, id, pc);
       });
     }
 
+    var pvSelectedId = null;
+
+    function attachPreviewInteract(item, id, pc) {
+      // Click to select
+      item.addEventListener('mousedown', function(e) {
+        if (imgLayers[id] && imgLayers[id].locked) return;
+        var isHandle = e.target.classList.contains('pv-handle');
+        e.preventDefault(); e.stopPropagation();
+
+        // Select this layer
+        if (pvSelectedId !== id) { pvSelectedId = id; renderPreviewCanvas(); return; }
+
+        var rect = pc.getBoundingClientRect();
+        var startMouseX = e.clientX, startMouseY = e.clientY;
+        var L = imgLayers[id];
+        var startX = (L.xPercent != null) ? L.xPercent : 50;
+        var startY = (L.yPercent != null) ? L.yPercent : 80;
+        var startSize = L.type === 'text' ? (L.fontSize || 60) : (L.size || 400);
+        var corner = isHandle ? e.target.dataset.corner : null;
+
+        if (isHandle) {
+          // RESIZE proportionally from corner
+          var onM = function(e2) {
+            var dx = (e2.clientX - startMouseX) / rect.width * 1920; // OBS px delta
+            // Direction: br/tr grow with +dx, bl/tl grow with -dx
+            var sign = (corner === 'br' || corner === 'tr') ? 1 : -1;
+            var newSize = Math.max(20, Math.round(startSize + dx * sign));
+            imgLayers[id][L.type === 'text' ? 'fontSize' : 'size'] = newSize;
+            renderPreviewLive(id);
+            imgDragging = true;
+            db.ref('widgets/image_layers/'+id+'/'+(L.type==='text'?'fontSize':'size')).set(newSize);
+          };
+          var onU = function() {
+            document.removeEventListener('mousemove', onM);
+            document.removeEventListener('mouseup', onU);
+            // Write final size explicitly
+            var finalSize = imgLayers[id][L.type === 'text' ? 'fontSize' : 'size'];
+            db.ref('widgets/image_layers/'+id+'/'+(L.type==='text'?'fontSize':'size')).set(finalSize);
+            clearTimeout(imgDragTimer);
+            imgDragTimer = setTimeout(function(){ imgDragging = false; renderPreviewCanvas(); }, 300);
+          };
+          document.addEventListener('mousemove', onM);
+          document.addEventListener('mouseup', onU);
+        } else {
+          // MOVE
+          var onM2 = function(e2) {
+            var dxp = (e2.clientX - startMouseX) / rect.width * 100;
+            var dyp = (e2.clientY - startMouseY) / rect.height * 100;
+            var nx = Math.max(0, Math.min(100, Math.round(startX + dxp)));
+            var ny = Math.max(0, Math.min(100, Math.round(startY + dyp)));
+            imgLayers[id].xPercent = nx; imgLayers[id].yPercent = ny;
+            item.style.left = nx + '%'; item.style.top = ny + '%';
+            imgDragging = true;
+            db.ref('widgets/image_layers/'+id).update({ xPercent: nx, yPercent: ny });
+          };
+          var onU2 = function() {
+            document.removeEventListener('mousemove', onM2);
+            document.removeEventListener('mouseup', onU2);
+            clearTimeout(imgDragTimer);
+            imgDragTimer = setTimeout(function(){ imgDragging = false; }, 300);
+          };
+          document.addEventListener('mousemove', onM2);
+          document.addEventListener('mouseup', onU2);
+        }
+      });
+    }
+
+    // Live update just one preview item's size without full re-render
+    function renderPreviewLive(id) {
+      var pc = document.getElementById('img-preview-canvas');
+      if (!pc) return;
+      var item = pc.querySelector('[data-prev="'+id+'"]');
+      if (!item) return;
+      var scale = (pc.getBoundingClientRect().width || 1) / 1920;
+      var L = imgLayers[id];
+      if (L.type === 'text') {
+        var span = item.querySelector('span');
+        if (span) span.style.fontSize = ((L.fontSize||60) * scale) + 'px';
+      } else {
+        var img = item.querySelector('img');
+        if (img) img.style.width = ((L.size||400) * scale) + 'px';
+      }
+    }
+
+
+
     db.ref('widgets/image_layers').on('value', function(snap) {
       imgLayers = snap.val() || {};
-      renderPreviewCanvas();
+      if (!imgDragging) renderPreviewCanvas();
       var list = document.getElementById('img-layers-list');
       if (!list) return;
       if (imgDragging) return; // don't re-render while user drags a slider
       var ids = Object.keys(imgLayers);
       if (!ids.length) {
-        list.innerHTML = '<div style="font-size:13px;color:#555;padding:12px 0;text-align:center;">Нет активных слоёв</div>';
+        list.innerHTML = '<div style="grid-column:1/-1;font-size:13px;color:#555;padding:12px 0;text-align:center;">Нет активных слоёв</div>';
         return;
       }
       // Sort by z descending (top layer first)
@@ -1683,93 +1786,28 @@
         var locked = !!L.locked;
         var floatOn = (L.float !== false); // default true
         // Thumbnail — image or text preview
+        var thumbSmall = isText
+          ? '<div style="width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;border-radius:4px;border:1px solid #444;background:#0a0a14;color:'+(L.color||'#fff')+';font-size:7px;font-weight:800;overflow:hidden;text-align:center;padding:1px;">'+(L.text||'').substring(0,10)+'</div>'
+          : '<img src="'+L.src+'" style="width:34px;height:34px;flex-shrink:0;object-fit:cover;border-radius:4px;border:1px solid #444;">';
         var thumb = isText
           ? '<div style="width:42px;height:42px;display:flex;align-items:center;justify-content:center;border-radius:5px;border:1px solid #444;background:#0a0a14;color:'+(L.color||'#fff')+';font-size:9px;font-weight:800;overflow:hidden;text-align:center;padding:2px;">'+(L.text||'').substring(0,12)+'</div>'
           : '<img src="'+L.src+'" style="width:42px;height:42px;object-fit:cover;border-radius:5px;border:1px solid #444;">';
         var titleLabel = isText ? '📝 Текст ' + num : 'Слой ' + num;
-        return '<div style="padding:10px;background:#1a1a2e;border-radius:10px;margin-bottom:10px;border:1px solid '+(L.visible?'#00b8d4':'#333')+';">' +
-          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
-            thumb +
-            '<div style="flex:1;min-width:0;"><div style="font-size:12px;color:#00e5ff;font-weight:700;">'+titleLabel+'</div>' +
-              '<div style="font-size:10px;color:#666;">X:'+xp+'% Y:'+yp+'%'+(locked?' 🔒':'')+'</div></div>' +
-            '<button onclick="toggleLayer(\''+id+'\')" title="Показать/скрыть" style="width:auto;padding:6px 8px;background:'+(L.visible?'#1db954':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">'+(L.visible?'👁️':'🚫')+'</button>' +
-            (isText ? '<button onclick="editText(\''+id+'\')" title="Редактировать текст" style="width:auto;padding:6px 8px;background:#3498db;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">✏️</button>' : '') +
-            '<button onclick="toggleFloat(\''+id+'\')" title="Движение (шейк)" style="width:auto;padding:6px 8px;background:'+(floatOn?'#16a085':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">'+(floatOn?'〰️':'➖')+'</button>' +
-            '<button onclick="toggleLock(\''+id+'\')" title="Заблокировать" style="width:auto;padding:6px 8px;background:'+(locked?'#e67e22':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:14px;margin:0;">'+(locked?'🔒':'🔓')+'</button>' +
-            '<button onclick="bringLayerFront(\''+id+'\')" title="Наверх" style="width:auto;padding:6px 8px;background:#6610f2;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">⬆️</button>' +
-            '<button onclick="removeLayer(\''+id+'\')" title="Удалить" style="width:auto;padding:6px 8px;background:#c0392b;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">🗑️</button>' +
-          '</div>' +
-          // Round joystick — stick always centered, moves toward mouse
-          '<div style="display:flex;justify-content:center;margin-bottom:10px;">' +
-            '<div class="img-joy-base" data-layer="'+id+'" style="position:relative;width:130px;height:130px;background:radial-gradient(circle,#15151f 0%,#0a0a14 70%);border:2px solid #2a2a3a;border-radius:50%;cursor:pointer;box-shadow:inset 0 4px 12px rgba(0,0,0,0.6);">' +
-              '<div style="position:absolute;left:50%;top:50%;width:4px;height:4px;background:#333;border-radius:50%;transform:translate(-50%,-50%);"></div>' +
-              '<div class="img-joy-stick" data-layer="'+id+'" style="position:absolute;left:50%;top:50%;width:46px;height:46px;background:radial-gradient(circle at 35% 30%,'+(locked?'#777,#444':'#00e5ff,#0088aa')+');border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);cursor:'+(locked?'not-allowed':'grab')+';box-shadow:0 4px 10px rgba(0,0,0,0.5),0 0 14px rgba(0,229,255,'+(locked?'0':'0.5')+');transition:transform 0.1s;"></div>' +
-            '</div>' +
-          '</div>' +
-          // Text layer controls (color + size)
-          (isText ?
-            '<div style="display:flex;gap:8px;align-items:center;margin-top:4px;">' +
-              '<input type="color" value="'+(L.color||'#ffffff')+'" onchange="setTextColor(\''+id+'\',this.value)" style="width:36px;height:30px;padding:0;border:1px solid #444;border-radius:5px;background:#1a1a2e;cursor:pointer;">' +
-              '<span style="font-size:11px;color:#888;">Размер</span>' +
-              '<input type="range" min="20" max="200" value="'+(L.fontSize||60)+'" oninput="setTextSize(\''+id+'\',this.value)" style="flex:1;">' +
-            '</div>'
-          : '') +
+        return '<div style="padding:7px 9px;background:#1a1a2e;border-radius:8px;margin-bottom:7px;border:1px solid '+(L.visible?'#00b8d4':'#333')+';display:flex;align-items:center;gap:8px;">' +
+            thumbSmall +
+            '<div style="flex:1;min-width:0;"><div style="font-size:12px;color:#00e5ff;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+titleLabel+'</div>' +
+              '<div style="font-size:9px;color:#666;">X:'+xp+'% Y:'+yp+'%'+(locked?' 🔒':'')+'</div></div>' +
+            '<button onclick="toggleLayer(\''+id+'\')" title="Показать/скрыть" style="width:auto;padding:5px 7px;background:'+(L.visible?'#1db954':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">'+(L.visible?'👁️':'🚫')+'</button>' +
+            (isText ? '<input type="color" value="'+(L.color||'#ffffff')+'" onchange="setTextColor(\''+id+'\',this.value)" title="Цвет" style="width:28px;height:28px;padding:0;border:1px solid #444;border-radius:5px;background:#1a1a2e;cursor:pointer;flex-shrink:0;">' : '') +
+            (isText ? '<button onclick="editText(\''+id+'\')" title="Редактировать текст" style="width:auto;padding:5px 7px;background:#3498db;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">✏️</button>' : '') +
+            '<button onclick="toggleFloat(\''+id+'\')" title="Движение (шейк)" style="width:auto;padding:5px 7px;background:'+(floatOn?'#16a085':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">'+(floatOn?'〰️':'➖')+'</button>' +
+            '<button onclick="toggleLock(\''+id+'\')" title="Заблокировать" style="width:auto;padding:5px 7px;background:'+(locked?'#e67e22':'#555')+';border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">'+(locked?'🔒':'🔓')+'</button>' +
+            '<button onclick="bringLayerFront(\''+id+'\')" title="Наверх" style="width:auto;padding:5px 7px;background:#6610f2;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:12px;margin:0;">⬆️</button>' +
+            '<button onclick="removeLayer(\''+id+'\')" title="Удалить" style="width:auto;padding:5px 7px;background:#c0392b;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:12px;margin:0;">🗑️</button>' +
         '</div>';
+
+
       }).join('');
-
-      // Attach joystick drag — stick follows mouse while held
-      list.querySelectorAll('.img-joy-base').forEach(function(base) {
-        var stick = base.querySelector('.img-joy-stick');
-        var layerId = base.dataset.layer;
-        var maxR = 90; // max stick travel radius (px) — larger = less sensitive
-
-        var startPx, startPy, startMouseX, startMouseY;
-        var onMouseMove = function(ev) {
-          // Relative drag: mouse movement translates to position change across full screen
-          var moveScale = 0.12; // sensitivity: how much % per pixel of mouse movement
-          var dpx = (ev.clientX - startMouseX) * moveScale;
-          var dpy = (ev.clientY - startMouseY) * moveScale;
-          var px = Math.round(startPx + dpx);
-          var py = Math.round(startPy + dpy);
-          px = px < 0 ? 0 : px > 100 ? 100 : px;
-          py = py < 0 ? 0 : py > 100 ? 100 : py;
-          // Move stick visually toward direction (clamped to circle for looks)
-          var vdx = ev.clientX - startMouseX;
-          var vdy = ev.clientY - startMouseY;
-          var vdist = Math.sqrt(vdx*vdx + vdy*vdy);
-          if (vdist > maxR) { vdx = vdx/vdist*maxR; vdy = vdy/vdist*maxR; }
-          stick.style.left = (50 + (vdx / maxR) * 38) + '%';
-          stick.style.top  = (50 + (vdy / maxR) * 38) + '%';
-          liveLayerXY(layerId, px, py);
-        };
-
-        var onMouseUp = function() {
-          document.removeEventListener('mousemove', onMouseMove);
-          document.removeEventListener('mouseup', onMouseUp);
-          stick.style.cursor = 'grab';
-          // Stick returns to center (image stays where it was)
-          stick.style.transition = 'left 0.2s, top 0.2s';
-          stick.style.left = '50%';
-          stick.style.top = '50%';
-          setTimeout(function(){ stick.style.transition = ''; }, 220);
-          endLayerDrag();
-        };
-
-        base.addEventListener('mousedown', function(ev) {
-          if (imgLayers[layerId] && imgLayers[layerId].locked) return; // locked — no drag
-          ev.preventDefault();
-          ev.stopPropagation();
-          // Capture starting point for relative drag
-          startPx = (imgLayers[layerId].xPercent != null) ? imgLayers[layerId].xPercent : 50;
-          startPy = (imgLayers[layerId].yPercent != null) ? imgLayers[layerId].yPercent : 80;
-          startMouseX = ev.clientX;
-          startMouseY = ev.clientY;
-          stick.style.cursor = 'grabbing';
-          stick.style.transition = '';
-          document.addEventListener('mousemove', onMouseMove);
-          document.addEventListener('mouseup', onMouseUp);
-        });
-      });
     });
 
     </script>
@@ -1869,38 +1907,43 @@
 
     <!-- Image Layers Modal -->
     <div id="image-modal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.88);z-index:11000;align-items:center;justify-content:center;">
-      <div style="background:#25252c;border:2px solid #00b8d4;border-radius:12px;width:94vw;max-width:600px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px rgba(0,184,212,0.2);">
+      <div style="background:#25252c;border:2px solid #00b8d4;border-radius:12px;width:96vw;max-width:1500px;height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 40px rgba(0,184,212,0.2);">
         <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #333;background:#1e1e24;flex-shrink:0;">
           <h3 style="margin:0;color:#00e5ff;font-size:15px;">🖼️ Картинки</h3>
           <button onclick="closeImageModal()" style="width:auto;padding:5px 12px;background:#555;border-radius:6px;margin:0;font-size:13px;">✕</button>
         </div>
-        <div style="padding:16px 18px;overflow-y:auto;flex:1;">
+        <div class="img-modal-body" style="display:flex;flex-direction:column;gap:14px;padding:16px 18px;flex:1;overflow-y:auto;overflow-x:hidden;min-height:0;">
 
-          <!-- Live preview 16:9 -->
-          <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">Предпросмотр (где будут слои)</div>
-          <div id="img-preview-canvas" style="position:relative;width:100%;aspect-ratio:16/9;background-image:url('https://github.com/G1bsi/DORNOD/blob/main/test%20(2).png?raw=true');background-size:cover;background-position:center;border:1px solid #333;border-radius:8px;margin-bottom:12px;overflow:hidden;"></div>
-
-          <!-- Add new layer -->
-          <div id="img-paste-zone" tabindex="0" style="border:2px dashed #00b8d4;border-radius:10px;padding:24px 20px;text-align:center;cursor:pointer;background:#1a1a2e;margin-bottom:10px;outline:none;">
-            <div style="font-size:13px;color:#aaa;"><b style="color:#00e5ff;">Ctrl+V</b> картинку</div>
-          </div>
-          <div style="display:flex;gap:8px;margin-bottom:10px;">
-            <input type="text" id="img-url-input" placeholder="или вставь ссылку (URL)..." 
-              style="flex:1;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:9px 12px;font-size:13px;outline:none;"
-              onkeydown="if(event.key==='Enter')addLayerFromUrl()">
-            <button onclick="addLayerFromUrl()" style="background:#00b8d4;color:#fff;font-weight:700;padding:9px 16px;border-radius:6px;border:none;cursor:pointer;width:auto;margin:0;font-size:13px;">+ Картинка</button>
-          </div>
-          <div style="display:flex;gap:8px;margin-bottom:16px;">
-            <input type="text" id="img-text-input" placeholder="или напиши текст..." 
-              style="flex:1;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:9px 12px;font-size:13px;outline:none;"
-              onkeydown="if(event.key==='Enter')addTextLayer()">
-            <button onclick="addTextLayer()" style="background:#9b59b6;color:#fff;font-weight:700;padding:9px 16px;border-radius:6px;border:none;cursor:pointer;width:auto;margin:0;font-size:13px;">+ Текст</button>
+          <!-- LEFT: big preview (fixed) -->
+          <div class="img-modal-left" style="flex:0 0 auto;width:100%;max-width:1100px;margin:0 auto;display:flex;flex-direction:column;">
+            <div style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;flex-shrink:0;">Предосмотр</div>
+            <div id="img-preview-canvas" onmousedown="if(event.target.id==='img-preview-canvas'){pvSelectedId=null;renderPreviewCanvas();}" style="position:relative;width:100%;aspect-ratio:16/9;background-image:url('https://github.com/G1bsi/DORNOD/blob/main/test%20(2).png?raw=true');background-size:100% 100%;background-position:center;border:1px solid #333;border-radius:8px;overflow:hidden;flex-shrink:0;"></div>
           </div>
 
-          <!-- Layers list -->
-          <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">СЛОИ</div>
-          <div id="img-layers-list">
-            <div style="font-size:13px;color:#555;padding:12px 0;text-align:center;">Нет активных слоёв</div>
+          <!-- RIGHT: inputs + layers (scrollable layers) -->
+          <div class="img-modal-right" style="width:100%;max-width:1100px;margin:0 auto;display:flex;flex-direction:column;">
+            <!-- Add controls (fixed at top of right column) -->
+            <div style="flex-shrink:0;margin-bottom:12px;">
+              <div id="img-paste-zone" tabindex="0" style="border:2px dashed #00b8d4;border-radius:10px;padding:16px;text-align:center;cursor:pointer;background:#1a1a2e;margin-bottom:8px;outline:none;">
+                <div style="font-size:13px;color:#aaa;"><b style="color:#00e5ff;">Ctrl+V</b> картинку</div>
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:8px;">
+                <input type="text" id="img-url-input" placeholder="или вставь ссылку (URL)..." 
+                  style="flex:1;min-width:0;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:9px 12px;font-size:13px;outline:none;"
+                  onkeydown="if(event.key==='Enter')addLayerFromUrl()">
+                <button onclick="addLayerFromUrl()" style="background:#00b8d4;color:#fff;font-weight:700;padding:9px 14px;border-radius:6px;border:none;cursor:pointer;width:auto;margin:0;font-size:13px;flex-shrink:0;">+ Карт.</button>
+              </div>
+              <div style="display:flex;gap:8px;">
+                <input type="text" id="img-text-input" placeholder="или напиши текст..." 
+                  style="flex:1;min-width:0;background:#1a1a2e;border:1px solid #444;border-radius:6px;color:#fff;padding:9px 12px;font-size:13px;outline:none;"
+                  onkeydown="if(event.key==='Enter')addTextLayer()">
+                <button onclick="addTextLayer()" style="background:#9b59b6;color:#fff;font-weight:700;padding:9px 14px;border-radius:6px;border:none;cursor:pointer;width:auto;margin:0;font-size:13px;flex-shrink:0;">+ Текст</button>
+              </div>
+            </div>
+            <div style="font-size:12px;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;flex-shrink:0;">СЛОИ</div>
+            <div id="img-layers-list" style="padding-right:4px;">
+              <div style="font-size:13px;color:#555;padding:12px 0;text-align:center;">Нет активных слоёв</div>
+            </div>
           </div>
 
         </div>
