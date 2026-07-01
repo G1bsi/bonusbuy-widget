@@ -1,9 +1,4 @@
-.img-layer .img-text {
-      font-family: 'Plus Jakarta Sans','Inter',sans-serif;
-      font-weight: 900;
-      white-space: nowrap;
-      text-shadow: 0 3px 12px rgba(0,0,0,0.8), 0 0 30px rgba(0,0,0,0.5);
-    }<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -1129,6 +1124,12 @@
       pointer-events: none;
       overflow: visible;
     }
+    .img-layer .img-text {
+      font-family: 'Plus Jakarta Sans','Inter',sans-serif;
+      font-weight: 900;
+      white-space: nowrap;
+      text-shadow: 0 3px 12px rgba(0,0,0,0.8), 0 0 30px rgba(0,0,0,0.5);
+    }
     /* slide wrapper — hides by moving down + fading */
     .img-slide {
       transform: translateY(140px);
@@ -1139,7 +1140,7 @@
       transform: translateY(0);
       opacity: 1;
     }
-    .img-layer.visible .img-float-inner { animation: imgFloat 6s ease-in-out infinite; }
+    .img-layer.visible:not(.no-float) .img-float-inner { animation: imgFloat 6s ease-in-out infinite; }
     @keyframes imgFloat {
       0%   { transform: translateY(0) rotate(0deg); }
       50%  { transform: translateY(-12px) rotate(0.5deg); }
@@ -1353,6 +1354,7 @@
           el.style.width  = (L.size || 400) + 'px';
         }
         el.style.zIndex = L.z || 1;
+        if (L.float === false) el.classList.add('no-float'); else el.classList.remove('no-float');
         var xp = (L.xPercent != null) ? L.xPercent : 50;
         var yp = (L.yPercent != null) ? L.yPercent : 80;
         el.style.left = xp + '%';
