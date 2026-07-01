@@ -1,4 +1,9 @@
-<!DOCTYPE html>
+.img-layer .img-text {
+      font-family: 'Plus Jakarta Sans','Inter',sans-serif;
+      font-weight: 900;
+      white-space: nowrap;
+      text-shadow: 0 3px 12px rgba(0,0,0,0.8), 0 0 30px rgba(0,0,0,0.5);
+    }<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -1327,12 +1332,26 @@
           el = document.createElement('div');
           el.className = 'img-layer'; // starts hidden (below screen)
           el.dataset.id = id;
-          el.innerHTML = '<div class="img-slide"><div class="img-float-inner"><img src=""></div></div>';
+          if (L.type === 'text') {
+            el.innerHTML = '<div class="img-slide"><div class="img-float-inner"><div class="img-text"></div></div></div>';
+          } else {
+            el.innerHTML = '<div class="img-slide"><div class="img-float-inner"><img src=""></div></div>';
+          }
           container.appendChild(el);
         }
-        var img = el.querySelector('img');
-        if (img.src !== L.src) img.src = L.src;
-        el.style.width  = (L.size || 400) + 'px';
+        if (L.type === 'text') {
+          var txtEl = el.querySelector('.img-text');
+          if (txtEl) {
+            txtEl.textContent = L.text || '';
+            txtEl.style.color = L.color || '#ffffff';
+            txtEl.style.fontSize = (L.fontSize || 60) + 'px';
+          }
+          el.style.width = 'auto';
+        } else {
+          var img = el.querySelector('img');
+          if (img && img.src !== L.src) img.src = L.src;
+          el.style.width  = (L.size || 400) + 'px';
+        }
         el.style.zIndex = L.z || 1;
         var xp = (L.xPercent != null) ? L.xPercent : 50;
         var yp = (L.yPercent != null) ? L.yPercent : 80;
