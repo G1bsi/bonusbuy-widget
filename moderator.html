@@ -1439,35 +1439,6 @@
           (e.note ? '<span style="color:#666;font-size:11px;">' + e.note + '</span>' : '') +
           '</div>';
       }).join('');
-
-      // Attach joystick drag (round thumbstick)
-      list.querySelectorAll('.img-joy-base').forEach(function(base) {
-        var stick = base.querySelector('.img-joy-stick');
-        var id = base.dataset.layer;
-        function moveToEvent(e2) {
-          var r = base.getBoundingClientRect();
-          var px = Math.max(0, Math.min(100, Math.round((e2.clientX - r.left) / r.width * 100)));
-          var py = Math.max(0, Math.min(100, Math.round((e2.clientY - r.top) / r.height * 100)));
-          stick.style.left = px + '%';
-          stick.style.top  = py + '%';
-          liveLayerXY(id, px, py);
-        }
-        function startDrag(e) {
-          e.preventDefault(); e.stopPropagation();
-          stick.style.cursor = 'grabbing';
-          moveToEvent(e); // jump to click position immediately
-          var move = function(e2){ moveToEvent(e2); };
-          var up = function() {
-            document.removeEventListener('mousemove', move);
-            document.removeEventListener('mouseup', up);
-            stick.style.cursor = 'grab';
-            endLayerDrag();
-          };
-          document.addEventListener('mousemove', move);
-          document.addEventListener('mouseup', up);
-        }
-        base.addEventListener('mousedown', startDrag);
-      });
     });
 
     function openStatsModal()  { document.getElementById('stats-modal').style.display = 'flex'; }
@@ -1635,15 +1606,67 @@
             '<button onclick="bringLayerFront(\''+id+'\')" style="width:auto;padding:6px 9px;background:#6610f2;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">⬆️</button>' +
             '<button onclick="removeLayer(\''+id+'\')" style="width:auto;padding:6px 9px;background:#c0392b;border:none;border-radius:5px;color:#fff;cursor:pointer;font-size:13px;margin:0;">🗑️</button>' +
           '</div>' +
-          // Round joystick (like a thumbstick)
+          // Round joystick — stick always centered, moves toward mouse
           '<div style="display:flex;justify-content:center;margin-bottom:10px;">' +
             '<div class="img-joy-base" data-layer="'+id+'" style="position:relative;width:130px;height:130px;background:radial-gradient(circle,#15151f 0%,#0a0a14 70%);border:2px solid #2a2a3a;border-radius:50%;cursor:pointer;box-shadow:inset 0 4px 12px rgba(0,0,0,0.6);">' +
               '<div style="position:absolute;left:50%;top:50%;width:4px;height:4px;background:#333;border-radius:50%;transform:translate(-50%,-50%);"></div>' +
-              '<div class="img-joy-stick" data-layer="'+id+'" style="position:absolute;width:46px;height:46px;background:radial-gradient(circle at 35% 30%,#00e5ff,#0088aa);border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);cursor:grab;left:'+xp+'%;top:'+yp+'%;box-shadow:0 4px 10px rgba(0,0,0,0.5),0 0 14px rgba(0,229,255,0.5);"></div>' +
+              '<div class="img-joy-stick" data-layer="'+id+'" style="position:absolute;left:50%;top:50%;width:46px;height:46px;background:radial-gradient(circle at 35% 30%,#00e5ff,#0088aa);border:2px solid #fff;border-radius:50%;transform:translate(-50%,-50%);cursor:grab;box-shadow:0 4px 10px rgba(0,0,0,0.5),0 0 14px rgba(0,229,255,0.5);transition:transform 0.1s;"></div>' +
             '</div>' +
           '</div>' +
         '</div>';
       }).join('');
+
+      // Attach joystick drag — stick follows mouse while held
+      list.querySelectorAll('.img-joy-base').forEach(function(base) {
+        var stick = base.querySelector('.img-joy-stick');
+        var layerId = base.dataset.layer;
+        var maxR = 90; // max stick travel radius (px) — larger = less sensitive
+
+        var onMouseMove = function(ev) {
+          var rect = base.getBoundingClientRect();
+          var cx = rect.left + rect.width / 2;
+          var cy = rect.top + rect.height / 2;
+          var dx = ev.clientX - cx;
+          var dy = ev.clientY - cy;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist > maxR) {
+            dx = dx / dist * maxR;
+            dy = dy / dist * maxR;
+          }
+          // Move the stick visually (always, for feedback)
+          stick.style.left = (50 + (dx / maxR) * 38) + '%';
+          stick.style.top  = (50 + (dy / maxR) * 38) + '%';
+          // Map to image position: stick offset → 0..100
+          var px = Math.round(50 + (dx / maxR) * 50);
+          var py = Math.round(50 + (dy / maxR) * 50);
+          px = px < 0 ? 0 : px > 100 ? 100 : px;
+          py = py < 0 ? 0 : py > 100 ? 100 : py;
+          // Only push position (updates X/Y) — visibility unchanged, so hidden stays hidden
+          liveLayerXY(layerId, px, py);
+        };
+
+        var onMouseUp = function() {
+          document.removeEventListener('mousemove', onMouseMove);
+          document.removeEventListener('mouseup', onMouseUp);
+          stick.style.cursor = 'grab';
+          // Stick returns to center (image stays where it was)
+          stick.style.transition = 'left 0.2s, top 0.2s';
+          stick.style.left = '50%';
+          stick.style.top = '50%';
+          setTimeout(function(){ stick.style.transition = ''; }, 220);
+          endLayerDrag();
+        };
+
+        base.addEventListener('mousedown', function(ev) {
+          ev.preventDefault();
+          ev.stopPropagation();
+          stick.style.cursor = 'grabbing';
+          stick.style.transition = '';
+          onMouseMove(ev); // react immediately
+          document.addEventListener('mousemove', onMouseMove);
+          document.addEventListener('mouseup', onMouseUp);
+        });
+      });
     });
 
     </script>
