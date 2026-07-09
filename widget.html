@@ -1124,7 +1124,7 @@
       pointer-events: none;
       overflow: visible;
     }
-    .img-layer img { width: 100%; height: auto; display: block; }
+    .img-layer img, .img-layer video { width: 100%; height: auto; display: block; }
     .img-layer .img-text {
       font-family: 'Plus Jakarta Sans','Inter',sans-serif;
       font-weight: 900;
@@ -1310,9 +1310,15 @@
     var lastTtsTs=Date.now(); var ttsFirstLoad=true;
     db.ref('widgets/tts_play').on('value', function(snap) {
       var d=snap.val(); if(!d||!d.audio||!d.ts) return;
-      if(ttsFirstLoad){lastTtsTs=d.ts;ttsFirstLoad=false;return;}
+      if(ttsFirstLoad){lastTtsTs=d.ts;ttsFirstLoad=false;
+        // Clear any stale audio sitting in DB on startup
+        db.ref('widgets/tts_play/audio').remove();
+        return;
+      }
       if(d.ts<=lastTtsTs) return; lastTtsTs=d.ts;
       try{var a=new Audio(d.audio);a.play().catch(function(){});}catch(e){}
+      // Remove base64 audio right after playing so it doesn't bloat DB reads
+      setTimeout(function(){ db.ref('widgets/tts_play/audio').remove(); }, 2000);
     });
     // Image layers — always slide from bottom, X position via xPercent
     db.ref('widgets/image_layers').on('value', function(snap) {
@@ -1336,6 +1342,8 @@
           el.dataset.id = id;
           if (L.type === 'text') {
             el.innerHTML = '<div class="img-slide"><div class="img-float-inner"><div class="img-text"></div></div></div>';
+          } else if (L.type === 'video') {
+            el.innerHTML = '<div class="img-slide"><div class="img-float-inner"><video autoplay loop muted playsinline></video></div></div>';
           } else {
             el.innerHTML = '<div class="img-slide"><div class="img-float-inner"><img src=""></div></div>';
           }
@@ -1349,6 +1357,10 @@
             txtEl.style.fontSize = (L.fontSize || 60) + 'px';
           }
           el.style.width = 'auto';
+        } else if (L.type === 'video') {
+          var vid = el.querySelector('video');
+          if (vid && vid.src !== L.src) vid.src = L.src;
+          el.style.width  = (L.size || 400) + 'px';
         } else {
           var img = el.querySelector('img');
           if (img && img.src !== L.src) img.src = L.src;
@@ -1375,8 +1387,12 @@
       });
     });
 
-    db.ref('/').on('value', function(snapshot) {
-        const data = snapshot.val() || {};
+    // Instead of listening to entire DB root (which re-downloads heavy widgets/tts_play,
+    // widgets/image_layers base64, widgets/stats_log on EVERY change), we cache root-level
+    // keys and only re-read the specific keys the widget renders. This drastically cuts bandwidth.
+    var rootCache = {};
+    function handleRootData() {
+        const data = rootCache;
         const mode = data.global_mode || 'solo';
         const mainVisible = !!data.main_widget_visible;
 
@@ -1431,6 +1447,17 @@
                 hideDragonWheel();
             }
         }
+    }
+
+    // Listen to individual root-level keys — only re-render when these change.
+    // Heavy paths (widgets/tts_play, widgets/image_layers, widgets/stats_log) are
+    // handled by their own dedicated listeners above and are NOT part of this render.
+    ['global_mode','main_widget_visible','battle','wheel','custom_icons','slots',
+     'active_index','start_balance','start_balance_currency','display_mode'].forEach(function(key) {
+      db.ref(key).on('value', function(snap) {
+        rootCache[key] = snap.val();
+        handleRootData();
+      });
     });
 
     // ═══ DRAGON WHEEL INIT ═══
