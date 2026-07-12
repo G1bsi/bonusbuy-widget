@@ -1514,6 +1514,21 @@
     function openImageModal()  { document.getElementById('image-modal').style.display = 'flex'; setTimeout(function(){var z=document.getElementById('img-paste-zone'); if(z) z.focus(); renderPreviewCanvas();}, 100); }
     function closeImageModal() { document.getElementById('image-modal').style.display = 'none'; }
 
+    // Ctrl+D (or Cmd+D) duplicates the currently selected layer(s), only while modal is open
+    document.addEventListener('keydown', function(e) {
+      var modal = document.getElementById('image-modal');
+      if (!modal || modal.style.display !== 'flex') return;
+      // Note: Chrome reserves plain Ctrl+D for bookmarking and ignores preventDefault() on it,
+      // so Ctrl+Shift+D is the reliable shortcut here (the ⧉ button always works too).
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault();
+        pvDuplicateSelected();
+      } else if ((e.ctrlKey || e.metaKey) && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault(); // works in some browsers; harmless no-op in Chrome
+        pvDuplicateSelected();
+      }
+    });
+
     // Paste handler
     window.addEventListener('paste', function(e) {
       if (document.getElementById('image-modal').style.display !== 'flex') return;
@@ -1638,7 +1653,14 @@
     function toggleLayer(id) {
       var cur = imgLayers[id];
       if (!cur) return;
-      db.ref('widgets/image_layers/' + id + '/visible').set(!cur.visible);
+      var newVal = !cur.visible;
+      // If this layer is part of a current multi-selection (2+), toggle ALL selected together
+      var selIds = Object.keys(pvSelected);
+      if (selIds.length >= 2 && pvSelected[id]) {
+        selIds.forEach(function(sid) { db.ref('widgets/image_layers/' + sid + '/visible').set(newVal); });
+      } else {
+        db.ref('widgets/image_layers/' + id + '/visible').set(newVal);
+      }
     }
 
     function bringLayerFront(id) {
@@ -1652,15 +1674,14 @@
       var pc = document.getElementById('img-preview-canvas');
       if (!pc) return;
       var ids = Object.keys(imgLayers || {});
-      Array.prototype.slice.call(pc.children).forEach(function(c){ if(c.dataset && c.dataset.prev) c.remove(); });
+      Array.prototype.slice.call(pc.children).forEach(function(c){ if(c.dataset && (c.dataset.prev || c.dataset.groupFrame)) c.remove(); });
       ids.sort(function(a,b){ return (imgLayers[a].z||0) - (imgLayers[b].z||0); });
       var pcW = pc.getBoundingClientRect().width || pc.offsetWidth || 0;
       if (pcW < 10) { requestAnimationFrame(renderPreviewCanvas); return; }
       var scale = pcW / 1920;
+      var selCount = Object.keys(pvSelected).length;
       ids.forEach(function(id) {
         var L = imgLayers[id];
-        // Show ALL layers in preview (even hidden ones), so newly added layers appear
-        // in the staging area and can be dragged onto screen. Hidden layers are dimmed.
         var xp = (L.xPercent != null) ? L.xPercent : 50;
         var yp = (L.yPercent != null) ? L.yPercent : 80;
         var item = document.createElement('div');
@@ -1670,20 +1691,21 @@
         var outline = selected ? 'outline:2px solid #00e5ff;outline-offset:2px;' : (inGroup ? 'outline:1px dashed #9b59b6;outline-offset:2px;' : '');
         var dim = L.visible ? '' : 'opacity:0.45;filter:grayscale(30%);';
         item.style.cssText = 'position:absolute;left:'+xp+'%;top:'+yp+'%;transform:translate(-50%,-50%);cursor:move;'+outline+dim;
+        var flipStyle = L.flipX ? 'transform:scaleX(-1);' : '';
         var inner = '';
         if (L.type === 'text') {
           var fs = (L.fontSize || 60) * scale;
-          inner = '<span style="color:'+(L.color||'#fff')+';font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:900;font-size:'+fs+'px;white-space:nowrap;text-shadow:0 1px 3px #000;pointer-events:none;">'+(L.text||'')+'</span>';
+          inner = '<span style="display:inline-block;'+flipStyle+'color:'+(L.color||'#fff')+';font-family:\'Plus Jakarta Sans\',sans-serif;font-weight:900;font-size:'+fs+'px;white-space:nowrap;text-shadow:0 1px 3px #000;pointer-events:none;">'+(L.text||'')+'</span>';
         } else if (L.type === 'video') {
           var w = (L.size || 400) * scale;
-          inner = '<video src="'+L.src+'" muted loop autoplay playsinline style="width:'+w+'px;display:block;pointer-events:none;"></video>';
+          inner = '<video src="'+L.src+'" muted loop autoplay playsinline style="width:'+w+'px;display:block;pointer-events:none;'+flipStyle+'"></video>';
         } else {
           var w = (L.size || 400) * scale;
-          inner = '<img src="'+L.src+'" style="width:'+w+'px;display:block;pointer-events:none;">';
+          inner = '<img src="'+L.src+'" style="width:'+w+'px;display:block;pointer-events:none;'+flipStyle+'">';
         }
-        // Resize handles only shown when exactly ONE layer is selected
+        // Per-item resize handles only when exactly ONE layer selected (group uses its own frame below)
         var handles = '';
-        if (selected && Object.keys(pvSelected).length === 1) {
+        if (selected && selCount === 1) {
           var hs = 'position:absolute;width:12px;height:12px;background:#00e5ff;border:2px solid #fff;border-radius:2px;';
           handles =
             '<div class="pv-handle" data-corner="tl" style="'+hs+'left:-6px;top:-6px;cursor:nwse-resize;"></div>' +
@@ -1695,6 +1717,23 @@
         pc.appendChild(item);
         attachPreviewInteract(item, id, pc);
       });
+
+      // Group bounding-box frame + handles when 2+ selected
+      if (selCount >= 2) {
+        var bbox = pvComputeGroupBBox(Object.keys(pvSelected));
+        var frame = document.createElement('div');
+        frame.dataset.groupFrame = '1';
+        frame.style.cssText = 'position:absolute;left:'+bbox.minX+'%;top:'+bbox.minY+'%;width:'+(bbox.maxX-bbox.minX)+'%;height:'+(bbox.maxY-bbox.minY)+'%;border:1.5px dashed #00e5ff;pointer-events:none;z-index:998;';
+        var hs2 = 'position:absolute;width:13px;height:13px;background:#6610f2;border:2px solid #fff;border-radius:2px;pointer-events:auto;';
+        frame.innerHTML =
+          '<div class="pv-group-handle" data-corner="tl" style="'+hs2+'left:-7px;top:-7px;cursor:nwse-resize;"></div>' +
+          '<div class="pv-group-handle" data-corner="tr" style="'+hs2+'right:-7px;top:-7px;cursor:nesw-resize;"></div>' +
+          '<div class="pv-group-handle" data-corner="bl" style="'+hs2+'left:-7px;bottom:-7px;cursor:nesw-resize;"></div>' +
+          '<div class="pv-group-handle" data-corner="br" style="'+hs2+'right:-7px;bottom:-7px;cursor:nwse-resize;"></div>';
+        pc.appendChild(frame);
+        attachGroupResizeHandles(frame, pc);
+      }
+
       updatePvToolbar();
     }
 
@@ -1702,13 +1741,25 @@
     var pvSelected = {};
 
     function pvGroupIdsOf(id) {
-      // Returns array of ids that belong to the same group as `id` (or just [id] if no group)
       var gid = imgLayers[id] && imgLayers[id].groupId;
       if (!gid) return [id];
       return Object.keys(imgLayers).filter(function(k){ return imgLayers[k].groupId === gid; });
     }
 
     function pvClearSelection() { pvSelected = {}; renderPreviewCanvas(); }
+
+    function pvComputeGroupBBox(ids) {
+      var minX=100, maxX=0, minY=100, maxY=0;
+      ids.forEach(function(id) {
+        var L = imgLayers[id]; if (!L) return;
+        var xp = (L.xPercent!=null)?L.xPercent:50, yp = (L.yPercent!=null)?L.yPercent:80;
+        if (xp<minX) minX=xp; if (xp>maxX) maxX=xp;
+        if (yp<minY) minY=yp; if (yp>maxY) maxY=yp;
+      });
+      // Small padding so the frame isn't perfectly hugging single-axis-aligned items
+      var padX = Math.max(3, (maxX-minX)*0.08), padY = Math.max(3, (maxY-minY)*0.08);
+      return { minX: minX-padX, maxX: maxX+padX, minY: minY-padY, maxY: maxY+padY };
+    }
 
     function updatePvToolbar() {
       var bar = document.getElementById('pv-toolbar');
@@ -1720,12 +1771,12 @@
       if (ids.length === 0) { bar.style.display = 'none'; return; }
       bar.style.display = 'flex';
       cnt.textContent = 'Выбрано: ' + ids.length;
-      // Group button — show when 2+ selected
       gBtn.style.display = ids.length >= 2 ? 'inline-block' : 'none';
-      // Ungroup button — show when selection is exactly an existing group (all share same groupId, 1+)
       var gids = ids.map(function(id){ return imgLayers[id] && imgLayers[id].groupId; });
       var allSameGroup = gids.length > 0 && gids[0] && gids.every(function(g){ return g === gids[0]; });
       ugBtn.style.display = allSameGroup ? 'inline-block' : 'none';
+      var dBtn = document.getElementById('pv-dup-btn');
+      if (dBtn) dBtn.style.display = ids.length >= 1 ? 'inline-block' : 'none';
     }
 
     function pvGroupSelected() {
@@ -1740,6 +1791,86 @@
       ids.forEach(function(id) { db.ref('widgets/image_layers/'+id+'/groupId').remove(); });
     }
 
+    // Duplicate all selected layers (Ctrl+D). Duplicates spawn slightly offset and become the new selection.
+    function pvDuplicateSelected() {
+      var ids = Object.keys(pvSelected);
+      if (!ids.length) return;
+      var maxZ = Object.keys(imgLayers).reduce(function(m,k){ return Math.max(m, imgLayers[k].z||0); }, 0);
+      var newGid = ids.length >= 2 ? ('G' + Date.now()) : null;
+      var updates = {};
+      var newIds = [];
+      ids.forEach(function(id, i) {
+        var L = imgLayers[id];
+        if (!L) return;
+        var newId = 'L' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2,6);
+        var copy = JSON.parse(JSON.stringify(L));
+        copy.xPercent = (copy.xPercent!=null ? copy.xPercent : 50) + 4;
+        copy.yPercent = (copy.yPercent!=null ? copy.yPercent : 80) + 4;
+        copy.z = maxZ + 1 + i;
+        if (newGid) copy.groupId = newGid; else delete copy.groupId;
+        updates['widgets/image_layers/' + newId] = copy;
+        newIds.push(newId);
+      });
+      db.ref().update(updates).then(function() {
+        var sel = {};
+        newIds.forEach(function(nid){ sel[nid] = true; });
+        pvSelected = sel;
+        renderPreviewCanvas();
+      });
+    }
+
+    // Marquee (rubber-band) selection — mousedown on empty canvas background
+    function pvCanvasMouseDown(e) {
+      if (e.target.id !== 'img-preview-canvas' && e.target.id !== 'img-preview-stage') return; // only bare background, not an item
+      var pc = document.getElementById('img-preview-canvas');
+      var rect = pc.getBoundingClientRect();
+      var startCX = e.clientX, startCY = e.clientY;
+      var shift = e.shiftKey;
+      var moved = false;
+      var marquee = document.createElement('div');
+      marquee.style.cssText = 'position:absolute;border:1.5px dashed #00e5ff;background:rgba(0,229,255,0.12);pointer-events:none;z-index:999;display:none;';
+      pc.appendChild(marquee);
+
+      function onMove(e2) {
+        var dx = e2.clientX - startCX, dy = e2.clientY - startCY;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) moved = true;
+        if (!moved) return;
+        var x1 = Math.min(startCX, e2.clientX), x2 = Math.max(startCX, e2.clientX);
+        var y1 = Math.min(startCY, e2.clientY), y2 = Math.max(startCY, e2.clientY);
+        marquee.style.display = 'block';
+        marquee.style.left = (x1 - rect.left) + 'px';
+        marquee.style.top = (y1 - rect.top) + 'px';
+        marquee.style.width = (x2 - x1) + 'px';
+        marquee.style.height = (y2 - y1) + 'px';
+      }
+      function onUp(e2) {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        if (marquee.parentNode) marquee.remove();
+        if (!moved) {
+          if (!shift) pvClearSelection();
+          return;
+        }
+        var x1 = Math.min(startCX, e2.clientX), x2 = Math.max(startCX, e2.clientX);
+        var y1 = Math.min(startCY, e2.clientY), y2 = Math.max(startCY, e2.clientY);
+        var p1x = (x1 - rect.left) / rect.width * 100, p2x = (x2 - rect.left) / rect.width * 100;
+        var p1y = (y1 - rect.top) / rect.height * 100, p2y = (y2 - rect.top) / rect.height * 100;
+        var picked = {};
+        Object.keys(imgLayers).forEach(function(id) {
+          var L = imgLayers[id];
+          var xp = (L.xPercent!=null)?L.xPercent:50, yp = (L.yPercent!=null)?L.yPercent:80;
+          if (xp>=p1x && xp<=p2x && yp>=p1y && yp<=p2y) {
+            pvGroupIdsOf(id).forEach(function(m){ picked[m]=true; });
+          }
+        });
+        if (!shift) pvSelected = picked;
+        else Object.keys(picked).forEach(function(k){ pvSelected[k]=true; });
+        renderPreviewCanvas();
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    }
+
     function attachPreviewInteract(item, id, pc) {
       item.addEventListener('mousedown', function(e) {
         if (imgLayers[id] && imgLayers[id].locked) return;
@@ -1750,28 +1881,32 @@
         var groupMembers = pvGroupIdsOf(id);
 
         if (isHandle) {
-          // RESIZE — only meaningful for a single selected layer
+          // SINGLE-ITEM resize — center-anchored, signed size crossing zero triggers a mirror flip
           var rect = pc.getBoundingClientRect();
           var startMouseX = e.clientX, startMouseY = e.clientY;
           var L = imgLayers[id];
           var startSize = (L.type === 'text') ? (L.fontSize || 60) : (L.size || 400);
+          var startFlip = !!L.flipX;
+          var signedStart = startFlip ? -startSize : startSize;
           var corner = e.target.dataset.corner;
+          var sizeField = (L.type === 'text') ? 'fontSize' : 'size';
           var onM = function(e2) {
             var dx = (e2.clientX - startMouseX) / rect.width * 1920;
             var sign = (corner === 'br' || corner === 'tr') ? 1 : -1;
-            var newSize = Math.max(20, Math.round(startSize + dx * sign));
-            imgLayers[id][L.type === 'text' ? 'fontSize' : 'size'] = newSize;
-            renderPreviewLive(id);
+            var signedNew = signedStart + dx * sign;
+            var newFlip = signedNew < 0;
+            var newSize = Math.max(20, Math.round(Math.abs(signedNew)));
+            imgLayers[id][sizeField] = newSize;
+            imgLayers[id].flipX = newFlip;
             imgDragging = true;
-            db.ref('widgets/image_layers/'+id+'/'+(L.type==='text'?'fontSize':'size')).set(newSize);
+            renderPreviewCanvas();
+            db.ref('widgets/image_layers/'+id).update({ flipX: newFlip, [sizeField]: newSize });
           };
           var onU = function() {
             document.removeEventListener('mousemove', onM);
             document.removeEventListener('mouseup', onU);
-            var finalSize = imgLayers[id][L.type === 'text' ? 'fontSize' : 'size'];
-            db.ref('widgets/image_layers/'+id+'/'+(L.type==='text'?'fontSize':'size')).set(finalSize);
             clearTimeout(imgDragTimer);
-            imgDragTimer = setTimeout(function(){ imgDragging = false; renderPreviewCanvas(); }, 300);
+            imgDragTimer = setTimeout(function(){ imgDragging = false; }, 300);
           };
           document.addEventListener('mousemove', onM);
           document.addEventListener('mouseup', onU);
@@ -1780,16 +1915,10 @@
 
         // SELECTION logic
         if (shift) {
-          // Toggle this id's group membership in the selection, keep existing selection
           var alreadyIn = groupMembers.every(function(m){ return pvSelected[m]; }) && groupMembers.length > 0;
-          if (alreadyIn) {
-            groupMembers.forEach(function(m){ delete pvSelected[m]; });
-          } else {
-            groupMembers.forEach(function(m){ pvSelected[m] = true; });
-          }
+          if (alreadyIn) groupMembers.forEach(function(m){ delete pvSelected[m]; });
+          else groupMembers.forEach(function(m){ pvSelected[m] = true; });
         } else {
-          // If clicking an already-selected item (part of current multi-selection), keep selection as-is
-          // (so a drag can move the whole group/multi-selection). Otherwise select just this item's group.
           if (!pvSelected[id]) {
             pvSelected = {};
             groupMembers.forEach(function(m){ pvSelected[m] = true; });
@@ -1798,20 +1927,16 @@
         renderPreviewCanvas();
 
         var selIds = Object.keys(pvSelected);
-        if (selIds.length === 0) return; // was deselected via shift — nothing to drag
+        if (selIds.length === 0) return;
 
-        // MOVE all selected ids together
+        // MOVE all selected together
         var rect2 = pc.getBoundingClientRect();
         var startMouseX2 = e.clientX, startMouseY2 = e.clientY;
         var starts = {};
         selIds.forEach(function(sid) {
           var Ls = imgLayers[sid];
-          starts[sid] = {
-            x: (Ls.xPercent != null) ? Ls.xPercent : 50,
-            y: (Ls.yPercent != null) ? Ls.yPercent : 80
-          };
+          starts[sid] = { x: (Ls.xPercent!=null)?Ls.xPercent:50, y: (Ls.yPercent!=null)?Ls.yPercent:80 };
         });
-
         var onM2 = function(e2) {
           var dxp = (e2.clientX - startMouseX2) / rect2.width * 100;
           var dyp = (e2.clientY - startMouseY2) / rect2.height * 100;
@@ -1820,7 +1945,6 @@
             if (imgLayers[sid] && imgLayers[sid].locked) return;
             var nx = Math.round(starts[sid].x + dxp);
             var ny = Math.round(starts[sid].y + dyp);
-            // No clamping — layers can be moved into the staging area (off-screen)
             imgLayers[sid].xPercent = nx; imgLayers[sid].yPercent = ny;
             var el = pc.querySelector('[data-prev="'+sid+'"]');
             if (el) { el.style.left = nx + '%'; el.style.top = ny + '%'; }
@@ -1835,6 +1959,60 @@
         };
         document.addEventListener('mousemove', onM2);
         document.addEventListener('mouseup', onU2);
+      });
+    }
+
+    // Group resize: scale all selected proportionally around the opposite corner as a fixed anchor
+    function attachGroupResizeHandles(frame, pc) {
+      frame.querySelectorAll('.pv-group-handle').forEach(function(handle) {
+        handle.addEventListener('mousedown', function(e) {
+          e.preventDefault(); e.stopPropagation();
+          var corner = handle.dataset.corner;
+          var ids = Object.keys(pvSelected);
+          if (ids.length < 2) return;
+          var rect = pc.getBoundingClientRect();
+          var bbox = pvComputeGroupBBox(ids);
+          var anchorX = (corner==='tr'||corner==='br') ? bbox.minX : bbox.maxX;
+          var anchorY = (corner==='bl'||corner==='br') ? bbox.minY : bbox.maxY;
+          var cornerX  = (corner==='tr'||corner==='br') ? bbox.maxX : bbox.minX;
+          var cornerY  = (corner==='bl'||corner==='br') ? bbox.maxY : bbox.minY;
+          var startDist = Math.max(1, Math.sqrt(Math.pow(cornerX-anchorX,2)+Math.pow(cornerY-anchorY,2)));
+          var starts = {};
+          ids.forEach(function(id) {
+            var L = imgLayers[id];
+            starts[id] = {
+              x: (L.xPercent!=null)?L.xPercent:50,
+              y: (L.yPercent!=null)?L.yPercent:80,
+              size: (L.type==='text') ? (L.fontSize||60) : (L.size||400)
+            };
+          });
+          var onM = function(e2) {
+            var mx = (e2.clientX - rect.left) / rect.width * 100;
+            var my = (e2.clientY - rect.top) / rect.height * 100;
+            var dist = Math.sqrt(Math.pow(mx-anchorX,2)+Math.pow(my-anchorY,2));
+            var scaleFactor = Math.max(0.05, dist / startDist);
+            imgDragging = true;
+            ids.forEach(function(id) {
+              if (imgLayers[id] && imgLayers[id].locked) return;
+              var s = starts[id];
+              var nx = Math.round(anchorX + (s.x - anchorX) * scaleFactor);
+              var ny = Math.round(anchorY + (s.y - anchorY) * scaleFactor);
+              var nsize = Math.max(20, Math.round(s.size * scaleFactor));
+              var sizeField = (imgLayers[id].type === 'text') ? 'fontSize' : 'size';
+              imgLayers[id].xPercent = nx; imgLayers[id].yPercent = ny; imgLayers[id][sizeField] = nsize;
+              db.ref('widgets/image_layers/'+id).update({ xPercent: nx, yPercent: ny, [sizeField]: nsize });
+            });
+            renderPreviewCanvas();
+          };
+          var onU = function() {
+            document.removeEventListener('mousemove', onM);
+            document.removeEventListener('mouseup', onU);
+            clearTimeout(imgDragTimer);
+            imgDragTimer = setTimeout(function(){ imgDragging = false; }, 300);
+          };
+          document.addEventListener('mousemove', onM);
+          document.addEventListener('mouseup', onU);
+        });
       });
     }
 
@@ -2020,12 +2198,13 @@
                 <span id="pv-sel-count" style="font-size:11px;color:#00e5ff;font-weight:700;"></span>
                 <button id="pv-group-btn" onclick="pvGroupSelected()" style="display:none;width:auto;margin:0;padding:4px 9px;background:#6610f2;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;">🔗 Группа</button>
                 <button id="pv-ungroup-btn" onclick="pvUngroupSelected()" style="display:none;width:auto;margin:0;padding:4px 9px;background:#e67e22;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;">🔓 Разгруппировать</button>
+                <button id="pv-dup-btn" onclick="pvDuplicateSelected()" title="Дублировать (Ctrl+Shift+D)" style="display:none;width:auto;margin:0;padding:4px 9px;background:#1db954;border:none;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;">⧉ Дублировать</button>
                 <button onclick="pvClearSelection()" style="width:auto;margin:0;padding:4px 9px;background:#555;border-radius:5px;color:#fff;font-size:11px;cursor:pointer;border:none;">✕ Снять</button>
               </div>
             </div>
             <!-- Staging area: extra space around the 16:9 screen where new/off-screen layers live -->
-            <div id="img-preview-stage" style="position:relative;width:100%;padding:15%;box-sizing:border-box;background:repeating-linear-gradient(45deg,#15151d,#15151d 10px,#191922 10px,#191922 20px);border-radius:10px;flex-shrink:0;overflow:visible;">
-              <div id="img-preview-canvas" onmousedown="if(event.target.id==='img-preview-canvas'){pvClearSelection();}" style="position:relative;width:100%;aspect-ratio:16/9;background-image:url('https://github.com/G1bsi/DORNOD/blob/main/test%20(2).png?raw=true');background-size:100% 100%;background-position:center;border:2px dashed #00b8d4;border-radius:6px;overflow:visible;"></div>
+            <div id="img-preview-stage" onmousedown="pvCanvasMouseDown(event)" style="position:relative;width:100%;padding:15%;box-sizing:border-box;background:repeating-linear-gradient(45deg,#15151d,#15151d 10px,#191922 10px,#191922 20px);border-radius:10px;flex-shrink:0;overflow:visible;">
+              <div id="img-preview-canvas" onmousedown="pvCanvasMouseDown(event)" style="position:relative;width:100%;aspect-ratio:16/9;background-image:url('https://github.com/G1bsi/DORNOD/blob/main/test%20(2).png?raw=true');background-size:100% 100%;background-position:center;border:2px dashed #00b8d4;border-radius:6px;overflow:visible;"></div>
             </div>
           </div>
 
