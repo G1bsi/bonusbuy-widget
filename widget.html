@@ -1349,21 +1349,26 @@
           }
           container.appendChild(el);
         }
+        var flipT = L.flipX ? 'scaleX(-1)' : '';
         if (L.type === 'text') {
           var txtEl = el.querySelector('.img-text');
           if (txtEl) {
             txtEl.textContent = L.text || '';
             txtEl.style.color = L.color || '#ffffff';
             txtEl.style.fontSize = (L.fontSize || 60) + 'px';
+            txtEl.style.transform = flipT;
+            txtEl.style.display = 'inline-block';
           }
           el.style.width = 'auto';
         } else if (L.type === 'video') {
           var vid = el.querySelector('video');
           if (vid && vid.src !== L.src) vid.src = L.src;
+          vid.style.transform = flipT;
           el.style.width  = (L.size || 400) + 'px';
         } else {
           var img = el.querySelector('img');
           if (img && img.src !== L.src) img.src = L.src;
+          img.style.transform = flipT;
           el.style.width  = (L.size || 400) + 'px';
         }
         el.style.zIndex = L.z || 1;
