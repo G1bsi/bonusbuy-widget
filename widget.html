@@ -2936,5 +2936,348 @@
     prevOpenedCount = openedCount;
   });
 </script>
+<!-- автоподхват колёс и розыгрышей с сайта kostezepay -->
+<script>
+/* ===================================================================
+   Автоподхват идущих колёс и розыгрышей с сайта kostezepay.
+
+   Панель «статус колеса» в виджете уже есть и уже расставлена в
+   оверлее - её три карточки просто заполняли руками из модерки. Здесь
+   тот же блок начинает заполняться сам: пока на сайте идёт набор,
+   значения берутся из публичного API; набор кончился - скрипт уходит с
+   дороги, и ручной режим снова главный.
+
+   Оформление тоже своё, но ТОЛЬКО для наборов с сайта: на панель
+   вешается класс kp, и она перекрашивается под витрину kostezepay -
+   чёрная подложка, кремовый текст, жёлтый акцент, узкий капс. Чужие
+   колёса (ручной режим, дракон) остаются бирюзовыми, как были: класс
+   снимается вместе с данными, а без него ни одно правило не действует.
+
+   Настройки - только через адрес источника в OBS, другого способа там
+   нет:
+     ?api=https://api.example.com   база API (обязательно https, иначе
+                                    страница по https её не дёрнет)
+     ?feed=0                        выключить автоподхват совсем
+     ?poll=5                        как часто спрашивать, секунды
+   =================================================================== */
+(function () {
+  'use strict';
+
+  var парам = new URLSearchParams(location.search);
+  if (парам.get('feed') === '0') return;
+
+  var API = (парам.get('api') || '').replace(/\/+$/, '');
+  if (!API) return;                       // без адреса делать нечего
+
+  var ОПРОС = Math.max(3, Number(парам.get('poll') || 5)) * 1000;
+  var ПАУЗА = 10000;                      // когда ничего не идёт - реже
+  var ЗНАК = String.fromCharCode(36);     // символ доллара
+
+  var список = [];                        // все идущие наборы
+  var индекс = 0;                         // какой показываем сейчас
+  var последняяСмена = 0;
+  var ПОКАЗ = 8000;                       // сколько держим один набор
+  var таймерОпроса = null;
+
+  стили();
+
+  /* ---------- оформление под витрину ------------------------------
+     Цвета - токены сайта: подложка #13120f, вложенный блок #191713,
+     текст #efe9dc, акцент #f5c518, тусклый #948f81. Oswald - тот же
+     шрифт, что в заголовках витрины: узкий капс с кириллицей, ради неё
+     он там и выбран. */
+  function стили() {
+    var s = document.createElement('style');
+    s.textContent = [
+      "@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&display=swap');",
+
+      /* Фон рисуем свой целиком: у чужого варианта бирюзовая сетка и
+         колесо в подложке, с витриной они не сходятся никак. */
+      ".wheel-banner.kp{height:auto !important;min-height:140px;background:#13120f !important;",
+      "border:1px solid rgba(148,143,129,.16) !important;border-radius:20px !important;",
+      "box-shadow:0 20px 60px rgba(0,0,0,.6) !important}",
+      ".wheel-banner.kp .wheel-bg,.wheel-banner.kp .wheel-bg-overlay{display:none !important}",
+
+      /* Содержимое панели лежит абсолютно (inset:0) и высоту родителя не
+         двигает вовсе - height:auto давала ноль, работал только
+         min-height, и заголовок уезжал за край. Возвращаем в поток. */
+      ".wheel-banner.kp .wheel-banner-center{position:relative !important;",
+      "left:auto !important;right:auto !important;top:auto !important;bottom:auto !important}",
+
+      /* Знак витрины вместо колеса в подложке: он рисуется шрифтом, а не
+         картинкой с чужой палитрой. */
+      ".wheel-banner.kp .wheel-banner-center::before{content:'✱';position:absolute;left:22px;",
+      "top:50%;transform:translateY(-50%);font-size:92px;line-height:1;color:#f5c518;",
+      "opacity:.10;pointer-events:none}",
+
+      ".wheel-banner.kp .wb-title{font-family:'Oswald',sans-serif;font-weight:600;font-size:22px;",
+      "letter-spacing:.06em;color:#efe9dc !important;text-shadow:none !important}",
+      ".wheel-banner.kp .wb-title em{font-style:normal;color:#f5c518}",
+
+      ".wheel-banner.kp .wb-card{background:#191713 !important;border:0 !important;",
+      "box-shadow:none !important;border-radius:12px !important}",
+      ".wheel-banner.kp .wb-card.wb-gold{background:rgba(245,197,24,.10) !important}",
+      ".wheel-banner.kp .wb-label{color:#948f81 !important;letter-spacing:.14em;font-size:10px}",
+      ".wheel-banner.kp .wb-card.wb-gold .wb-label{color:#f5c518 !important}",
+
+      /* tabular-nums обязателен: без него секунды в таймере дёргают
+         строку на каждом тике - на витрине это же правило у всех сумм. */
+      ".wheel-banner.kp .wb-val{font-family:'Oswald',sans-serif;font-weight:600;font-size:26px;",
+      "color:#efe9dc !important;font-variant-numeric:tabular-nums;text-shadow:none !important}",
+      ".wheel-banner.kp .wb-card.wb-gold .wb-val{color:#f5c518 !important}",
+
+      /* Ссылка в закрепе и строка участников владельцу не нужны:
+         на экране и так тесно, а главное - приз, порог и таймер. */
+      ".wheel-banner.kp .wb-link{display:none !important}",
+
+      /* Порядок карточек по просьбе владельца: сумма, депозит,
+         победители. В разметке они лежат иначе, поэтому переставляем
+         flex-порядком, а не правкой чужого html. */
+      ".wheel-banner.kp .wb-card:nth-child(1){order:2}",
+      ".wheel-banner.kp .wb-card:nth-child(2){order:1}",
+      ".wheel-banner.kp .wb-card:nth-child(3){order:3}",
+
+      /* Партнёр - в правом верхнем углу, тем же заголовочным шрифтом.
+         Строка условий снизу убрана: имя партнёра и есть всё, что
+         нужно сказать про то, чьё это колесо. */
+      ".wheel-banner.kp #feed-partner{position:absolute;right:18px;top:14px;",
+      "font-family:'Oswald',sans-serif;font-weight:600;font-size:18px;letter-spacing:.04em;",
+      "color:#f5c518;opacity:.95;white-space:nowrap;z-index:3}",
+
+      /* Таймер живёт ПОД панелью, как у дракона: там он крупный и его
+         видно первым. Внутри коробки такой кегль не помещался. */
+      "#feed-timer{width:580px;margin:8px auto 0;text-align:center;",
+      "font-family:'Oswald',sans-serif;font-weight:600;font-size:52px;line-height:1;",
+      "letter-spacing:.04em;color:#efe9dc;font-variant-numeric:tabular-nums;",
+      "text-shadow:0 0 30px rgba(245,197,24,.35),0 4px 18px rgba(0,0,0,.9);display:none}",
+
+      /* Счётчик наборов - в правом нижнем углу панели, мелко: он не
+         новость, а подсказка, что колёс несколько и это не залипло. */
+      ".wheel-banner.kp #feed-count{position:absolute;right:18px;bottom:12px;",
+      "font-family:'Oswald',sans-serif;font-weight:600;font-size:13px;letter-spacing:.1em;",
+      "color:#948f81;font-variant-numeric:tabular-nums;display:none;z-index:3}"
+    ].join('');
+    document.head.appendChild(s);
+  }
+
+  function элемент(id) { return document.getElementById(id); }
+
+  /* numeric(38,18) приезжает строкой «25.000000000000000000» - без
+     Number на экране был бы весь хвост нулей. */
+  function деньги(n) {
+    var v = Number(n || 0);
+    return (Math.round(v * 100) / 100).toLocaleString('ru-RU');
+  }
+
+  /* Приз одной строкой. Не берём title: он собирается автоматически и
+     дословно повторяет сумму - вышло бы «500 USDT / 500 USDT». */
+  function приз(н) {
+    if (н.вид === 'колесо') {
+      var всего = н.total != null ? Number(н.total)
+        : Number(н.perWinner || 0) * Number(н.winners || 0);
+      return деньги(всего) + ' ' + н.currency;
+    }
+    if (н.prizeKind === 'balance') {
+      var шт = Number(н.winnersCount || 1);
+      return (шт > 1 ? шт + ' × ' : '') + деньги(н.amount) + ' ' + н.currency;
+    }
+    var шт2 = Number(н.winnersCount || 1);
+    return (шт2 > 1 ? шт2 + ' × ' : '') + (н.prizeText || 'приз');
+  }
+
+  function осталось(closesAt) {
+    if (!closesAt) return null;
+    var сек = Math.floor((new Date(closesAt).getTime() - Date.now()) / 1000);
+    if (!(сек > 0)) return 'идёт розыгрыш';
+    var м = Math.floor(сек / 60), с = сек % 60;
+    return м + 'м ' + (с < 10 ? '0' : '') + с + 'с';
+  }
+
+  /* Только имя партнёра - без «рефералы» и без порога: порог стоит
+     отдельной карточкой, а чьё это колесо, имя говорит само. */
+  function партнёр(н) {
+    if (н.вид === 'колесо') {
+      var a = н.audience || {};
+      // Два ключа аудитории - два партнёра: один у «подтверждённого
+      // аккаунта», другой у порога депозита (119). Обычно это один и тот
+      // же, но у колеса только с депозитом первый пуст.
+      return a.operatorName || a.depositOperatorName || '';
+    }
+    return н.operatorName || '';
+  }
+
+  /* Ни имени партнёра, ни таймера в чужой разметке нет - создаём сами.
+     Имя ложится внутрь панели (в её правый верхний угол), таймер - ПОД
+     панель отдельным блоком, как у дракона. */
+  function свои() {
+    var баннер = элемент('wheel-banner');
+    if (!баннер) return null;
+
+    var имя = элемент('feed-partner');
+    if (!имя) {
+      имя = document.createElement('div');
+      имя.id = 'feed-partner';
+      баннер.appendChild(имя);
+    }
+
+    var таймер = элемент('feed-timer');
+    if (!таймер) {
+      таймер = document.createElement('div');
+      таймер.id = 'feed-timer';
+      // Сразу за панелью: она в потоке трекера, и вставка следом
+      // кладёт таймер ровно под неё, без абсолютных координат.
+      баннер.parentNode.insertBefore(таймер, баннер.nextSibling);
+    }
+    var счёт = элемент('feed-count');
+    if (!счёт) {
+      счёт = document.createElement('div');
+      счёт.id = 'feed-count';
+      баннер.appendChild(счёт);
+    }
+    return { имя: имя, таймер: таймер, счёт: счёт };
+  }
+
+  function нарисовать() {
+    var н = текущий();
+    var баннер = элемент('wheel-banner');
+    if (!баннер || !н) return;
+
+    if (typeof showBanner === 'function') showBanner(баннер);
+    баннер.classList.remove('inactive');
+    баннер.classList.add('kp');
+
+    элемент('wb-title').innerHTML =
+      (н.вид === 'колесо' ? 'КОЛЕСО' : 'РОЗЫГРЫШ') + ' <em>✱</em> АКТИВНО';
+    элемент('wb-val-amount').innerText = приз(н);
+    элемент('wb-val-winners').innerText =
+      String(н.вид === 'колесо' ? н.winners : (н.winnersCount || 1));
+
+    var мин = н.вид === 'колесо' ? (н.audience && н.audience.minDeposit) : н.minDeposit;
+    элемент('wb-val-dep').innerText = Number(мин) > 0 ? деньги(мин) + ' ' + ЗНАК : '—';
+
+    var с = свои();
+    if (с) {
+      с.имя.innerText = партнёр(н);
+      var t = осталось(н.closesAt);
+      // Розыгрыш без дедлайна: пустой таймер прячем целиком, иначе под
+      // панелью висела бы полоса пустоты в полсотни пикселей.
+      с.таймер.style.display = t ? 'block' : 'none';
+      if (t) с.таймер.innerText = t;
+
+      // Счётчик - только когда есть что листать. При одном наборе он
+      // говорил бы «1/1» и был бы просто мусором в кадре.
+      var много = список.length > 1;
+      с.счёт.style.display = много ? 'block' : 'none';
+      if (много) с.счёт.innerText = (индекс + 1) + '/' + список.length;
+    }
+  }
+
+  function убрать() {
+    список = [];
+    индекс = 0;
+    var баннер = элемент('wheel-banner');
+    // Класс снимаем обязательно: иначе чужое колесо унаследует чужое
+    // оформление и станет жёлтым без всякой причины.
+    if (баннер) баннер.classList.remove('kp');
+    var имя = элемент('feed-partner'), таймер = элемент('feed-timer');
+    if (имя) имя.innerText = '';
+    // Таймер прячем обязательно: он живёт ВНЕ панели, и класс kp его не
+    // выключает - без этого он остался бы висеть над чужим колесом.
+    if (таймер) таймер.style.display = 'none';
+    var счёт = элемент('feed-count');
+    if (счёт) счёт.style.display = 'none';
+    // Саму панель не прячем: ею распоряжается ручной режим из модерки,
+    // и выключать её здесь значит спорить с человеком за один элемент.
+  }
+
+  function спросить() {
+    Promise.all([
+      fetch(API + '/public/raffle', { cache: 'no-store' }).then(function (r) { return r.json(); }),
+      fetch(API + '/public/giveaway', { cache: 'no-store' }).then(function (r) { return r.json(); })
+    ]).then(function (ответы) {
+      var колёса = ((ответы[0] && ответы[0].live) || []).map(function (r) {
+        r.вид = 'колесо'; return r;
+      });
+      var розыгрыши = ((ответы[1] && ответы[1].live) || [])
+        .filter(function (g) { return !g.finished; })
+        .map(function (g) { g.вид = 'розыгрыш'; return g; });
+
+      /* Колёса вперёд и по срочности: у них таймер, и первым надо
+         показывать тот, что закрывается раньше - он и есть новость.
+         Розыгрыши следом, у них дедлайна нет вовсе. */
+      колёса.sort(function (a, b) {
+        return new Date(a.closesAt || 0) - new Date(b.closesAt || 0);
+      });
+      var новый = колёса.concat(розыгрыши);
+
+      сменитьСписок(новый);
+      if (список.length) нарисовать(); else убрать();
+      расписание(список.length ? ОПРОС : ПАУЗА);
+    }).catch(function () {
+      // Сайт недоступен - молчим и пробуем позже. Ронять оверлей на
+      // стриме из-за сети нельзя.
+      расписание(ПАУЗА);
+    });
+  }
+
+  /* Список обновляем так, чтобы на экране ничего не дёргалось: пока
+     показанный набор жив, он и остаётся показанным, даже если соседи
+     сменились. Иначе каждый опрос сбрасывал бы карусель на первый
+     элемент, и второе колесо никто бы не увидел. */
+  function сменитьСписок(новый) {
+    var показанный = список[индекс];
+    список = новый;
+    if (!новый.length) { индекс = 0; return; }
+    if (показанный) {
+      for (var i = 0; i < новый.length; i++) {
+        if (новый[i].id === показанный.id) { индекс = i; return; }
+      }
+    }
+    индекс = 0;                      // показанный набор кончился
+    последняяСмена = Date.now();     // новому дают полный срок
+  }
+
+  function текущий() {
+    if (!список.length) return null;
+    if (индекс >= список.length) индекс = 0;
+    return список[индекс];
+  }
+
+  /* Листаем сами, раз в ПОКАЗ. Крутить карусель чаще опроса нельзя -
+     соседний набор успел бы устареть до того, как его показали. */
+  function листать() {
+    if (список.length < 2) return;
+    if (Date.now() - последняяСмена < ПОКАЗ) return;
+    последняяСмена = Date.now();
+    индекс = (индекс + 1) % список.length;
+    var баннер = элемент('wheel-banner');
+    // Короткое затухание на смене: без него цифры перескакивают рывком
+    // и читаются как сбой данных, а не как «следующее колесо».
+    if (баннер) {
+      баннер.style.transition = 'opacity .18s ease';
+      баннер.style.opacity = '0';
+      setTimeout(function () {
+        нарисовать();
+        баннер.style.opacity = '1';
+      }, 180);
+    }
+  }
+
+  function расписание(мс) {
+    if (таймерОпроса) clearTimeout(таймерОпроса);
+    таймерОпроса = setTimeout(спросить, мс + Math.random() * 500);
+  }
+
+  // Таймер и перерисовка - раз в секунду. Заодно возвращаем свои
+  // значения, если их перетёрла отрисовка из Firebase.
+  setInterval(function () {
+    if (!список.length) return;
+    листать();
+    нарисовать();
+  }, 1000);
+
+  спросить();
+})();
+</script>
 </body>
 </html>
