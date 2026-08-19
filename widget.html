@@ -2936,7 +2936,6 @@
     prevOpenedCount = openedCount;
   });
 </script>
-<!-- автоподхват колёс и розыгрышей с сайта kostezepay -->
 <script>
 /* ===================================================================
    Автоподхват идущих колёс и розыгрышей с сайта kostezepay.
@@ -2994,74 +2993,128 @@
 
       /* Фон рисуем свой целиком: у чужого варианта бирюзовая сетка и
          колесо в подложке, с витриной они не сходятся никак. */
-      ".wheel-banner.kp{height:auto !important;min-height:140px;background:#13120f !important;",
-      "border:1px solid rgba(148,143,129,.16) !important;border-radius:20px !important;",
-      "box-shadow:0 20px 60px rgba(0,0,0,.6) !important}",
+      ".wheel-banner.kp{height:auto !important;min-height:0 !important;background:#13120f !important;",
+      "border:1px solid rgba(148,143,129,.14) !important;border-radius:22px !important;",
+      "box-shadow:0 24px 70px rgba(0,0,0,.65) !important;padding:18px 20px 16px !important;",
+      "overflow:hidden !important;animation:none !important}",
+
+      /* animation:none выше - не косметика. У чужой панели стоит
+         slideUp с fill-mode both: она держит последний кадр вечно и
+         перебивает любые inline-стили transform и opacity. Из-за неё не
+         работал ни прежний плавный переход, ни свайп - смена набора
+         выглядела рывком, и владелец на это указал. */
       ".wheel-banner.kp .wheel-bg,.wheel-banner.kp .wheel-bg-overlay{display:none !important}",
 
       /* Содержимое панели лежит абсолютно (inset:0) и высоту родителя не
-         двигает вовсе - height:auto давала ноль, работал только
-         min-height, и заголовок уезжал за край. Возвращаем в поток. */
+         двигает вовсе - возвращаем в поток, иначе панель схлопывается. */
       ".wheel-banner.kp .wheel-banner-center{position:relative !important;",
-      "left:auto !important;right:auto !important;top:auto !important;bottom:auto !important}",
+      "left:auto !important;right:auto !important;top:auto !important;bottom:auto !important;",
+      "padding:0 !important;display:block !important}",
 
-      /* Знак витрины вместо колеса в подложке: он рисуется шрифтом, а не
-         картинкой с чужой палитрой. */
-      ".wheel-banner.kp .wheel-banner-center::before{content:'✱';position:absolute;left:22px;",
-      "top:50%;transform:translateY(-50%);font-size:92px;line-height:1;color:#f5c518;",
-      "opacity:.10;pointer-events:none}",
+      /* Знак витрины в подложке. Ушёл в правый нижний угол и стал крупнее:
+         слева он спорил с суммой, а сумма здесь главная. */
+      ".wheel-banner.kp .wheel-banner-center::before{content:'✱';position:absolute;",
+      "right:-30px;bottom:-64px;font-size:170px;line-height:1;color:#f5c518;",
+      "opacity:.05;pointer-events:none}",
 
-      ".wheel-banner.kp .wb-title{font-family:'Oswald',sans-serif;font-weight:600;font-size:22px;",
-      "letter-spacing:.06em;color:#efe9dc !important;text-shadow:none !important}",
+      /* Шапка: название слева, партнёр плашкой справа. Заголовок больше
+         не по центру - он спорил с плашкой за одну и ту же середину. */
+      ".wheel-banner.kp .wb-title{font-family:'Oswald',sans-serif;font-weight:600;font-size:19px;",
+      "letter-spacing:.10em;color:#efe9dc !important;text-shadow:none !important;",
+      "text-align:left !important;margin:0 0 14px !important;padding-right:150px;",
+      "white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
       ".wheel-banner.kp .wb-title em{font-style:normal;color:#f5c518}",
 
+      /* Три карточки превращаются в сумму во всю ширину и два мелких
+         факта под ней: приз - новость, остальное - уточнение. */
+      ".wheel-banner.kp .wb-grid{display:grid !important;grid-template-columns:1fr 1fr !important;",
+      "grid-template-areas:'sum sum' 'dep win' !important;gap:10px !important;margin:0 !important}",
+      ".wheel-banner.kp .wb-card:nth-child(1){grid-area:dep}",
+      ".wheel-banner.kp .wb-card:nth-child(2){grid-area:sum}",
+      ".wheel-banner.kp .wb-card:nth-child(3){grid-area:win}",
+
+      /* Сумма - без коробки вовсе: рамка вокруг главного числа делает его
+         одним из трёх равных, а оно не равное. */
+      ".wheel-banner.kp .wb-card.wb-gold{background:transparent !important;border:0 !important;",
+      "box-shadow:none !important;padding:0 0 4px !important;text-align:left !important}",
+      ".wheel-banner.kp .wb-card.wb-gold .wb-label{color:#948f81 !important;font-size:11px;",
+      "letter-spacing:.20em;margin-bottom:2px}",
+      ".wheel-banner.kp .wb-card.wb-gold .wb-val{font-size:46px !important;line-height:1 !important;",
+      "color:#f5c518 !important}",
+
+      /* Два уточнения - тёмными плитками, подпись над числом. */
       ".wheel-banner.kp .wb-card{background:#191713 !important;border:0 !important;",
-      "box-shadow:none !important;border-radius:12px !important}",
-      ".wheel-banner.kp .wb-card.wb-gold{background:rgba(245,197,24,.10) !important}",
-      ".wheel-banner.kp .wb-label{color:#948f81 !important;letter-spacing:.14em;font-size:10px}",
-      ".wheel-banner.kp .wb-card.wb-gold .wb-label{color:#f5c518 !important}",
+      "box-shadow:none !important;border-radius:14px !important;padding:9px 14px 10px !important;",
+      "text-align:left !important;display:block !important}",
+      ".wheel-banner.kp .wb-label{display:block;color:#5c584e !important;letter-spacing:.16em;",
+      "font-size:10px;margin-bottom:2px}",
 
       /* tabular-nums обязателен: без него секунды в таймере дёргают
          строку на каждом тике - на витрине это же правило у всех сумм. */
-      ".wheel-banner.kp .wb-val{font-family:'Oswald',sans-serif;font-weight:600;font-size:26px;",
-      "color:#efe9dc !important;font-variant-numeric:tabular-nums;text-shadow:none !important}",
-      ".wheel-banner.kp .wb-card.wb-gold .wb-val{color:#f5c518 !important}",
+      ".wheel-banner.kp .wb-val{display:block;font-family:'Oswald',sans-serif;font-weight:600;",
+      "font-size:23px;line-height:1.1;color:#efe9dc !important;font-variant-numeric:tabular-nums;",
+      "text-shadow:none !important}",
 
       /* Ссылка в закрепе и строка участников владельцу не нужны:
          на экране и так тесно, а главное - приз, порог и таймер. */
       ".wheel-banner.kp .wb-link{display:none !important}",
 
-      /* Порядок карточек по просьбе владельца: сумма, депозит,
-         победители. В разметке они лежат иначе, поэтому переставляем
-         flex-порядком, а не правкой чужого html. */
-      ".wheel-banner.kp .wb-card:nth-child(1){order:2}",
-      ".wheel-banner.kp .wb-card:nth-child(2){order:1}",
-      ".wheel-banner.kp .wb-card:nth-child(3){order:3}",
+      /* Партнёр - плашкой в углу, а не голым текстом: голый спорил с
+         заголовком, будто это часть названия. */
+      ".wheel-banner.kp #feed-partner{position:absolute;right:16px;top:14px;",
+      "font-family:'Oswald',sans-serif;font-weight:600;font-size:14px;letter-spacing:.08em;",
+      "text-transform:uppercase;color:#f5c518;background:rgba(245,197,24,.12);",
+      "border-radius:999px;padding:4px 12px 5px;white-space:nowrap;z-index:3;max-width:150px;",
+      "overflow:hidden;text-overflow:ellipsis}",
+      ".wheel-banner.kp #feed-partner:empty{display:none}",
 
-      /* Партнёр - в правом верхнем углу, тем же заголовочным шрифтом.
-         Строка условий снизу убрана: имя партнёра и есть всё, что
-         нужно сказать про то, чьё это колесо. */
-      ".wheel-banner.kp #feed-partner{position:absolute;right:18px;top:14px;",
-      "font-family:'Oswald',sans-serif;font-weight:600;font-size:18px;letter-spacing:.04em;",
-      "color:#f5c518;opacity:.95;white-space:nowrap;z-index:3}",
+      /* Строка под панелью: таймер и счётчик наборов вместе. Раньше
+         счётчик жил в углу панели и лез под цифры, а таймер висел
+         сам по себе огромным серым числом. */
+      /* Ширина по родителю, а не жёсткие 580: панель бывает уже
+         (трекер сам её сужает), и фиксированная строка вылезала за её
+         край - точки уезжали за пределы панели. */
+      "#feed-under{width:100%;margin:10px auto 0;display:flex;align-items:center;",
+      "justify-content:center;gap:10px}",
+      /* Только время, без подписи: слово «до конца набора» съедало
+         половину пилюли, а сам таймер под панелью с колесом ни с чем
+         другим не спутать. */
+      "#feed-timer{display:inline-flex;align-items:center;",
+      "background:rgba(19,18,15,.94);border:1px solid rgba(148,143,129,.16);border-radius:999px;",
+      "padding:6px 22px 8px;box-shadow:0 14px 34px rgba(0,0,0,.6);",
+      "font-family:'Oswald',sans-serif;font-weight:600;font-size:34px;line-height:1;",
+      "letter-spacing:.04em;color:#efe9dc;font-variant-numeric:tabular-nums;text-shadow:none}",
 
-      /* Таймер живёт ПОД панелью, как у дракона: там он крупный и его
-         видно первым. Внутри коробки такой кегль не помещался. */
-      "#feed-timer{width:580px;margin:8px auto 0;text-align:center;",
-      "font-family:'Oswald',sans-serif;font-weight:600;font-size:52px;line-height:1;",
-      "letter-spacing:.04em;color:#efe9dc;font-variant-numeric:tabular-nums;",
-      "text-shadow:0 0 30px rgba(245,197,24,.35),0 4px 18px rgba(0,0,0,.9);display:none}",
-
-      /* Счётчик наборов - в правом нижнем углу панели, мелко: он не
-         новость, а подсказка, что колёс несколько и это не залипло. */
-      ".wheel-banner.kp #feed-count{position:absolute;right:18px;bottom:12px;",
-      "font-family:'Oswald',sans-serif;font-weight:600;font-size:13px;letter-spacing:.1em;",
-      "color:#948f81;font-variant-numeric:tabular-nums;display:none;z-index:3}"
+      /* Счётчик наборов - точками, а не «2/4»: цифры в углу владелец не
+         замечал вовсе, а точки читаются одним взглядом и сразу говорят,
+         сколько всего и какой сейчас. Активная - вытянутая жёлтая. */
+      /* Точки на своей тёмной подложке, как таймер: оверлей стоит
+         поверх игры, и на светлой сцене серые точки на прозрачном фоне
+         пропадали совсем. */
+      "#feed-count{display:none;align-items:center;gap:7px;",
+      "background:rgba(19,18,15,.94);border:1px solid rgba(148,143,129,.16);",
+      "border-radius:999px;padding:11px 13px;box-shadow:0 14px 34px rgba(0,0,0,.6)}",
+      "#feed-count i{display:block;width:8px;height:8px;border-radius:999px;",
+      "background:rgba(239,233,220,.28);transition:width .25s ease,background .25s ease}",
+      "#feed-count i.on{width:26px;background:#f5c518}"
     ].join('');
     document.head.appendChild(s);
   }
 
   function элемент(id) { return document.getElementById(id); }
+
+  /* Подпись над главным числом. В чужой разметке она жёстко «СУММА
+     КОЛЕСА» - для розыгрыша это неправда, у него приз, и он бывает не
+     деньгами вовсе. */
+  function подписьСуммы(н) {
+    if (н.вид === 'колесо') return 'СУММА КОЛЕСА';
+    return н.prizeKind === 'balance' ? 'СУММА РОЗЫГРЫША' : 'ПРИЗ';
+  }
+
+  function ярлыкСуммы() {
+    var карточка = элемент('wb-val-amount');
+    return карточка ? карточка.parentNode.querySelector('.wb-label') : null;
+  }
 
   /* numeric(38,18) приезжает строкой «25.000000000000000000» - без
      Number на экране был бы весь хвост нулей. */
@@ -3121,19 +3174,30 @@
       баннер.appendChild(имя);
     }
 
+    /* Таймер и счётчик живут одной строкой ПОД панелью. Счётчик раньше
+       стоял в углу самой панели и лез под цифры победителей, а таймер
+       висел отдельным огромным числом - вместе они читаются как подпись
+       к панели, а не как два случайных элемента. */
+    var низ = элемент('feed-under');
+    if (!низ) {
+      низ = document.createElement('div');
+      низ.id = 'feed-under';
+      баннер.parentNode.insertBefore(низ, баннер.nextSibling);
+    }
     var таймер = элемент('feed-timer');
     if (!таймер) {
       таймер = document.createElement('div');
       таймер.id = 'feed-timer';
-      // Сразу за панелью: она в потоке трекера, и вставка следом
-      // кладёт таймер ровно под неё, без абсолютных координат.
-      баннер.parentNode.insertBefore(таймер, баннер.nextSibling);
+      низ.appendChild(таймер);
+    }
+    низ.style.display = 'flex';
+    {
     }
     var счёт = элемент('feed-count');
     if (!счёт) {
       счёт = document.createElement('div');
       счёт.id = 'feed-count';
-      баннер.appendChild(счёт);
+      низ.appendChild(счёт);
     }
     return { имя: имя, таймер: таймер, счёт: счёт };
   }
@@ -3149,7 +3213,9 @@
        «КОЛЕСО ✱ АКТИВНО» бирюзовым, хотя ничего уже не идёт. Владелец
        поймал это первым же вечером. */
     if (!снимок) {
+      var я = ярлыкСуммы();
       снимок = {
+        подпись: я ? я.innerText : null,
         заголовок: элемент('wb-title').innerHTML,
         депозит: элемент('wb-val-dep').innerText,
         сумма: элемент('wb-val-amount').innerText,
@@ -3173,6 +3239,8 @@
     элемент('wb-title').innerHTML =
       (н.вид === 'колесо' ? 'КОЛЕСО' : 'РОЗЫГРЫШ') + ' <em>✱</em> ' +
       (времяВышло ? 'НАБОР ЗАКРЫТ' : 'АКТИВНО');
+    var ярлык = ярлыкСуммы();
+    if (ярлык) ярлык.innerText = подписьСуммы(н);
     элемент('wb-val-amount').innerText = приз(н);
     элемент('wb-val-winners').innerText =
       String(н.вид === 'колесо' ? н.winners : (н.winnersCount || 1));
@@ -3186,14 +3254,26 @@
       var t = осталось(н.closesAt);
       // Розыгрыш без дедлайна: пустой таймер прячем целиком, иначе под
       // панелью висела бы полоса пустоты в полсотни пикселей.
-      с.таймер.style.display = t ? 'block' : 'none';
+      с.таймер.style.display = t ? 'inline-flex' : 'none';
       if (t) с.таймер.innerText = t;
 
-      // Счётчик - только когда есть что листать. При одном наборе он
-      // говорил бы «1/1» и был бы просто мусором в кадре.
+      /* Точки - только когда есть что листать. При одном наборе одна
+         точка ничего не сообщает и просто болтается в кадре.
+
+         Перерисовываем их, лишь когда изменилось число наборов: иначе
+         каждую секунду пересоздавались бы узлы, и переход активной
+         точки не успевал бы проиграть. */
       var много = список.length > 1;
-      с.счёт.style.display = много ? 'block' : 'none';
-      if (много) с.счёт.innerText = (индекс + 1) + '/' + список.length;
+      с.счёт.style.display = много ? 'inline-flex' : 'none';
+      if (много) {
+        if (с.счёт.childNodes.length !== список.length) {
+          с.счёт.innerHTML = '';
+          for (var i = 0; i < список.length; i++) с.счёт.appendChild(document.createElement('i'));
+        }
+        for (var j = 0; j < с.счёт.childNodes.length; j++) {
+          с.счёт.childNodes[j].className = (j === индекс ? 'on' : '');
+        }
+      }
     }
   }
 
@@ -3203,8 +3283,17 @@
     var баннер = элемент('wheel-banner');
     // Класс снимаем обязательно: иначе чужое колесо унаследует чужое
     // оформление и станет жёлтым без всякой причины.
-    if (баннер) баннер.classList.remove('kp');
+    if (баннер) {
+      баннер.classList.remove('kp');
+      // Свайп двигал панель инлайновым стилем - снимаем, иначе чужая
+      // отрисовка получит сдвинутую и полупрозрачную панель.
+      баннер.style.transition = '';
+      баннер.style.transform = '';
+      баннер.style.opacity = '';
+    }
     var имя = элемент('feed-partner'), таймер = элемент('feed-timer');
+    var низ = элемент('feed-under');
+    if (низ) низ.style.display = 'none';
     if (имя) имя.innerText = '';
     // Таймер прячем обязательно: он живёт ВНЕ панели, и класс kp его не
     // выключает - без этого он остался бы висеть над чужим колесом.
@@ -3225,6 +3314,8 @@
       элемент('wb-title').innerHTML = снимок.заголовок;
       элемент('wb-val-dep').innerText = снимок.депозит;
       элемент('wb-val-amount').innerText = снимок.сумма;
+      var я2 = ярлыкСуммы();
+      if (я2 && снимок.подпись != null) я2.innerText = снимок.подпись;
       элемент('wb-val-winners').innerText = снимок.победители;
       if (снимок.неактивна) баннер.classList.add('inactive');
       if (!снимок.видна && typeof hideBanner === 'function') hideBanner(баннер);
@@ -3293,16 +3384,31 @@
     последняяСмена = Date.now();
     индекс = (индекс + 1) % список.length;
     var баннер = элемент('wheel-banner');
-    // Короткое затухание на смене: без него цифры перескакивают рывком
-    // и читаются как сбой данных, а не как «следующее колесо».
-    if (баннер) {
-      баннер.style.transition = 'opacity .18s ease';
-      баннер.style.opacity = '0';
-      setTimeout(function () {
-        нарисовать();
-        баннер.style.opacity = '1';
-      }, 180);
-    }
+    if (!баннер) { нарисовать(); return; }
+
+    /* Свайп, а не затухание: панель уезжает влево, следующая приходит
+       справа. Затухание владелец читал как рывок - цифры просто
+       подменялись на месте, и было непонятно, это следующее колесо или
+       сбились данные.
+
+       Между «уехала» и «приехала» transition снимаем совсем: иначе
+       возврат в правую точку сам поехал бы анимацией, и панель мотало
+       бы туда-сюда. */
+    var ЕДЕТ = 220, ПРИЕХАЛ = 260;
+    баннер.style.transition = 'transform ' + ЕДЕТ + 'ms cubic-bezier(.4,0,.7,.3), opacity ' + ЕДЕТ + 'ms ease';
+    баннер.style.transform = 'translateX(-34px)';
+    баннер.style.opacity = '0';
+
+    setTimeout(function () {
+      баннер.style.transition = 'none';
+      баннер.style.transform = 'translateX(34px)';
+      нарисовать();
+      void баннер.offsetWidth;                 // без этого 'none' не успеет примениться
+      баннер.style.transition = 'transform ' + ПРИЕХАЛ + 'ms cubic-bezier(.16,.86,.3,1), opacity '
+        + ПРИЕХАЛ + 'ms ease';
+      баннер.style.transform = 'translateX(0)';
+      баннер.style.opacity = '1';
+    }, ЕДЕТ);
   }
 
   function расписание(мс) {
@@ -3320,6 +3426,7 @@
 
   спросить();
 })();
+
 </script>
 </body>
 </html>
