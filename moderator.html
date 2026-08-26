@@ -623,19 +623,28 @@
         db.ref('main_widget_visible').set(!!visible);
     } window.setMainWidgetHidden = setMainWidgetHidden;
 
+    let saveWheelDataTimer = null;
     function saveWheelData() {
-        const amt = document.getElementById('wheel-amount').value;
-        const win = document.getElementById('wheel-winners').value;
-        const dep = document.getElementById('wheel-min-dep').value;
-        const mins = Number(document.getElementById('wheel-dragon-min').value || 0);
-        const secs = Number(document.getElementById('wheel-dragon-sec').value || 0);
-        const totalSecs = (mins * 60) + secs;
-        db.ref('wheel').update({
-            amount:  amt !== '' ? Number(amt) : 0,
-            winners: win !== '' ? Number(win) : 0,
-            min_dep: dep !== '' ? Number(dep) : 0,
-            dragon_timer: totalSecs
-        });
+        // Debounced: typing "15" fires oninput after each keystroke, and briefly clearing a
+        // field to retype it would otherwise send a transient 0-second value to Firebase —
+        // which, while the wheel is active, can prematurely kill the widget's running timer
+        // (it sees dragon_timer:0 and stops instead of restarting). Waiting for the user to
+        // pause avoids ever writing that intermediate, not-really-intended value.
+        clearTimeout(saveWheelDataTimer);
+        saveWheelDataTimer = setTimeout(function() {
+            const amt = document.getElementById('wheel-amount').value;
+            const win = document.getElementById('wheel-winners').value;
+            const dep = document.getElementById('wheel-min-dep').value;
+            const mins = Number(document.getElementById('wheel-dragon-min').value || 0);
+            const secs = Number(document.getElementById('wheel-dragon-sec').value || 0);
+            const totalSecs = (mins * 60) + secs;
+            db.ref('wheel').update({
+                amount:  amt !== '' ? Number(amt) : 0,
+                winners: win !== '' ? Number(win) : 0,
+                min_dep: dep !== '' ? Number(dep) : 0,
+                dragon_timer: totalSecs
+            });
+        }, 400);
     } window.saveWheelData = saveWheelData;
 
     /* ═══ DB LISTENER ═══ */
@@ -1470,6 +1479,7 @@
 
       inp.value  = '';
       note.value = '';
+      inp.focus(); // ready for the next amount right away
     }
 
     function statsSetCurrent() {
@@ -1502,10 +1512,12 @@
       });
     }
 
-    // Enter key in stats input
+    // Enter key in stats inputs: Enter on amount moves to note, Enter on note adds
     document.addEventListener('DOMContentLoaded', function() {
-      var inp = document.getElementById('stats-add-input');
-      if (inp) inp.addEventListener('keydown', function(e){ if(e.key==='Enter') statsAddAmount(); });
+      var inp  = document.getElementById('stats-add-input');
+      var note = document.getElementById('stats-add-note');
+      if (inp)  inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); if(note) note.focus(); } });
+      if (note) note.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); statsAddAmount(); } });
     });
 
     /* ═══ Image Layers ═══ */
