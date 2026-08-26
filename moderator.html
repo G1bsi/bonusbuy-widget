@@ -1512,13 +1512,15 @@
       });
     }
 
-    // Enter key in stats inputs: Enter on amount moves to note, Enter on note adds
-    document.addEventListener('DOMContentLoaded', function() {
+    // Enter key in stats inputs: Enter on amount moves to note, Enter on note adds.
+    // Attached directly (not via DOMContentLoaded) since this script runs at the bottom of
+    // <body>, by which point DOMContentLoaded has already fired — that listener never ran.
+    (function() {
       var inp  = document.getElementById('stats-add-input');
       var note = document.getElementById('stats-add-note');
-      if (inp)  inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); if(note) note.focus(); } });
-      if (note) note.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); statsAddAmount(); } });
-    });
+      if (inp)  inp.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); if(note) note.focus(); } });
+      if (note) note.addEventListener('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); statsAddAmount(); } });
+    })();
 
     /* ═══ Image Layers ═══ */
     var imgLayers = {}; // {id: {src, size, x, y, visible, z}}
